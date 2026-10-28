@@ -37,6 +37,7 @@ import {
   wasteSources,
 } from "../data/waste";
 import type { CollectionPoint, WasteCategory } from "../data/waste";
+import { CalendarDialog } from "../components/CalendarDialog";
 import "./waste.css";
 
 function Intro({
@@ -419,7 +420,11 @@ export function WasteWizardPage() {
       {results.length === 0 ? (
         <div className="panel empty-state">
           <Search size={32} />
-          <h3>Tega predmeta še ne poznamo.</h3>
+          <h3>
+            {category !== "all" && findWasteItems(query, "all").length > 0
+              ? "Predmet je v drugi skupini odpadkov."
+              : "Tega predmeta še ne poznamo."}
+          </h3>
           <p>
             Poskusite drug izraz, npr. »embalaža« ali »telefon«. Če še vedno
             niste prepričani, preverite pri osebju zbirnega centra.
@@ -427,11 +432,17 @@ export function WasteWizardPage() {
           <button
             className="button secondary"
             onClick={() => {
-              setQuery("");
+              if (
+                category === "all" ||
+                findWasteItems(query, "all").length === 0
+              )
+                setQuery("");
               setCategory("all");
             }}
           >
-            Pokaži vse predmete
+            {category !== "all" && findWasteItems(query, "all").length > 0
+              ? "Išči v vseh skupinah"
+              : "Pokaži vse predmete"}
           </button>
         </div>
       ) : (
@@ -497,13 +508,6 @@ type CollectionEvent = {
 type Schedule = { address: string; demo: boolean; events: CollectionEvent[] };
 const displayDate = (date: string, options: Intl.DateTimeFormatOptions) =>
   new Date(`${date}T12:00:00`).toLocaleDateString("sl-SI", options);
-function googleCalendar(event: CollectionEvent, address: string) {
-  const start = event.date.replaceAll("-", "");
-  const next = new Date(`${event.date}T12:00:00Z`);
-  next.setUTCDate(next.getUTCDate() + 1);
-  const end = next.toISOString().slice(0, 10).replaceAll("-", "");
-  return `https://calendar.google.com/calendar/render?${new URLSearchParams({ action: "TEMPLATE", text: `PRIMER – odvoz: ${event.label}`, dates: `${start}/${end}`, details: "Demonstracijski termin. To ni uradni urnik JP KPV. Uradni datum preverite na kpv.si.", location: address })}`;
-}
 function LocationPicker({
   onPick,
 }: {
@@ -533,12 +537,16 @@ export function CollectionPage() {
   const [picked, setPicked] = useState<[number, number] | null>(null);
   const [saved, setSaved] = useState(false);
   const [storageMessage, setStorageMessage] = useState("");
+  const [calendarEvent, setCalendarEvent] = useState<CollectionEvent | null>(
+    null,
+  );
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   async function lookup(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
     setError("");
+    setSchedule(null);
     setSaved(false);
     setStorageMessage("");
     if (address.trim().length < 4) {
@@ -666,19 +674,31 @@ export function CollectionPage() {
               onChange={(e) => {
                 setAddress(e.target.value);
                 setSaved(false);
+                setSchedule(null);
+                setError("");
               }}
               placeholder="Npr. Tržaška cesta 1, Vrhnika"
               autoComplete="street-address"
+              aria-describedby="collection-address-help"
             />
             <button className="button" type="submit" disabled={loading}>
               {loading ? "Iščemo termine …" : "Prikaži urnik"}
               <ArrowRight size={18} />
             </button>
           </div>
+          <p id="collection-address-help" className="waste-address-help">
+            {schedule
+              ? "Urnik je prikazan spodaj. Pri posameznem odvozu lahko izberete Dodaj v koledar."
+              : address
+                ? "Preverite vneseni naslov in pritisnite Prikaži urnik. Prikazali se bodo vzorčni termini za ta naslov."
+                : "Vnesite tudi kraj: Vrhnika, Borovnica ali Log – Dragomer. Nato pritisnite Prikaži urnik."}
+          </p>
         </form>
         <div className="waste-address-meta">
           <button
             className="waste-text-button"
+            aria-expanded={showMap}
+            aria-controls="collection-location-picker"
             onClick={() => setShowMap(!showMap)}
           >
             <MapPin size={15} />
@@ -704,10 +724,10 @@ export function CollectionPage() {
           </p>
         )}
         {showMap && (
-          <div className="waste-picker">
+          <div className="waste-picker" id="collection-location-picker">
             <p>
-              Kliknite lokacijo. Izbira služi preizkusu in ne določi uradnega
-              odvoznega območja.
+              Izberite točko na zemljevidu, nato pritisnite Prikaži urnik.
+              Izbira služi preizkusu in ne določi uradnega odvoznega območja.
             </p>
             <MapContainer
               center={[45.969, 14.326]}
@@ -725,6 +745,13 @@ export function CollectionPage() {
                 />
               )}
             </MapContainer>
+            {picked && (
+              <p className="waste-picker-confirmation" role="status">
+                <Check size={16} />
+                Lokacija je izbrana. Za vzorčne termine pritisnite Prikaži urnik
+                nad zemljevidom.
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -740,12 +767,13 @@ export function CollectionPage() {
               className="button secondary"
             >
               <Download size={17} />
-              Prenesi koledar (.ics)
+              Vsi prikazani termini (.ics)
             </a>
           </div>
           <p className="waste-calendar-note">
-            Datoteko .ics lahko uvozite v Apple Calendar, Outlook ali Google
-            Koledar. Prikazni dogodki so jasno označeni z »PRIMER«.
+            Pri posameznem odvozu izberite »Dodaj v koledar«: določite lahko en
+            termin ali ponavljanje ter izberete koledar svoje naprave. Povezava
+            zgoraj prenese vse prikazane termine brez dodatnega ponavljanja.
           </p>
           <div className="waste-timeline">
             {schedule.events.map((event, index) => (
@@ -789,17 +817,16 @@ export function CollectionPage() {
                     })}
                   </p>
                 </div>
-                <a
-                  href={googleCalendar(event, schedule.address)}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setCalendarEvent(event)}
                   className="waste-calendar-link"
-                  aria-label={`Dodaj prikazni odvoz ${event.label}, ${displayDate(event.date, { day: "numeric", month: "long" })} v Google Koledar`}
+                  aria-label={`Dodaj prikazni odvoz ${event.label}, ${displayDate(event.date, { day: "numeric", month: "long" })} v koledar in izberi ponavljanje`}
+                  aria-haspopup="dialog"
                 >
                   <CalendarDays size={17} />
-                  <span>Dodaj v Google Koledar</span>
-                  <ExternalLink size={13} />
-                </a>
+                  <span>Dodaj v koledar</span>
+                </button>
               </article>
             ))}
           </div>
@@ -834,6 +861,13 @@ export function CollectionPage() {
             </span>
           </div>
         </div>
+      )}
+      {calendarEvent && schedule && (
+        <CalendarDialog
+          event={calendarEvent}
+          address={schedule.address}
+          onClose={() => setCalendarEvent(null)}
+        />
       )}
       <div className="waste-bottom-help">
         <div>

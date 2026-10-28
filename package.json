@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web \"node server/local.mjs\" \"vite --host 127.0.0.1\"",
-    "dev:api": "node server/local.mjs",
+    "dev": "concurrently -k -n api,web \"node --watch server/local.mjs\" \"vite --host 127.0.0.1\"",
+    "dev:api": "node --watch server/local.mjs",
     "dev:web": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",

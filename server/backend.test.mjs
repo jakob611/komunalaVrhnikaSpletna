@@ -7,6 +7,76 @@ import { handleRequest, calendar } from "./worker.js";
 import { createFileStorage } from "./storage.mjs";
 import { getCollection, ljubljanaDate } from "./seed.js";
 
+test("selected calendar event exports one occurrence without recurrence", async () => {
+  const schedule = getCollection(person.address);
+  const event = schedule.events[0];
+  const params = new URLSearchParams({
+    address: person.address,
+    eventId: event.id,
+    repeat: "once",
+  });
+  const response = await handleRequest(
+    new Request(url(`/api/calendar?${params}`)),
+  );
+  assert.equal(response.status, 200);
+  const ics = (await response.text()).replace(/\r\n /g, "");
+  assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 1);
+  assert.ok(ics.includes(`DTSTART;VALUE=DATE:${event.date.replace(/-/g, "")}`));
+  assert.ok(!ics.includes("RRULE"));
+});
+
+test("calendar repeat choices produce a bounded weekly series", async () => {
+  const schedule = getCollection(person.address);
+  const event = schedule.events.find((event) => event.type === "packaging");
+  const params = new URLSearchParams({
+    address: person.address,
+    eventId: event.id,
+    repeat: "weekly",
+    interval: "2",
+    count: "7",
+  });
+  const response = await handleRequest(
+    new Request(url(`/api/calendar?${params}`)),
+  );
+  const ics = (await response.text()).replace(/\r\n /g, "");
+  assert.equal(response.status, 200);
+  assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 1);
+  assert.ok(ics.includes("RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=7\r\n"));
+  assert.ok(ics.includes("Ponavljanje ste izbrali sami"));
+  assert.ok(ics.includes("SUMMARY:PRIMER"));
+});
+
+test("calendar rejects stale events and invalid or unbounded repeat rules", async () => {
+  const event = getCollection(person.address).events[0];
+  for (const extra of [
+    { repeat: "daily" },
+    { repeat: "weekly" },
+    { eventId: "unknown" },
+    { eventId: event.id, repeat: "weekly", interval: "0", count: "4" },
+    { eventId: event.id, repeat: "weekly", interval: "2", count: "999" },
+    { eventId: event.id, repeat: "weekly", interval: "2", count: "0" },
+    {
+      eventId: event.id,
+      repeat: "weekly",
+      interval: "1\r\nATTENDEE:bad",
+      count: "4",
+    },
+  ]) {
+    const response = await handleRequest(
+      new Request(
+        url(
+          `/api/calendar?${new URLSearchParams({ address: person.address, ...extra })}`,
+        ),
+      ),
+    );
+    assert.ok([400, 404].includes(response.status));
+  }
+  const all = await handleRequest(
+    new Request(url(`/api/calendar?address=Vrhnika`)),
+  );
+  assert.equal((await all.text()).match(/BEGIN:VEVENT/g).length, 12);
+});
+
 const url = (route) => `https://kpv.example${route}`;
 const post = (route, body, extraHeaders = {}) =>
   new Request(url(route), {

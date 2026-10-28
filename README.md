@@ -4,7 +4,17 @@ Slovenski demonstracijski portal za pregled komunalnih storitev. React in TypeSc
 
 **Objavljena predstavitev:** <https://kpv.jakobtominc.com> · Cloudflare Worker `kpv-portal`, baza D1 `kpv-portal` (EU), zasebni R2 `kpv-portal-photos`. Konfiguracija že vsebuje povezave do ustvarjenih virov. E-pošta in plačila sta izključena.
 
-Portal vsebuje 19 poti: začetno stran, tri področna izhodišča, zemljevid odpadkov, čarovnik, urnik, obvestila, ceste, prijavo napake, storitve, tržnico, kalkulator, DEPO, kontakte, podjetje, Moj dom in zasebnost. Podatki o naslovu v Moj dom ostanejo v brskalniku.
+Portal vsebuje 18 poti: začetno stran, tri področna izhodišča, zemljevid odpadkov, čarovnik, urnik, obvestila, ceste, prijavo napake, storitve, tržnico, kalkulator, DEPO, kontakte, podjetje, Moj dom in zasebnost. Podatki o naslovu v Moj dom ostanejo v brskalniku.
+
+## Telefon, koledar in prijave
+
+Vmesnik je preverjen tudi pri širini 320 px. Navigacija, obrazci in zemljevidi ostanejo znotraj zaslona; polja imajo na telefonu velikost pisave 16 px, da vnos ne sproži samodejne povečave v brskalniku iOS. Prehodi menija, koledarskega lista in prikazovanje razdelkov med drsenjem upoštevajo nastavitev zmanjšanega gibanja.
+
+Pri posameznem odvozu gumb **Dodaj v koledar** odpre izbiro: enkraten dogodek ali ponavljanje na 1–8 tednov, z 2–52 termini. Predlagano ponavljanje zajema približno tri mesece. Google Koledar se odpre z izpolnjenim dogodkom; Apple, Outlook in druge aplikacije prejmejo datoteko ICS. Naprava predlaga začetno izbiro, uporabnik pa jo lahko spremeni. Končno shranjevanje je vedno potrjeno v koledarski aplikaciji. Na nekaterih različicah iOS je za ICS potreben uvoz iz priloge; spletna stran ne more zagotoviti tihega vpisa ali enakega odpiranja v vseh brskalnikih. Čas opozorila se nastavi v koledarski aplikaciji. Uvoz ne spremlja poznejših sprememb urnika, zato so vsi dogodki še vedno označeni kot PRIMER.
+
+API za en dogodek: `GET /api/calendar?address=Vrhnika&eventId=ID_ODVOZA&repeat=once`. Za ponavljanje dodajte `repeat=weekly&interval=2&count=7`. ID vzemite iz `/api/collection`; neznani ali potekli ID-ji so zavrnjeni. Koledar brez `eventId` še vedno izvozi vse prikazane datume brez dodatnega ponavljanja.
+
+Prijava infrastrukture ima štiri korake: težava, lokacija, neobvezna fotografija in kontakt. Lokacija težave se ne izpolni z domačim naslovom. Zadostuje besedilni opis; neobvezno točko GPS ali zemljevida uporabnik najprej pregleda in potrdi. Fotografijo in potrjeno točko je mogoče odstraniti. Storitve imajo ločena navodila za pripravo in vidne povezave do tržnice, kalkulatorja ter DEPO.
 
 ## Lokalni zagon
 
@@ -81,7 +91,7 @@ Custom Domain `kpv.jakobtominc.com` je povezana prek nastavitve `routes` v `wran
 npm run test:smoke -- https://kpv.jakobtominc.com
 ```
 
-Ukaz preveri koledar, urnik, zaščito pred oddajami z drugega izvora in vse štiri obrazce, vključno s fotografijo. Ustvari jasno označene testne zapise z naslovom `portal-test@example.com`; ne pošilja e-pošte in ne bremeni plačil. Samodejna preverjanja v GitHub Actions izvajajo gradnjo in osem testov API ob spremembah kode.
+Ukaz preveri koledar, urnik, zaščito pred oddajami z drugega izvora in vse štiri obrazce, vključno s fotografijo. Ustvari jasno označene testne zapise z naslovom `portal-test@example.com`; ne pošilja e-pošte in ne bremeni plačil. Samodejna preverjanja v GitHub Actions izvajajo gradnjo in enajst testov API ob spremembah kode, vključno s ponavljanjem in zavračanjem neveljavnih pravil koledarja.
 
 ## API in zasebnost
 

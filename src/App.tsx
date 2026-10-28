@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import PageMotion from "./components/PageMotion";
 import {
   Link,
   NavLink,
@@ -159,7 +160,29 @@ const searchable = [
   ],
   ["DEPO", "Predmeti z zgodbo in ponovna uporaba", "/depo"],
   ["Kontakt", "Telefoni, e-pošta in lokacija podjetja", "/kontakt"],
-  ["Pitna voda in odvajanje", "Oskrba, vodomer in greznice", "/voda"],
+  [
+    "Pitna voda in odvajanje",
+    "Oskrba, vodomer, računi, plačila, e-račun in greznice",
+    "/voda",
+  ],
+  ["Moj dom", "Shranjeni naslov, moji odvozi in obvestila", "/moj-dom"],
+  [
+    "Odpadki in ločevanje",
+    "Vse informacije o zbiranju in odvozu odpadkov",
+    "/odpadki",
+  ],
+  ["Javni prostor", "Ceste, javne površine in razsvetljava", "/javni-prostor"],
+  [
+    "O podjetju",
+    "Komunalno podjetje Vrhnika in območja delovanja",
+    "/o-podjetju",
+  ],
+  [
+    "Zasebnost in dostopnost",
+    "Osebni podatki in delovanje predstavitve",
+    "/zasebnost",
+  ],
+  ["Začetna stran", "Domov in najpogostejša opravila", "/"],
 ];
 
 function Logo() {
@@ -241,7 +264,10 @@ function SiteSearch({ close }: { close: () => void }) {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
   const results = searchable.filter((v) =>
-    normalize(v[0] + " " + v[1]).includes(normalize(query)),
+    normalize(query)
+      .trim()
+      .split(/\s+/)
+      .every((word) => normalize(v[0] + " " + v[1]).includes(word)),
   );
   return (
     <div className="search-overlay" onClick={close}>
@@ -350,14 +376,21 @@ function Header() {
           <div className="header-actions">
             <button
               className="icon-button search-toggle"
-              onClick={() => setSearch(true)}
+              onClick={() => {
+                setMobile(false);
+                setSearch(true);
+              }}
               aria-label="Išči po portalu"
             >
               <Search size={21} />
             </button>
-            <Link to="/moj-dom" className="home-button">
+            <Link
+              to="/moj-dom"
+              className="home-button"
+              aria-label="Moj dom – naslov in odvozi"
+            >
               <MapPin size={16} />
-              Moj dom
+              <span>Moj dom</span>
             </Link>
             <button
               className="icon-button menu-toggle"
@@ -487,12 +520,17 @@ function Home() {
               <small>Za zeleno prihodnost naših krajev.</small>
             </div>
           </div>
-          <div className="hero-circle">
+          <a
+            className="hero-circle"
+            href="#opravila"
+            aria-label="Poglej najpogostejša opravila"
+          >
             <ArrowDown size={21} />
-          </div>
+          </a>
         </div>
       </section>
       <section
+        id="opravila"
         className="container quick-section"
         aria-label="Najpogostejša opravila"
       >
@@ -770,7 +808,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
         [
           "Prijavite težavo",
           "Opozorite na puščanje ali drugo težavo na javni infrastrukturi.",
-          "/prijavi",
+          "/prijavi?category=other",
           Droplets,
         ],
         [
@@ -880,13 +918,27 @@ function MyHome() {
     { date: string; label: string; color: string }[]
   >([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(!!saved);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!saved) return;
+    setEvents([]);
+    setError("");
+    if (!saved) {
+      setLoading(false);
+      return;
+    }
     let active = true;
-    fetch("/api/collection?address=" + encodeURIComponent(saved))
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 12000);
+    setLoading(true);
+    fetch("/api/collection?address=" + encodeURIComponent(saved), {
+      signal: controller.signal,
+    })
       .then(async (r) => {
         const d = await r.json();
         if (!r.ok) throw Error(d.error || "Naslova ni mogoče prikazati.");
+        if (!Array.isArray(d.events))
+          throw Error("Prejetega urnika ni mogoče prikazati. Poskusite znova.");
         return d;
       })
       .then((d) => {
@@ -897,14 +949,26 @@ function MyHome() {
       })
       .catch((e) => {
         if (active) {
-          setError(e.message);
+          setError(
+            e.name === "AbortError"
+              ? "Urnik se ni pravočasno naložil. Preverite povezavo in poskusite znova."
+              : e instanceof TypeError
+                ? "Urnika ni mogoče naložiti. Preverite internetno povezavo."
+                : e.message,
+          );
           setEvents([]);
         }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+        window.clearTimeout(timer);
       });
     return () => {
       active = false;
+      controller.abort();
+      window.clearTimeout(timer);
     };
-  }, [saved]);
+  }, [saved, attempt]);
   return (
     <div className="container inner-page">
       <div className="page-intro">
@@ -920,7 +984,11 @@ function MyHome() {
         onSubmit={(e) => {
           e.preventDefault();
           saveHomeAddress(address);
-          setSaved(address);
+          setEvents([]);
+          setError("");
+          setLoading(true);
+          setSaved(address.trim());
+          setAttempt((previous) => previous + 1);
         }}
       >
         <label className="field">
@@ -928,6 +996,8 @@ function MyHome() {
           <input
             required
             minLength={3}
+            maxLength={250}
+            autoComplete="street-address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Tržaška cesta 1, Vrhnika"
@@ -965,11 +1035,22 @@ function MyHome() {
               <ArrowRight size={17} />
             </Link>
           </div>
-          {error ? (
-            <div className="notice" role="alert">
-              {error}
+          {loading ? (
+            <div className="notice" role="status">
+              <span className="loading-spinner" />
+              Nalagam odvoze za naslov {saved} …
             </div>
-          ) : (
+          ) : error ? (
+            <div className="notice" role="alert">
+              <span>{error}</span>
+              <button
+                className="button secondary"
+                onClick={() => setAttempt((previous) => previous + 1)}
+              >
+                Poskusi znova
+              </button>
+            </div>
+          ) : events.length ? (
             <div className="card-grid">
               {events.map((ev, i) => (
                 <div className="panel my-event" key={i}>
@@ -985,6 +1066,11 @@ function MyHome() {
                   <small>Predstavitveni termin, ne uradni odvoz.</small>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="notice">
+              Za ta naslov trenutno ni prikazanih terminov. Preverite naslov ali
+              odprite celoten urnik.
             </div>
           )}
         </>
@@ -1129,7 +1215,10 @@ function Footer() {
 
 function ScrollManager() {
   const location = useLocation();
+  const previousPath = useRef(location.pathname);
   useEffect(() => {
+    const changed = previousPath.current !== location.pathname;
+    previousPath.current = location.pathname;
     if (location.hash) {
       const timer = setTimeout(
         () =>
@@ -1146,6 +1235,8 @@ function ScrollManager() {
       return () => clearTimeout(timer);
     }
     window.scrollTo(0, 0);
+    if (changed)
+      document.getElementById("main")?.focus({ preventScroll: true });
   }, [location]);
   return null;
 }
@@ -1166,6 +1257,7 @@ export default function App() {
       </a>
       <ScrollManager />
       <Header />
+      <PageMotion />
       <main id="main" tabIndex={-1}>
         {location.pathname !== "/" && (
           <div className="container breadcrumbs">

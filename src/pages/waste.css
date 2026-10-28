@@ -1048,3 +1048,125 @@
   outline: 2px solid #6d9e7f;
   outline-offset: 4px;
 }
+
+/* Calendar actions keep their labels on touch screens. */
+.waste-event .waste-calendar-link {
+  border: 1px solid #d7e3ce;
+  background: #f3f7ed;
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 10px 13px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    transform 0.18s;
+}
+.waste-event .waste-calendar-link:hover {
+  background: #e5efd9;
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.waste-event .waste-calendar-link > span {
+  display: inline;
+}
+.waste-event-info {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.waste-point-select > span:nth-child(2) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.waste-address-help {
+  font-size: 11px;
+  line-height: 1.75;
+  margin: 10px 0 0;
+  color: #7e8d73;
+}
+.waste-picker-confirmation {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: #eaf3e2;
+  padding: 12px;
+  color: #5a7947;
+  border-radius: 7px;
+}
+.waste-picker-confirmation > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.waste-schedule > .waste-calendar-note {
+  max-width: 85ch;
+}
+@media (max-width: 680px) {
+  .waste-event {
+    display: grid;
+    grid-template-columns: 34px 35px minmax(0, 1fr);
+    gap: 11px;
+    align-items: start;
+  }
+  .waste-event .waste-calendar-link {
+    grid-column: 2 / -1;
+    justify-content: center;
+    width: 100%;
+    font-size: 12px;
+    min-height: 46px;
+    margin-top: 2px;
+  }
+  .waste-event-info h3 {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .waste-event-info p {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .waste-address-row > input,
+  .waste-search input {
+    font-size: 16px !important;
+  }
+  .waste-filters button {
+    min-height: 44px;
+    padding: 10px 13px;
+  }
+  .waste-suggestions button {
+    min-height: 40px;
+    padding: 9px 11px;
+  }
+  .waste-point-select {
+    min-height: 60px;
+  }
+  .waste-directions {
+    min-height: 44px;
+    width: fit-content;
+  }
+  .waste-address-row > .button {
+    width: 100%;
+    min-height: 48px;
+  }
+  .waste-address-meta .waste-text-button {
+    min-height: 44px;
+    text-align: left;
+    line-height: 1.7;
+  }
+  .waste-schedule .waste-results-heading .button {
+    min-height: 44px;
+    font-size: 11px;
+    white-space: normal;
+    text-align: left;
+  }
+  .waste-schedule > .waste-calendar-note {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .waste-address-title p {
+    font-size: 11px;
+  }
+  .waste-address-help {
+    font-size: 11px;
+  }
+}

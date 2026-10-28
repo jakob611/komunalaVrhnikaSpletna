@@ -1210,3 +1210,472 @@
 .svc-error > svg {
   flex-shrink: 0;
 }
+
+/* The report follows the same order visually and in the document on every device. */
+.svc-report-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 25px;
+  padding: 0 0 22px;
+}
+.svc-report-steps a {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  font-size: 12px;
+  color: #58734f;
+}
+.svc-report-steps a > span {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d7e2ce;
+  background: #f1f6eb;
+  border-radius: 50%;
+}
+.svc-report-step,
+.svc-notice,
+#povprasevanje {
+  scroll-margin-top: 125px;
+}
+.svc-report-step + .svc-report-step {
+  margin-top: 30px;
+  padding-top: 28px;
+  border-top: 1px solid #e5eadf;
+}
+.svc-report-step .svc-step {
+  margin-top: 0;
+}
+.svc-step h2 small {
+  display: inline-block;
+  font:
+    400 11px "DM Sans Variable",
+    sans-serif;
+  letter-spacing: 0;
+  color: #7b8674;
+  margin-left: 7px;
+}
+.svc-step-explanation {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #6c7a63;
+  margin-bottom: 17px;
+}
+.svc-step-explanation strong {
+  font-weight: 550;
+}
+.svc-location-optional {
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid #dfe8d6;
+  background: #f6f9f1;
+  border-radius: 11px;
+  min-width: 0;
+}
+.svc-location-optional > strong {
+  font-size: 13px;
+}
+.svc-location-optional > p {
+  font-size: 12px;
+  margin: 7px 0 15px;
+  line-height: 1.7;
+}
+.svc-location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.svc-location-actions > .button {
+  min-height: 44px;
+  font-size: 12px;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.svc-location-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid #cbdcc4;
+  border-radius: 9px;
+  margin-top: 16px;
+  padding: 11px;
+  color: #457047;
+}
+.svc-location-confirmed > svg {
+  flex-shrink: 0;
+}
+.svc-location-confirmed > div {
+  flex: 1;
+  min-width: 0;
+}
+.svc-location-confirmed strong {
+  font-size: 12px;
+  display: block;
+}
+.svc-location-confirmed span {
+  font-size: 11px;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.svc-location-confirmed button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: 0;
+  color: #7d6b5c;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 6px;
+  padding: 8px;
+}
+.svc-report-map-picker {
+  margin-top: 20px;
+}
+.svc-map-picker-heading strong {
+  font-size: 14px;
+}
+.svc-map-picker-heading p {
+  font-size: 12px;
+  line-height: 1.75;
+  margin: 7px 0 12px;
+}
+.svc-map-mode {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: white;
+  border: 1px solid #d5e0ca;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 11px 12px;
+  min-height: 44px;
+  margin-bottom: 10px;
+}
+.svc-map-mode[aria-pressed="true"] {
+  background: #e0edda;
+  color: #346341;
+  border-color: #8db582;
+}
+.svc-report-map-picker .svc-map-caption {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.svc-map-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.svc-map-picker-actions .button {
+  min-height: 44px;
+  font-size: 12px;
+  padding: 11px 14px;
+  gap: 8px;
+}
+.svc-photo-preview {
+  margin-top: 15px;
+}
+.svc-photo-preview .button {
+  min-height: 44px;
+  font-size: 12px;
+  margin-top: 12px;
+}
+.svc-photo:focus-within > label {
+  outline: 3px solid #8bb286;
+  outline-offset: 3px;
+}
+.svc-report-guidance .svc-help {
+  margin-top: 0;
+}
+.svc-report-guidance ul {
+  padding-left: 19px;
+  margin: 17px 0;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.svc-report-guidance li + li {
+  margin-top: 10px;
+}
+.svc-report-emergency {
+  margin-top: 23px;
+  padding: 24px;
+  border: 1px solid #e5dcc9;
+  border-radius: 12px;
+  background: #faf6ed;
+  color: #796747;
+}
+.svc-report-emergency > svg {
+  display: block;
+  margin-bottom: 12px;
+}
+.svc-report-emergency > strong {
+  font-size: 14px;
+}
+.svc-report-emergency p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #8b7b60;
+  margin-top: 10px;
+}
+.svc-report-emergency a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 19px;
+  font-weight: 550;
+}
+.svc-demo a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.svc-report-layout .panel,
+.svc-report-layout aside,
+.svc-two-column > *,
+.svc-success > div {
+  min-width: 0;
+}
+.svc-success p {
+  overflow-wrap: anywhere;
+}
+.svc-service-guide {
+  border: 1px solid #dbe5d1;
+  background: #f1f6eb;
+  border-radius: 14px;
+  padding: 27px 30px;
+  margin: -12px 0 30px;
+}
+.svc-service-guide-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.svc-service-guide-intro .eyebrow {
+  margin-bottom: 8px;
+}
+.svc-service-guide h2 {
+  font-size: 23px;
+  margin: 0;
+}
+.svc-service-guide > p {
+  font-size: 14px;
+  line-height: 1.85;
+  margin: 18px 0;
+  max-width: 85ch;
+}
+.svc-service-guide-intro .button {
+  flex-shrink: 0;
+  min-height: 44px;
+}
+.svc-service-guide details {
+  border-top: 1px solid #d8e2ce;
+  margin-top: 17px;
+}
+.svc-service-guide summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 550;
+  color: #46623d;
+}
+.svc-service-guide summary::-webkit-details-marker {
+  display: none;
+}
+.svc-service-guide details[open] summary svg {
+  transform: rotate(180deg);
+}
+.svc-service-guide details ul {
+  font-size: 13px;
+  line-height: 1.9;
+  padding-left: 20px;
+  margin: 0 0 13px;
+  color: #6a7b5e;
+}
+.svc-service-guide details p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 5px;
+  color: #738569;
+  max-width: 85ch;
+}
+.svc-service-guide .svc-inline-link {
+  margin-top: 12px;
+  min-height: 44px;
+}
+.svc-service-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 17px;
+  padding: 15px 0;
+  border-top: 1px solid #e5eadf;
+  border-bottom: 1px solid #e5eadf;
+  margin-bottom: 27px;
+}
+.svc-service-tools > span {
+  font-size: 12px;
+  color: #7b8771;
+  margin-right: auto;
+}
+.svc-service-tools a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4d7350;
+  font-size: 12px;
+  font-weight: 550;
+}
+@media (max-width: 760px) {
+  .svc-report-layout > aside.svc-report-guidance {
+    grid-row: auto;
+    position: static;
+  }
+  .svc-report-steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 15px;
+  }
+  .svc-report-steps a {
+    font-size: 12px;
+  }
+  .svc-location-optional {
+    padding: 15px;
+  }
+  .svc-location-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .svc-location-actions > .button {
+    justify-content: flex-start;
+    white-space: normal;
+    text-align: left;
+    font-size: 12px;
+  }
+  .svc-report-map-picker .svc-map {
+    height: 270px;
+  }
+  .svc-location-confirmed {
+    align-items: flex-start;
+  }
+  .svc-location-confirmed > svg {
+    margin-top: 3px;
+    width: 18px;
+  }
+  .svc-location-confirmed button > span {
+    display: none;
+  }
+  .svc-map-picker-actions .button {
+    flex: 1;
+  }
+  .svc-report-submit {
+    width: 100%;
+    font-size: 12px;
+    gap: 9px;
+    min-height: 48px;
+    white-space: normal;
+  }
+  .svc-report-layout .svc-step h2 {
+    font-size: 20px;
+    line-height: 1.4;
+  }
+  .svc-step h2 small {
+    margin-left: 0;
+    display: block;
+  }
+  .svc-report-layout .svc-step {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .svc-report-layout .svc-step > span {
+    padding-top: 5px;
+  }
+  .svc-service-guide {
+    padding: 22px;
+  }
+  .svc-service-guide-intro {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .svc-service-guide-intro .button {
+    width: 100%;
+  }
+  .svc-service-guide h2 {
+    font-size: 21px;
+    line-height: 1.45;
+  }
+  .svc-service-guide > p {
+    font-size: 13px;
+  }
+  .svc-service-tools > span {
+    flex-basis: 100%;
+  }
+  .svc-service-tools {
+    gap: 3px 18px;
+  }
+  .svc-date-options {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .svc-date-options span {
+    font-size: 12px;
+  }
+  .svc-date-options small {
+    font-size: 10px;
+  }
+  .svc-total-value {
+    font-size: clamp(34px, 10vw, 49px);
+  }
+  .svc-total-value > span {
+    display: block;
+    margin: 10px 0 0;
+    font-size: 13px;
+  }
+  .svc-report-layout .field input:not([type="checkbox"]),
+  .svc-report-layout .field textarea,
+  .svc-two-column .field input:not([type="checkbox"]):not([type="range"]),
+  .svc-two-column .field textarea,
+  .svc-two-column .field select,
+  .svc-subscribe .field input:not([type="checkbox"]),
+  .svc-search {
+    font-size: 16px;
+    min-height: 48px;
+  }
+  .svc-tabs button {
+    min-height: 44px;
+  }
+  .svc-contact-small a {
+    min-height: 44px;
+    overflow-wrap: anywhere;
+  }
+  .svc-topics label {
+    min-height: 44px;
+  }
+  .svc-consent {
+    padding: 7px 0;
+    min-height: 44px;
+  }
+  .svc-consent input {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+  }
+  .svc-type-grid button {
+    font-size: 12px;
+  }
+}

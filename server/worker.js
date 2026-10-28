@@ -171,7 +171,7 @@ function foldLine(line) {
   lines.push(current);
   return lines.join("\r\n");
 }
-export function calendar(schedule) {
+export function calendar(schedule, options = {}) {
   const stamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -184,21 +184,77 @@ export function calendar(schedule) {
     "METHOD:PUBLISH",
     "X-WR-CALNAME:KPV – prikazni urnik",
   ];
-  for (const event of schedule.events) {
+  const events = options.eventId
+    ? schedule.events.filter((event) => event.id === options.eventId)
+    : schedule.events;
+  for (const event of events) {
+    const recurrence =
+      options.repeat === "weekly"
+        ? `RRULE:FREQ=WEEKLY;INTERVAL=${options.interval};COUNT=${options.count}`
+        : null;
+    const uidSuffix = recurrence
+      ? `-repeat-${options.interval}-${options.count}`
+      : "";
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${event.id}-${event.date}@kpv-demo.local`,
+      `UID:${event.id}-${event.date}${uidSuffix}@kpv-demo.local`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${event.date.replace(/-/g, "")}`,
       `DTEND;VALUE=DATE:${addDays(event.date, 1).replace(/-/g, "")}`,
       `SUMMARY:${safeICS(`PRIMER – ${event.label}`)}`,
       `LOCATION:${safeICS(schedule.address)}`,
-      `DESCRIPTION:${safeICS("Prikazni urnik. Ne uporabljajte za dejanski odvoz. Uradne termine preverite na https://www.kpv.si/.")}`,
-      "END:VEVENT",
+      `DESCRIPTION:${safeICS("Prikazni urnik. Ne uporabljajte za dejanski odvoz. Uradne termine preverite na https://www.kpv.si/." + (recurrence ? " Ponavljanje ste izbrali sami; ne upošteva praznikov ali sprememb odvoza." : ""))}`,
     );
+    if (recurrence) lines.push(recurrence);
+    lines.push("END:VEVENT");
   }
   lines.push("END:VCALENDAR");
   return lines.map(foldLine).join("\r\n") + "\r\n";
+}
+
+function calendarOptions(params, schedule) {
+  const eventId = params.get("eventId");
+  const repeat = params.get("repeat") || "once";
+  if (!["once", "weekly"].includes(repeat))
+    throw new ApiError(
+      400,
+      "Izberite enkraten dogodek ali tedensko ponavljanje.",
+    );
+  if (!eventId) {
+    if (repeat === "weekly")
+      throw new ApiError(
+        400,
+        "Za ponavljanje najprej izberite posamezen odvoz.",
+      );
+    return {};
+  }
+  const event = schedule.events.find((item) => item.id === eventId);
+  if (!event)
+    throw new ApiError(
+      404,
+      "Izbranega odvoza ni več v prikazanem urniku. Osvežite urnik in izberite nov termin.",
+    );
+  if (repeat === "once") return { eventId, repeat };
+  const defaults = { bio: 1, packaging: 2, residual: 3 };
+  const intervalText =
+    params.get("interval") ?? String(defaults[event.type] || 1);
+  const countText = params.get("count") ?? "12";
+  if (
+    !/^[1-8]$/.test(intervalText) ||
+    !/^\d{1,2}$/.test(countText) ||
+    Number(countText) < 2 ||
+    Number(countText) > 52
+  )
+    throw new ApiError(
+      400,
+      "Ponavljanje je mogoče na 1 do 8 tednov, za 2 do 52 odvozov.",
+    );
+  return {
+    eventId,
+    repeat,
+    interval: Number(intervalText),
+    count: Number(countText),
+  };
 }
 async function report(request) {
   if (!request.headers.get("content-type")?.includes("multipart/form-data"))
@@ -318,14 +374,17 @@ export async function handleRequest(request, env = {}) {
             "Prikazni urnik je na voljo za Vrhniko, Borovnico in Log - Dragomer. Dodajte kraj v naslov.",
           );
         if (route === "/api/calendar")
-          return new Response(calendar(schedule), {
-            headers: {
-              ...securityHeaders,
-              "Content-Type": "text/calendar; charset=utf-8",
-              "Content-Disposition":
-                'attachment; filename="kpv-prikazni-urnik.ics"',
+          return new Response(
+            calendar(schedule, calendarOptions(url.searchParams, schedule)),
+            {
+              headers: {
+                ...securityHeaders,
+                "Content-Type": "text/calendar; charset=utf-8",
+                "Content-Disposition":
+                  'attachment; filename="kpv-prikazni-urnik.ics"',
+              },
             },
-          });
+          );
         return json(schedule);
       }
       throw new ApiError(404, "Ta naslov API ne obstaja.");

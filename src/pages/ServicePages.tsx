@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -41,6 +42,8 @@ import {
   Upload,
   Waves,
   Wrench,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./services.css";
@@ -136,9 +139,19 @@ function Result({
   receipt: Receipt | null;
   error: string;
 }) {
+  const result = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (receipt || error)
+      result.current?.scrollIntoView({
+        block: "nearest",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+  }, [receipt, error]);
   if (receipt)
     return (
-      <div className="svc-success" role="status">
+      <div className="svc-success" role="status" ref={result}>
         <CheckCircle2 size={23} />
         <div>
           <strong>Vaš preizkusni obrazec je shranjen.</strong>
@@ -151,10 +164,10 @@ function Result({
     );
   if (error)
     return (
-      <p className="svc-error" role="alert">
+      <div className="svc-error" role="alert" ref={result}>
         <CircleAlert size={18} />
         {error}
-      </p>
+      </div>
     );
   return null;
 }
@@ -425,7 +438,7 @@ function NoticeCards({ notices }: { notices: Notice[] }) {
   return (
     <div className="svc-notices">
       {notices.map((notice) => (
-        <article key={notice.id} className="panel svc-notice">
+        <article key={notice.id} id={notice.id} className="panel svc-notice">
           <div className={`svc-notice-symbol ${notice.category}`}>
             {notice.category === "water" ? (
               <Droplets size={23} />
@@ -662,9 +675,40 @@ function MapPosition({
     </CircleMarker>
   ) : null;
 }
+function MapNavigation({ enabled }: { enabled: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (enabled) {
+      map.dragging.enable();
+      map.touchZoom.enable();
+      map.keyboard.enable();
+    } else {
+      map.dragging.disable();
+      map.touchZoom.disable();
+      map.keyboard.disable();
+    }
+  }, [enabled, map]);
+  return null;
+}
 export function ReportPage() {
   const [params] = useSearchParams();
   const [category, setCategory] = useState("roads");
+  const [address, setAddress] = useState("");
+  const [position, setPosition] = useState<[number, number] | null>(null);
+  const [draftPosition, setDraftPosition] = useState<[number, number] | null>(
+    null,
+  );
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapInteractive, setMapInteractive] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState("");
+  const [positionSource, setPositionSource] = useState("zemljevid");
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+  const locationRequest = useRef(0);
+  const submission = useSubmission();
   useEffect(() => {
     const value = params.get("category");
     setCategory(
@@ -673,48 +717,120 @@ export function ReportPage() {
         : "roads",
     );
   }, [params]);
-  const [position, setPosition] = useState<[number, number] | null>(null);
-  const [geoError, setGeoError] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [preview, setPreview] = useState("");
-  const [photoError, setPhotoError] = useState("");
-  const submission = useSubmission();
   useEffect(
     () => () => {
       if (preview) URL.revokeObjectURL(preview);
     },
     [preview],
   );
+  useEffect(
+    () => () => {
+      locationRequest.current += 1;
+    },
+    [],
+  );
+  function openMap() {
+    locationRequest.current += 1;
+    setLocating(false);
+    setDraftPosition(position);
+    setPositionSource("zemljevid");
+    setMapOpen(true);
+    setMapInteractive(false);
+    setGeoError("");
+  }
   function locate() {
     setGeoError("");
     if (!navigator.geolocation) {
       setGeoError(
-        "Vaš brskalnik ne podpira lokacije. Označite jo na zemljevidu.",
+        "Vaš brskalnik ne podpira lokacije. Vpišite opis ali označite točko na zemljevidu.",
       );
       return;
     }
+    const request = ++locationRequest.current;
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (value) => setPosition([value.coords.latitude, value.coords.longitude]),
-      () =>
+      (value) => {
+        if (request !== locationRequest.current) return;
+        setDraftPosition([value.coords.latitude, value.coords.longitude]);
+        setPositionSource("telefon");
+        setMapOpen(true);
+        setMapInteractive(false);
+        setLocating(false);
+      },
+      (error) => {
+        if (request !== locationRequest.current) return;
+        setLocating(false);
         setGeoError(
-          "Lokacije ni mogoče pridobiti. Dovolite dostop ali izberite točko na zemljevidu.",
-        ),
-      { enableHighAccuracy: true, timeout: 10000 },
+          error.code === 1
+            ? "Dostop do lokacije je zavrnjen. Naslov lahko vpišete ročno ali sami označite točko na zemljevidu."
+            : "Lokacije ni bilo mogoče pridobiti. Vpišite naslov ali označite točko na zemljevidu.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   }
+  function removePhoto() {
+    if (fileInput.current) fileInput.current.value = "";
+    setPreview("");
+    setFileName("");
+    setPhotoError("");
+  }
+  const reportOptions = [
+    {
+      value: "roads",
+      title: "Cesta ali pločnik",
+      icon: Road,
+      example:
+        "Npr. udarna jama na cesti, poškodovan pločnik ali odmaknjen pokrov jaška …",
+    },
+    {
+      value: "lighting",
+      title: "Javna razsvetljava",
+      icon: Lightbulb,
+      example:
+        "Npr. svetilka pri hiši št. 12 ne sveti. Če je vidna, dodajte številko droga …",
+    },
+    {
+      value: "bins",
+      title: "Poškodovan zabojnik",
+      icon: Trash2,
+      example:
+        "Npr. poškodovan pokrov zabojnika za steklo na ekološkem otoku …",
+    },
+    {
+      value: "other",
+      title: "Druga težava",
+      icon: Wrench,
+      example: "Opišite, kaj ste opazili in kako težavo prepoznamo …",
+    },
+  ];
   return (
     <>
       <Intro
         eyebrow="SKUPAJ ZA UREJEN KRAJ"
         title="Opazite. Sporočite. Uredimo."
       >
-        Povejte, kaj in kje ne deluje. Jasna lokacija in fotografija pomagata,
-        da težavo hitreje razumemo.
+        Izberite težavo, opišite lokacijo in po želji dodajte fotografijo. Za
+        prijavo zadošča tudi opis lokacije brez GPS.
       </Intro>
       <Demo>
         Preizkusni obrazec. Prijava se shrani v predstavitveno zbirko in ni
-        poslana dežurni službi.
+        poslana dežurni službi. Za nujno pomoč pokličite{" "}
+        <a href="tel:+38641364681">041 364 681</a>.
       </Demo>
+      <nav className="svc-report-steps" aria-label="Koraki prijave">
+        {[
+          ["1", "Težava", "tezava"],
+          ["2", "Lokacija", "lokacija"],
+          ["3", "Fotografija", "fotografija"],
+          ["4", "Kontakt", "kontakt-prijave"],
+        ].map(([n, label, id]) => (
+          <a key={id} href={`#${id}`}>
+            <span>{n}</span>
+            {label}
+          </a>
+        ))}
+      </nav>
       <form
         className="svc-report-layout"
         onSubmit={async (event) => {
@@ -724,198 +840,379 @@ export function ReportPage() {
           data.set("category", category);
           data.set("consent", "true");
           if (position) {
-            data.set("latitude", position[0].toString());
-            data.set("longitude", position[1].toString());
+            data.set("latitude", String(position[0]));
+            data.set("longitude", String(position[1]));
           }
           await submission.submit("/api/reports", data);
         }}
       >
         <div className="panel">
-          <div className="svc-step">
-            <span>01</span>
-            <h2>Kaj ste opazili?</h2>
-          </div>
-          <div className="svc-type-grid">
-            {[
-              { value: "roads", title: "Cesta ali pločnik", icon: Road },
-              {
-                value: "lighting",
-                title: "Javna razsvetljava",
-                icon: Lightbulb,
-              },
-              { value: "bins", title: "Poškodovan zabojnik", icon: Trash2 },
-              { value: "other", title: "Druga težava", icon: Wrench },
-            ].map((item) => (
-              <button
-                type="button"
-                key={item.value}
-                className={category === item.value ? "selected" : ""}
-                aria-pressed={category === item.value}
-                onClick={() => setCategory(item.value)}
-              >
-                <item.icon size={23} />
-                <span>{item.title}</span>
-                {category === item.value && <Check size={15} />}
-              </button>
-            ))}
-          </div>
-          <Field label="Opis težave" wide>
-            <textarea
-              name="description"
-              required
-              minLength={10}
-              maxLength={2000}
-              rows={5}
-              placeholder="Opišite težavo in dodajte morebitne orientacijske točke …"
-            />
-          </Field>
-          <div className="svc-photo">
-            <label>
-              <Upload size={22} />
-              <strong>{fileName || "Dodajte fotografijo"}</strong>
-              <span>JPG, PNG ali WebP, največ 5 MB. Neobvezno.</span>
-              <input
-                name="photo"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => {
-                  setPhotoError("");
-                  const file = event.target.files?.[0];
-                  if (!file) {
-                    setFileName("");
-                    setPreview("");
-                    return;
-                  }
-                  if (
-                    file.size > 5 * 1024 * 1024 ||
-                    !["image/jpeg", "image/png", "image/webp"].includes(
-                      file.type,
-                    )
-                  ) {
-                    setPhotoError(
-                      "Izberite sliko JPG, PNG ali WebP do velikosti 5 MB.",
-                    );
-                    event.target.value = "";
-                    setFileName("");
-                    setPreview("");
-                    return;
-                  }
-                  setFileName(file.name);
-                  setPreview(URL.createObjectURL(file));
-                }}
-              />
-            </label>
-            {preview && (
-              <img
-                src={preview}
-                alt="Predogled fotografije prijavljene težave"
-              />
-            )}
-          </div>
-          {photoError && (
-            <p className="svc-error" role="alert">
-              {photoError}
-            </p>
-          )}
-          <div className="svc-step">
-            <span>02</span>
-            <h2>Kje je težava?</h2>
-          </div>
-          <Field label="Naslov ali opis lokacije">
-            <input
-              name="address"
-              required
-              minLength={4}
-              maxLength={200}
-              placeholder="Ulica, hišna številka ali najbližji objekt"
-              defaultValue={rememberedAddress()}
-            />
-          </Field>
-          <div className="svc-locate">
-            <button className="button secondary" type="button" onClick={locate}>
-              <LocateFixed size={17} />
-              Uporabi mojo lokacijo
-            </button>
-            {position && (
-              <span>
-                {position[0].toFixed(5)}, {position[1].toFixed(5)}
-              </span>
-            )}
-          </div>
-          {geoError && (
-            <p className="svc-error" role="alert">
-              {geoError}
-            </p>
-          )}
-          <p className="svc-small">
-            Lokacijo lahko označite tudi s klikom na zemljevid. GPS ni obvezen,
-            naslov ali opis lokacije pa je.
-          </p>
-          <div className="svc-step">
-            <span>03</span>
-            <h2>Kako vas lahko dosežemo?</h2>
-          </div>
-          <div className="form-grid">
-            <Field label="Ime in priimek">
-              <input
-                name="name"
-                minLength={2}
+          <section id="tezava" className="svc-report-step">
+            <div className="svc-step">
+              <span>01</span>
+              <h2>Kaj ste opazili?</h2>
+            </div>
+            <div className="svc-type-grid">
+              {reportOptions.map((item) => (
+                <button
+                  type="button"
+                  key={item.value}
+                  className={category === item.value ? "selected" : ""}
+                  aria-pressed={category === item.value}
+                  onClick={() => setCategory(item.value)}
+                >
+                  <item.icon size={23} />
+                  <span>{item.title}</span>
+                  {category === item.value && <Check size={15} />}
+                </button>
+              ))}
+            </div>
+            <Field label="Opis težave · obvezno">
+              <textarea
+                name="description"
                 required
-                autoComplete="name"
-                maxLength={100}
-                placeholder="Janez Novak"
+                minLength={10}
+                maxLength={2000}
+                rows={4}
+                placeholder={
+                  reportOptions.find((item) => item.value === category)?.example
+                }
               />
             </Field>
-            <Field label="E-poštni naslov">
+          </section>
+          <section id="lokacija" className="svc-report-step">
+            <div className="svc-step">
+              <span>02</span>
+              <h2>Kje je težava?</h2>
+            </div>
+            <p className="svc-step-explanation">
+              Vpišite naslov ali opis, po katerem bomo našli težavo.{" "}
+              <strong>To ni nujno vaš domači naslov.</strong>
+            </p>
+            <Field label="Naslov ali opis mesta težave · obvezno">
               <input
-                name="email"
-                type="email"
+                name="address"
                 required
-                autoComplete="email"
-                placeholder="janez@primer.si"
+                minLength={4}
+                maxLength={200}
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                placeholder="Npr. pri hiši Verd 12, nasproti avtobusne postaje"
+                aria-describedby="report-address-help"
               />
             </Field>
-          </div>
-          <Consent />
-          <button className="button" disabled={submission.busy || !!photoError}>
-            {submission.busy ? "Shranjujemo …" : "Oddaj preizkusno prijavo"}
-            <ArrowRight size={17} />
-          </button>
-          <Result receipt={submission.receipt} error={submission.error} />
-        </div>
-        <aside>
-          <div className="svc-map-wrap">
-            <MapContainer
-              center={[45.964, 14.298]}
-              zoom={13}
-              scrollWheelZoom={false}
-              className="svc-map"
+            <p className="svc-small" id="report-address-help">
+              Hišne številke ne poznate? Navedite kraj, ulico in bližnji objekt.
+              Domačega naslova sem ne prepišemo samodejno.
+            </p>
+            <div className="svc-location-optional">
+              <strong>Natančna točka · neobvezno</strong>
+              <p>
+                Ste ob težavi? Uporabite lokacijo telefona. Sicer jo sami
+                označite na zemljevidu.
+              </p>
+              <div className="svc-location-actions">
+                <button
+                  className="button secondary"
+                  type="button"
+                  disabled={locating}
+                  onClick={locate}
+                  aria-busy={locating}
+                >
+                  <LocateFixed size={17} />
+                  {locating
+                    ? "Pridobivam lokacijo …"
+                    : "Uporabi lokacijo telefona"}
+                </button>
+                <button
+                  className="button secondary"
+                  type="button"
+                  onClick={openMap}
+                  aria-expanded={mapOpen}
+                  aria-controls="report-map"
+                >
+                  <MapPin size={17} />
+                  {position
+                    ? "Popravi točko na zemljevidu"
+                    : "Označi na zemljevidu"}
+                </button>
+              </div>
+              {locating && (
+                <p className="svc-small" role="status">
+                  Brskalnik vas lahko vpraša za dovoljenje. Naslova s tem še ne
+                  določimo.
+                </p>
+              )}
+              {geoError && (
+                <p className="svc-error" role="alert">
+                  <CircleAlert size={17} />
+                  {geoError}
+                </p>
+              )}
+              {position && (
+                <div className="svc-location-confirmed" role="status">
+                  <CheckCircle2 size={20} />
+                  <div>
+                    <strong>Natančna točka je dodana.</strong>
+                    <span>
+                      {position[0].toFixed(5)}, {position[1].toFixed(5)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Odstrani dodano točko"
+                    onClick={() => {
+                      locationRequest.current += 1;
+                      setLocating(false);
+                      setPosition(null);
+                      setDraftPosition(null);
+                      setMapOpen(false);
+                    }}
+                  >
+                    <X size={18} />
+                    <span>Odstrani</span>
+                  </button>
+                </div>
+              )}
+              {mapOpen && (
+                <div id="report-map" className="svc-report-map-picker">
+                  <div className="svc-map-picker-heading">
+                    <strong>Izberite mesto težave</strong>
+                    <p>
+                      {positionSource === "telefon" && draftPosition
+                        ? "Preverite predlagano lokacijo telefona. Ta ni nujno točno mesto težave."
+                        : "Tapnite ali kliknite na mesto težave. Ko ste zadovoljni s točko, jo potrdite."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="svc-map-mode"
+                    aria-pressed={mapInteractive}
+                    onClick={() => setMapInteractive((v) => !v)}
+                  >
+                    {mapInteractive
+                      ? "Končaj premikanje zemljevida"
+                      : "Omogoči premikanje zemljevida"}
+                    <MapPin size={16} />
+                  </button>
+                  <div className="svc-map-wrap">
+                    <MapContainer
+                      center={draftPosition || [45.964, 14.298]}
+                      zoom={draftPosition ? 15 : 13}
+                      scrollWheelZoom={false}
+                      dragging={false}
+                      touchZoom={false}
+                      keyboard={false}
+                      className="svc-map"
+                      aria-label="Izberite mesto težave na zemljevidu"
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <MapNavigation enabled={mapInteractive} />
+                      <MapPosition
+                        position={draftPosition}
+                        onChange={(value) => {
+                          setDraftPosition(value);
+                          setPositionSource("zemljevid");
+                        }}
+                      />
+                    </MapContainer>
+                    <div className="svc-map-caption">
+                      {draftPosition
+                        ? `Izbrana točka: ${draftPosition[0].toFixed(5)}, ${draftPosition[1].toFixed(5)}`
+                        : "Točka še ni izbrana. Za izbiro tapnite zemljevid."}
+                    </div>
+                  </div>
+                  <div className="svc-map-picker-actions">
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={!draftPosition}
+                      onClick={() => {
+                        setPosition(draftPosition);
+                        setMapOpen(false);
+                      }}
+                    >
+                      <Check size={17} />
+                      Potrdi točko
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => {
+                        setMapOpen(false);
+                        setDraftPosition(position);
+                      }}
+                    >
+                      Prekliči
+                    </button>
+                  </div>
+                  <p className="svc-small">
+                    Zemljevid dopolnjuje opis lokacije. Če zemljevid ne deluje,
+                    lahko prijavo oddate samo z opisom.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+          <section id="fotografija" className="svc-report-step">
+            <div className="svc-step">
+              <span>03</span>
+              <h2>
+                Dodajte fotografijo <small>neobvezno</small>
+              </h2>
+            </div>
+            <p className="svc-step-explanation">
+              Fotografija pomaga razumeti težavo. Če je nimate, nadaljujte na
+              kontakt.
+            </p>
+            <div className="svc-photo">
+              <label>
+                <Upload size={22} />
+                <strong>{fileName || "Izberite fotografijo"}</strong>
+                <span>JPG, PNG ali WebP · največ 5 MB</span>
+                <input
+                  ref={fileInput}
+                  name="photo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    setPhotoError("");
+                    const file = event.target.files?.[0];
+                    if (!file) {
+                      setFileName("");
+                      setPreview("");
+                      return;
+                    }
+                    if (
+                      file.size > 5 * 1024 * 1024 ||
+                      !["image/jpeg", "image/png", "image/webp"].includes(
+                        file.type,
+                      )
+                    ) {
+                      setPhotoError(
+                        "Izberite fotografijo JPG, PNG ali WebP do 5 MB. Na iPhonu izberite združljiv zapis JPG ali oddajte brez fotografije.",
+                      );
+                      event.target.value = "";
+                      setFileName("");
+                      setPreview("");
+                      return;
+                    }
+                    setFileName(file.name);
+                    setPreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+              {preview && (
+                <div className="svc-photo-preview">
+                  <img
+                    src={preview}
+                    alt="Predogled fotografije prijavljene težave"
+                  />
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={removePhoto}
+                  >
+                    <X size={17} />
+                    Odstrani fotografijo
+                  </button>
+                </div>
+              )}
+            </div>
+            {photoError && (
+              <>
+                <p className="svc-error" role="alert">
+                  {photoError}
+                </p>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={removePhoto}
+                >
+                  Nadaljuj brez fotografije
+                  <ArrowRight size={16} />
+                </button>
+              </>
+            )}
+          </section>
+          <section id="kontakt-prijave" className="svc-report-step">
+            <div className="svc-step">
+              <span>04</span>
+              <h2>Vaš kontakt</h2>
+            </div>
+            <p className="svc-step-explanation">
+              V preizkusu uporabite izmišljene podatke. Na ta naslov ne bomo
+              poslali e-pošte.
+            </p>
+            <div className="form-grid">
+              <Field label="Ime in priimek · obvezno">
+                <input
+                  name="name"
+                  minLength={2}
+                  required
+                  autoComplete="name"
+                  maxLength={100}
+                  placeholder="Testna oseba"
+                />
+              </Field>
+              <Field label="E-poštni naslov · obvezno">
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="test@primer.si"
+                />
+              </Field>
+            </div>
+            <Consent />
+            {mapOpen && (
+              <p className="svc-small">
+                Odprto točko potrdite, če jo želite dodati. Ob oddaji se pošlje
+                samo že potrjena točka.
+              </p>
+            )}
+            <button
+              className="button svc-report-submit"
+              disabled={submission.busy || !!photoError}
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <MapPosition position={position} onChange={setPosition} />
-            </MapContainer>
-            <span className="svc-map-caption">
-              Kliknite za izbiro natančne lokacije
-            </span>
-          </div>
+              {submission.busy ? "Shranjujemo …" : "Shrani preizkusno prijavo"}
+              <ArrowRight size={17} />
+            </button>
+            <Result receipt={submission.receipt} error={submission.error} />
+          </section>
+        </div>
+        <aside className="svc-report-guidance">
           <div className="svc-help">
-            <Lightbulb size={22} />
-            <h3>Dober opis naredi razliko.</h3>
+            <Lightbulb size={24} />
+            <h3>Da bomo težavo lažje našli.</h3>
+            <ul>
+              <li>Pri svetilki dodajte številko droga, če je vidna.</li>
+              <li>Pri cesti navedite smer vožnje in bližnji objekt.</li>
+              <li>Pri zabojniku opišite vrsto odpadkov in zbirno mesto.</li>
+            </ul>
+            <p>Za oddajo natančna GPS-točka in fotografija nista obvezni.</p>
+          </div>
+          <div className="svc-report-emergency">
+            <Phone size={20} />
+            <strong>Potrebujete nujno pomoč?</strong>
             <p>
-              Pri svetilki navedite številko droga. Pri cesti opišite smer in
-              najbližjo hišno številko. Fotografirajte širšo okolico in
-              podrobnost.
+              Za nujne težave z javno infrastrukturo uporabite uradno dežurno
+              številko. Predstavitvena prijava se podjetju ne pošlje.
             </p>
+            <a href="tel:+38641364681">
+              041 364 681
+              <ArrowRight size={17} />
+            </a>
           </div>
         </aside>
       </form>
     </>
   );
 }
-
 const serviceOptions = [
   {
     value: "bulky",
@@ -942,6 +1239,59 @@ const serviceOptions = [
     icon: Wrench,
   },
 ];
+const serviceGuides: Record<
+  string,
+  { intro: string; prepare: string[]; note: string; placeholder: string }
+> = {
+  bulky: {
+    intro:
+      "Za večje predmete, kot so kavč, omara ali vzmetnica. Povejte, kaj želite oddati in kako je mogoče priti do predmetov.",
+    prepare: [
+      "Seznam predmetov in približno število kosov.",
+      "Naslov prevzema ter opis dostopa: dvorišče, stopnice ali ožja cesta.",
+      "Podatek, ali je predmet še uporaben. Morda je primeren za DEPO.",
+    ],
+    note: "Za gradbene ali nevarne odpadke najprej preverite ustrezno pot oddaje. Želeni datum je predlog; izvajalec mora potrditi pogoje, ceno in termin.",
+    placeholder:
+      "Npr. 1 kavč in 2 stola, dostop z dvorišča. Kavč je še uporaben. Želeni prevzem v dopoldanskem času …",
+  },
+  septic: {
+    intro:
+      "Za praznjenje greznice ali prevzem blata iz male komunalne čistilne naprave (MKČN). Navedite vrsto naprave in dostop do mesta praznjenja.",
+    prepare: [
+      "Ali gre za greznico ali malo komunalno čistilno napravo.",
+      "Približna prostornina, če jo poznate; če ne, to zapišite.",
+      "Kje je pokrov in ali je do njega mogoč dostop za vozilo.",
+    ],
+    note: "Pred izvedbo je treba preveriti pogoje in uskladiti termin. V predstavitvi se shrani samo povpraševanje.",
+    placeholder:
+      "Npr. greznica približno 6 m³, pokrov na dvorišču, od ceste oddaljen okoli 10 m. Dostop za vozilo je mogoč …",
+  },
+  water: {
+    intro:
+      "Za vprašanja o priključku, vodomeru, kanalizaciji ali načrtovanem posegu. Pri nujni okvari uporabite dežurno številko 041 364 681.",
+    prepare: [
+      "Naslov objekta in kratek opis, kaj želite urediti.",
+      "Ali gre za nov priključek, obstoječi priključek, vodomer ali drugo vprašanje.",
+      "Številka odjemnega mesta, če jo poznate; za preizkus uporabite izmišljene podatke.",
+    ],
+    note: "Povpraševanje ni prijava nujne okvare. Za trenutno motnjo oskrbe najprej preverite obvestila ali pokličite dežurno službo.",
+    placeholder:
+      "Npr. zanima me ureditev priključka za obstoječi objekt. Naslov in trenutno stanje sta …",
+  },
+  other: {
+    intro:
+      "Niste našli ustrezne storitve? Opišite svoje vprašanje in lokacijo. Za prijavo poškodbe ceste, svetilke ali zabojnika uporabite obrazec Prijavite težavo.",
+    prepare: [
+      "Kaj želite urediti in na kateri lokaciji.",
+      "Obseg dela ali druge okoliščine, ki jih poznate.",
+      "Želeni termin, če je pomemben; vnos datuma ni obvezen.",
+    ],
+    note: "Najprej je treba preveriti, ali storitev sodi v dejavnost podjetja. Ta preizkus ne potrdi naročila.",
+    placeholder:
+      "Npr. potrebujem informacije o … Lokacija je … Urediti želim …",
+  },
+};
 export function ServicesPage() {
   const [params] = useSearchParams();
   const [service, setService] = useState("bulky");
@@ -954,12 +1304,31 @@ export function ServicesPage() {
     );
   }, [params]);
   const submission = useSubmission();
+  const selectedService = serviceOptions.find(
+    (item) => item.value === service,
+  )!;
+  const guide = serviceGuides[service];
   return (
     <>
       <Intro eyebrow="STORITVE ZA VAŠ DOM" title="Uredite kar od doma.">
         Od odsluženega kavča do praznjenja greznice. Izberite storitev in nam
         zaupajte, kaj potrebujete.
       </Intro>
+      <div className="svc-service-tools">
+        <span>Iščete kaj drugega?</span>
+        <Link to="/trznica">
+          Tržnica
+          <Store size={16} />
+        </Link>
+        <Link to="/kalkulator">
+          Izračun stroškov
+          <FileText size={16} />
+        </Link>
+        <Link to="/depo">
+          DEPO
+          <Recycle size={16} />
+        </Link>
+      </div>
       <div className="svc-service-grid">
         {serviceOptions.map((item) => (
           <button
@@ -984,11 +1353,54 @@ export function ServicesPage() {
           </button>
         ))}
       </div>
+      <section className="svc-service-guide" key={service}>
+        <div className="svc-service-guide-intro">
+          <div>
+            <span className="eyebrow">IZBRANA STORITEV</span>
+            <h2>{selectedService.title}</h2>
+          </div>
+          <a href="#povprasevanje" className="button">
+            Nadaljuj na obrazec
+            <ArrowRight size={17} />
+          </a>
+        </div>
+        <p>{guide.intro}</p>
+        <details>
+          <summary>
+            Kaj pripraviti pred oddajo?
+            <ChevronDown size={18} />
+          </summary>
+          <ul>
+            {guide.prepare.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <p>{guide.note}</p>
+        </details>
+        {service === "other" && (
+          <Link className="svc-inline-link" to="/prijavi">
+            Želim prijaviti poškodbo ali okvaro
+            <ArrowRight size={16} />
+          </Link>
+        )}
+        {service === "water" && (
+          <Link className="svc-inline-link" to="/obvestila?category=water">
+            Preveri obvestila o oskrbi
+            <ArrowRight size={16} />
+          </Link>
+        )}
+      </section>
       <div className="svc-two-column">
-        <section className="panel">
+        <section className="panel" id="povprasevanje">
           <div className="eyebrow">POVPRAŠEVANJE</div>
           <h2>{serviceOptions.find((s) => s.value === service)?.title}</h2>
-          <p>Izpolnite podatke za preizkus oddaje povpraševanja.</p>
+          <p>
+            Izpolnite kontakt, naslov izvedbe in opis. Želeni datum je neobvezen
+            in še ni potrjen termin.
+          </p>
+          <p className="svc-small">
+            Vsa polja razen telefona in želenega datuma so obvezna.
+          </p>
           <Demo>
             Povpraševanje se shrani kot primer. Dejansko naročilo in potrditev
             termina v tej različici še nista omogočena.
@@ -1023,10 +1435,9 @@ export function ServicesPage() {
                   placeholder="janez@primer.si"
                 />
               </Field>
-              <Field label="Telefon">
+              <Field label="Telefon · neobvezno">
                 <input
                   name="phone"
-                  required
                   type="tel"
                   autoComplete="tel"
                   maxLength={40}
@@ -1061,11 +1472,7 @@ export function ServicesPage() {
                   minLength={10}
                   maxLength={2000}
                   rows={5}
-                  placeholder={
-                    service === "bulky"
-                      ? "Npr. 1 kavč, 2 stola; predmeti so dostopni z dvorišča …"
-                      : "Opišite potrebe, dostop in druge pomembne informacije …"
-                  }
+                  placeholder={guide.placeholder}
                 />
               </Field>
             </div>
@@ -1213,10 +1620,9 @@ export function MarketPage() {
                   placeholder="ponudnik@primer.si"
                 />
               </Field>
-              <Field label="Telefon">
+              <Field label="Telefon · neobvezno">
                 <input
                   name="phone"
-                  required
                   type="tel"
                   autoComplete="tel"
                   maxLength={40}
@@ -1261,7 +1667,7 @@ export function MarketPage() {
           <div className="svc-market-summary">
             <Store size={34} />
             <div className="eyebrow">POVZETEK PRIJAVE</div>
-            <h2>Se vidimo na tržnici.</h2>
+            <h2>Vaša preizkusna prijava.</h2>
             <div>
               <span>Datum</span>
               <strong>{date ? dateLabel(date) : "Izberite datum"}</strong>
