@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kpv-portal",
+  "main": "server/worker.js",
+  "compatibility_date": "2026-10-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "account_id": "7ed72e8dc43d8eec786d45b92cf0d9d6",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kpv-portal",
+      "database_id": "c4ca0a90-0eaa-432b-84df-aaf90da55c8d",
+    },
+  ],
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kpv-portal-photos" }],
+  "routes": [{ "pattern": "kpv.jakobtominc.com", "custom_domain": true }],
+  "vars": { "DEMO_MODE": "true" },
+}
