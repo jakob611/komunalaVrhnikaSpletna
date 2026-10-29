@@ -13,12 +13,12 @@ Stran `/pokopalisce` je predogled prihodnje funkcije. Vseh 96 grobov, 120 oseb, 
 
 ## Prehod na pravi posnetek
 
-Podatki in mere so v `src/data/cemetery.ts`, prikaz v `src/pages/CemeteryPage.tsx`. Trenutni koordinatni prostor meri 1000 × 760 enot.
+Podatke, mere in sliko lahko urejate v `/admin` → **Pokopališče**, večji uvoz pa pripravite v naprednem urejevalniku JSON. Začetni podatki so v `shared/site-defaults.json`, tipi in iskanje v `src/data/cemetery.ts`, prikaz pa v `src/pages/CemeteryPage.tsx`. Trenutni koordinatni prostor meri 1000 × 760 enot.
 
 1. Pridobite ustrezen posnetek iz zraka s pravico objave in brez motečih prepoznavnih obiskovalcev. Shranite ga kot lokalni optimizirani JPG/WebP v `public/images/` ali na namensko javno shrambo. Zasebni bucket fotografij prijav naj ostane zaseben.
-2. Posnetek poravnajte z istim koordinatnim prostorom ali posodobite mere in pretvorbo prikaza. Nastavite `cemeteryPlan.imageUrl`; SVG bo uporabil sliko za ozadje.
+2. Posnetek poravnajte z istim koordinatnim prostorom ali v skrbniški konzoli posodobite mere načrta. Naložite ga v **Datoteke** in njegov javni naslov vnesite v polje slike načrta; SVG bo uporabil sliko za ozadje.
 3. Iz uradne evidence uvozite samo potrjene javne podatke: oznako groba, oddelek, vrsto, imena ter dovoljene datume. Ne uvažajte kontaktov najemnikov. Imena in datumi niso izpeljani iz fotografije.
 4. Premerite položaje oziroma poligone grobov glede na posnetek. Trenutne pravokotnike nadomestite z dejanskimi označenimi ploskvami, posodobite vhod, orientacijo in poti. Samo menjava ozadja še ne pomeni pravilne geografske poravnave.
 5. S KPV preverite vsak položaj, dostopnost poti, način popravkov in redno posodabljanje. Šele nato odstranite oznake izmišljenih podatkov.
 
-Za trenutni predogled ni potreben nov račun, plačljiv zemljevid ali nova strežniška storitev. Evidenca je javna prikazna datoteka, ne nova zbirka osebnih podatkov v D1.
+Za trenutni predogled ni potreben nov račun, plačljiv zemljevid ali nova strežniška storitev. Začetna evidenca je izmišljena; skrbniške objave se shranjujejo v D1 in so javno vidne na portalu. Objavite samo podatke, za katere imate dovoljenje.

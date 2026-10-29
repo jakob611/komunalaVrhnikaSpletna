@@ -5,9 +5,9 @@ Stanje: 29. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Sple
 | Storitev                               | Namen                                                      | Stanje                                                       |
 | -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
 | Cloudflare Workers + statične datoteke | Spletna stran in API                                       | Že objavljeno na kpv.jakobtominc.com                         |
-| Cloudflare D1                          | Shranjevanje vseh petih vrst obrazcev                      | Že povezano; EU, baza kpv-portal                             |
-| Cloudflare R2 Standard                 | Zasebne fotografije prijav                                 | Že povezano; bucket kpv-portal-photos                        |
-| Cloudflare Turnstile Managed           | Zaščita obrazcev pred boti                                 | Nameščeno; tiho preverjanje ali potrditveno polje po potrebi |
+| Cloudflare D1                          | Obrazci, vsebine, skrbniške seje in delovni nalogi           | Že povezano; EU, baza kpv-portal                             |
+| Cloudflare R2 Standard                 | Zasebne fotografije prijav in uredniške slike               | Že povezano; javne slike se strežejo ločeno prek API          |
+| Cloudflare Turnstile Managed           | Zaščita obrazcev in skrbniške prijave pred boti             | Nameščeno; tiho preverjanje ali potrditveno polje po potrebi |
 | Resend                                | Obvestilo skrbniku o oddaji katerega koli obrazca           | Integrirano z Workerjem in zasebno čakalno vrsto D1           |
 
 ## Brezplačne omejitve
@@ -43,4 +43,4 @@ Naročnine na obvestila za gospodinjstva še vedno shranjujejo samo preizkusne n
 
 ## Kaj bo potrebno za uradno stran
 
-Uradni podatki o odvoznih poteh in terminih, register zbirnih mest, potrjen cenik, kontakti oddelkov ter pravila obravnave so potrebni neodvisno od izbire ponudnikov. Za produkcijo dodajte interno obravnavo prijav z dostopnimi pravicami, potrjevanje naročnin in odjavo, rok hrambe podatkov ter po potrebi omejitve hitrosti. Prava plačila na tržnici zahtevajo ločeno pogodbo s ponudnikom plačil; za preizkus ostanejo izključena. Dodatna plačljiva storitev za zemljevide ni nujna.
+Uradni podatki o odvoznih poteh in terminih, register zbirnih mest, potrjen cenik, kontakti oddelkov ter pravila obravnave so potrebni neodvisno od izbire ponudnikov. Zaščitena konzola `/admin` že vključuje urejanje in interno obravnavo vseh oddaj; navodila so v [ADMIN.md](ADMIN.md). E-poštna obvestila vsebujejo povezavo do naloga, ogled pa zahteva prijavo. Pred uradno uporabo uredite individualne uporabniške račune in pravice zaposlenih, potrjevanje naročnin in odjavo ter rok hrambe podatkov. Prava plačila na tržnici zahtevajo ločeno pogodbo s ponudnikom plačil; za preizkus ostanejo izključena. Dodatna plačljiva storitev za zemljevide ni nujna.
