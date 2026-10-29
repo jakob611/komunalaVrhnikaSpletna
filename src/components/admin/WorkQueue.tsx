@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -49,6 +49,7 @@ const states: Record<string, string> = {
   spam: "Neželena oddaja",
 };
 const kinds: Record<string, string> = {
+  internal: "Interni nalog",
   reports: "Prijavljena težava",
   contact: "Kontaktno sporočilo",
   requests: "Povpraševanje",
@@ -62,6 +63,7 @@ const priorities: Record<string, string> = {
   urgent: "Nujna",
 };
 const categories: Record<string, string> = {
+  portal: "Spletni portal",
   roads: "Cesta",
   lighting: "Javna razsvetljava",
   bins: "Zabojnik",
@@ -109,14 +111,28 @@ const labels: Record<string, string> = {
   stallType: "Vrsta stojnice",
   latitude: "Zemljepisna širina",
   longitude: "Zemljepisna dolžina",
+  createdBy: "Ustvaril skrbnik",
 };
+const emptyTask = () => ({
+  title: "",
+  description: "",
+  category: "portal",
+  address: "",
+  priority: "normal",
+  assignee: "",
+  dueDate: "",
+});
 
 export default function WorkQueue({
   csrfToken,
   onSessionExpired,
+  onDirtyChange,
+  onBusyChange,
 }: {
   csrfToken: string;
   onSessionExpired: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<Item[]>([]);
@@ -148,14 +164,39 @@ export default function WorkQueue({
   const [events, setEvents] = useState<Event[]>([]);
   const [caseError, setCaseError] = useState("");
   const [caseLoading, setCaseLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newTask, setNewTask] = useState(emptyTask);
+  const [createRequestId, setCreateRequestId] = useState(() =>
+    crypto.randomUUID(),
+  );
+  const [createError, setCreateError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const caseRequest = useRef<AbortController | null>(null);
   const expired = useRef(onSessionExpired);
   expired.current = onSessionExpired;
+  const dirtyListener = useRef(onDirtyChange);
+  dirtyListener.current = onDirtyChange;
+  const busyListener = useRef(onBusyChange);
+  busyListener.current = onBusyChange;
   const dirty =
     !!item && !!draft && JSON.stringify(item) !== JSON.stringify(draft);
   const caseId = params.get("case");
+  const createDirty =
+    creating && JSON.stringify(newTask) !== JSON.stringify(emptyTask());
+  useEffect(() => {
+    dirtyListener.current?.(dirty || createDirty);
+  }, [dirty, createDirty]);
+  useEffect(() => {
+    busyListener.current?.(busy);
+  }, [busy]);
+  useEffect(
+    () => () => {
+      dirtyListener.current?.(false);
+      busyListener.current?.(false);
+    },
+    [],
+  );
 
   async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await fetch(path, {
@@ -269,14 +310,53 @@ export default function WorkQueue({
     }
   }, [caseId]);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !createDirty) return;
     const stop = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", stop);
     return () => window.removeEventListener("beforeunload", stop);
-  }, [dirty]);
+  }, [dirty, createDirty]);
+  function cancelCreate() {
+    if (
+      busy ||
+      (createDirty && !window.confirm("Zavržem neshranjeni interni nalog?"))
+    )
+      return;
+    setCreating(false);
+    setNewTask(emptyTask());
+    setCreateRequestId(crypto.randomUUID());
+    setCreateError("");
+  }
+  async function createTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setCreateError("");
+    try {
+      const result = await api<{ item: Item }>("/api/admin/work", {
+        method: "POST",
+        body: JSON.stringify({ ...newTask, requestId: createRequestId }),
+      });
+      setCreating(false);
+      setNewTask(emptyTask());
+      setCreateRequestId(crypto.randomUUID());
+      setRefresh((value) => value + 1);
+      setNotice(
+        "Interni nalog je ustvarjen. Določite korake in spremljajte obravnavo.",
+      );
+      select(result.item);
+    } catch (cause) {
+      setCreateError(
+        cause instanceof Error
+          ? cause.message
+          : "Naloga ni bilo mogoče ustvariti.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   function close() {
     if (busy) return;
     if (dirty && !window.confirm("Zavržem neshranjene spremembe obravnave?"))
@@ -342,19 +422,193 @@ export default function WorkQueue({
           <span className="eyebrow">OD PRIJAVE DO REŠITVE</span>
           <h2>Vsaka težava ima naslednji korak.</h2>
           <p>
-            Vse oddaje so tukaj. Odprite nalog, določite odgovorno osebo in
-            spremljajte korake do zaključka.
+            Prijave občanov in interna opravila so na enem mestu. Določite
+            prioriteto, odgovorno osebo in korake do zaključka.
           </p>
         </div>
-        <button
-          className="admin-button"
-          onClick={() => setRefresh((value) => value + 1)}
-          disabled={loading}
-        >
-          <RefreshCw size={16} />
-          Osveži
-        </button>
+        <div className="work-intro-actions">
+          <button
+            className="admin-button admin-primary"
+            type="button"
+            disabled={busy || creating}
+            onClick={() => {
+              setCreating(true);
+              setCreateError("");
+            }}
+          >
+            <Plus size={16} />
+            Nov interni nalog
+          </button>
+          <button
+            className="admin-button"
+            onClick={() => setRefresh((value) => value + 1)}
+            disabled={loading}
+          >
+            <RefreshCw size={16} />
+            Osveži
+          </button>
+        </div>
       </div>
+      {creating && (
+        <section
+          className="admin-panel work-create"
+          aria-labelledby="work-create-title"
+        >
+          <div className="admin-panel-heading">
+            <h3 id="work-create-title">Nov interni nalog</h3>
+            <button
+              className="admin-icon-button"
+              type="button"
+              onClick={cancelCreate}
+              disabled={busy}
+              aria-label="Zapri nov interni nalog"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <p id="work-create-help">
+            Za popravke portala, opažene napake ali druga interna opravila.
+            Nalog vidijo samo skrbniki; e-poštnega obvestila ali javne prijave
+            ne pošlje.
+          </p>
+          <form onSubmit={createTask} aria-describedby="work-create-help">
+            <fieldset disabled={busy}>
+              <div className="work-fields">
+                <label className="work-field-wide">
+                  Naslov naloga · obvezno
+                  <input
+                    value={newTask.title}
+                    required
+                    minLength={3}
+                    maxLength={250}
+                    autoFocus
+                    placeholder="Npr. Popravi povezavo do urnika v mobilnem meniju"
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        title: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Področje naloga
+                  <select
+                    value={newTask.category}
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        category: event.target.value,
+                      }))
+                    }
+                  >
+                    {Object.entries(categories).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Prioriteta novega naloga
+                  <select
+                    value={newTask.priority}
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        priority: event.target.value,
+                      }))
+                    }
+                  >
+                    {Object.entries(priorities).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Odgovorna oseba ali ekipa · neobvezno
+                  <input
+                    value={newTask.assignee}
+                    maxLength={120}
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        assignee: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Rok novega naloga · neobvezno
+                  <input
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        dueDate: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="work-field-wide">
+                  Lokacija ali naslov strani · neobvezno
+                  <input
+                    value={newTask.address}
+                    maxLength={500}
+                    placeholder="Npr. /kontakt ali naslov težave"
+                    onChange={(event) =>
+                      setNewTask((current) => ({
+                        ...current,
+                        address: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+              <label className="work-notes">
+                Opis naloga · neobvezno
+                <textarea
+                  rows={4}
+                  value={newTask.description}
+                  maxLength={5000}
+                  placeholder="Kaj ne deluje, kako ponoviti težavo in kakšen rezultat pričakujete?"
+                  onChange={(event) =>
+                    setNewTask((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              {createError && (
+                <p className="admin-message admin-message-error" role="alert">
+                  {createError}
+                </p>
+              )}
+              <div className="work-create-actions">
+                <button
+                  className="admin-button"
+                  type="button"
+                  onClick={cancelCreate}
+                >
+                  Prekliči
+                </button>
+                <button
+                  className="admin-button admin-primary"
+                  type="submit"
+                  disabled={newTask.title.trim().length < 3}
+                >
+                  <Plus size={16} />
+                  {busy ? "Ustvarjamo …" : "Ustvari interni nalog"}
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+      )}
       <div className="work-stats">
         {[
           { key: "open", label: "Odprti", value: stats.open },
@@ -620,7 +874,11 @@ export default function WorkQueue({
           draft && (
             <div className="work-dialog-body">
               <section className="work-original">
-                <h3>Prvotna oddaja</h3>
+                <h3>
+                  {item.kind === "internal"
+                    ? "Interni zapis"
+                    : "Prvotna oddaja"}
+                </h3>
                 <dl>
                   {Object.entries(item.payload)
                     .filter(
@@ -632,7 +890,11 @@ export default function WorkQueue({
                     )
                     .map(([key, value]) => (
                       <div key={key}>
-                        <dt>{labels[key]}</dt>
+                        <dt>
+                          {key === "description" && item.kind === "internal"
+                            ? "Opis naloga"
+                            : labels[key]}
+                        </dt>
                         <dd>
                           {key === "category"
                             ? categories[String(value)] || String(value)
@@ -661,17 +923,23 @@ export default function WorkQueue({
                   </a>
                 )}
                 <p className="work-email-state">
-                  Obvestilo skrbniku:{" "}
-                  {
-                    (
+                  {item.kind === "internal" ? (
+                    "Interni nalog · brez samodejnega e-poštnega obvestila."
+                  ) : (
+                    <>
+                      Obvestilo skrbniku:{" "}
                       {
-                        sent: "posredovano storitvi Resend",
-                        pending: "čaka na pošiljanje",
-                        failed: "pošiljanje ni uspelo",
-                        "not-queued": "ni v čakalni vrsti",
-                      } as Record<string, string>
-                    )[item.notificationStatus || "not-queued"]
-                  }
+                        (
+                          {
+                            sent: "posredovano storitvi Resend",
+                            pending: "čaka na pošiljanje",
+                            failed: "pošiljanje ni uspelo",
+                            "not-queued": "ni v čakalni vrsti",
+                          } as Record<string, string>
+                        )[item.notificationStatus || "not-queued"]
+                      }
+                    </>
+                  )}
                 </p>
               </section>
               <section className="work-treatment">

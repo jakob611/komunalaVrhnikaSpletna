@@ -37,14 +37,18 @@ import BotProtection, { resetProtection } from "../components/BotProtection";
 import siteDefaults from "../../shared/site-defaults.json";
 import "./admin.css";
 import WorkQueue from "../components/admin/WorkQueue";
+import AdminSignIn, {
+  type AdminSession,
+} from "../components/admin/AdminSignIn";
+import AdminUsers from "../components/admin/AdminUsers";
+import CollectionEditor from "../components/admin/CollectionEditor";
+import type { CollectionData } from "../../shared/collection-utils";
+import LayoutEditor from "../components/admin/LayoutEditor";
+import type { CmsLayoutData } from "../../shared/page-layout";
 
 type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 type Sections = Record<string, Json>;
-type Session = {
-  authenticated: true;
-  csrfToken: string;
-  expiresAt: string | number;
-};
+type Session = AdminSession;
 type Media = {
   id: string;
   url: string;
@@ -61,7 +65,9 @@ type Submission = {
 };
 type Version = { revision: number; createdAt: string; value?: Json };
 type Selection = {
-  kind: "text" | "image";
+  kind: "text" | "image" | "link";
+  label?: string;
+  url?: string;
   key: string;
   original: string;
   tag?: string;
@@ -75,6 +81,16 @@ const sectionInfo: Record<
   string,
   { name: string; description: string; group: string }
 > = {
+  layout: {
+    name: "Razporeditev in nove strani",
+    description: "Premikanje razdelkov, dodajanje gumbov, vsebin in strani.",
+    group: "Portal",
+  },
+  links: {
+    name: "Povezave in gumbi",
+    description: "Spremenite cilj in besedilo javnih povezav.",
+    group: "Portal",
+  },
   settings: {
     name: "Nastavitve portala",
     description: "Osnovni podatki, kontakti in nastavitve prikaza.",
@@ -916,6 +932,15 @@ export default function AdminPage() {
     null,
   );
   const [previewPage, setPreviewPage] = useState("/");
+  const [previewMode, setPreviewMode] = useState<"edit" | "interact">("edit");
+  const [workDirty, setWorkDirty] = useState(false);
+  const [workBusy, setWorkBusy] = useState(false);
+  const previewPages = [
+    ...pages,
+    ...((sections.layout as unknown as CmsLayoutData | undefined)?.pages || [])
+      .filter((p) => !pages.some(([path]) => path === p.path))
+      .map((p) => [p.path, p.title]),
+  ];
   const [selection, setSelection] = useState<Selection | null>(null);
   const [previewReady, setPreviewReady] = useState(false);
   const iframe = useRef<HTMLIFrameElement>(null);
@@ -965,10 +990,11 @@ export default function AdminPage() {
   }, [mobileMenu, compactMenu]);
   const contentLoaded = Object.keys(sections).length > 0;
   const editing = Object.hasOwn(sectionInfo, active);
-  const dirty =
+  const contentDirty =
     editing &&
     JSON.stringify(draft) !== JSON.stringify(sections[active] ?? null);
-  const visual = active === "copy" || active === "images";
+  const dirty = contentDirty || workDirty;
+  const visual = active === "copy" || active === "images" || active === "links";
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers = new Headers(init.headers);
@@ -1121,37 +1147,17 @@ export default function AdminPage() {
     );
   }
   function navigate(next: string) {
-    if (busy || (next !== active && !mayLeave())) return;
+    if (busy || workBusy || (next !== active && !mayLeave())) return;
     if (next !== active) {
       setDraft(clone(sections[next] ?? null));
       setSelection(null);
     }
     setActive(next);
+    setWorkDirty(false);
     setMobileMenu(false);
     setError("");
     setNotice("");
     if (next === "media" || next === "images") void loadMedia();
-  }
-  async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    const form = event.currentTarget;
-    const data = Object.fromEntries(new FormData(form));
-    try {
-      const result = await request<Session>("/api/admin/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setSession(result);
-      form.reset();
-      setNotice("");
-    } catch (cause) {
-      failure(cause);
-    } finally {
-      resetProtection("adminlogin");
-      setBusy(false);
-    }
   }
   async function logout() {
     if (!mayLeave()) return;
@@ -1311,12 +1317,17 @@ export default function AdminPage() {
             page: selection.page,
             key: selection.key,
             original: selection.original,
-            ...(selection.kind === "image"
+            ...(selection.kind === "link"
               ? {
-                  url: selection.src || selection.original,
-                  alt: selection.alt || "",
+                  url: selection.url || selection.original,
+                  label: selection.label || "",
                 }
-              : { value: selection.original }),
+              : selection.kind === "image"
+                ? {
+                    url: selection.src || selection.original,
+                    alt: selection.alt || "",
+                  }
+                : { value: selection.original }),
           };
     const updated = { ...original, ...patch };
     setDraft(
@@ -1334,9 +1345,23 @@ export default function AdminPage() {
         event.data?.type === "kpv-cms-ready"
       ) {
         setPreviewReady(true);
+        if (
+          typeof event.data.page === "string" &&
+          (pages.some(([path]) => path === event.data.page) ||
+            /^\/strani\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(event.data.page))
+        )
+          setPreviewPage(event.data.page);
         iframe.current?.contentWindow?.postMessage(
           {
             type: "kpv-cms-update",
+            mode: previewMode,
+            tool:
+              active === "links"
+                ? "link"
+                : active === "images"
+                  ? "image"
+                  : "text",
+            links: active === "links" ? draft : (sections.links ?? []),
             copy: active === "copy" ? draft : (sections.copy ?? []),
             images: active === "images" ? draft : (sections.images ?? []),
           },
@@ -1352,13 +1377,23 @@ export default function AdminPage() {
         return;
       const data = event.data as Record<string, unknown>;
       if (
-        (data.kind !== "text" && data.kind !== "image") ||
+        (data.kind !== "text" &&
+          data.kind !== "image" &&
+          data.kind !== "link") ||
         typeof data.key !== "string" ||
         typeof data.original !== "string" ||
-        typeof data.page !== "string"
+        typeof data.page !== "string" ||
+        (data.page !== "*" &&
+          !pages.some(([path]) => path === data.page) &&
+          !/^\/strani\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.page))
       )
         return;
-      const destination = data.kind === "text" ? "copy" : "images";
+      const destination =
+        data.kind === "text"
+          ? "copy"
+          : data.kind === "link"
+            ? "links"
+            : "images";
       if (destination !== active) {
         if (busy || !mayLeave()) return;
         setActive(destination);
@@ -1381,18 +1416,31 @@ export default function AdminPage() {
     };
     window.addEventListener("message", receive);
     return () => window.removeEventListener("message", receive);
-  }, [visual, active, dirty, draft, sections, busy, mediaLoaded]);
+  }, [visual, active, dirty, draft, sections, busy, mediaLoaded, previewMode]);
   useEffect(() => {
     if (!visual || !previewReady) return;
     iframe.current?.contentWindow?.postMessage(
       {
         type: "kpv-cms-update",
+        mode: previewMode,
+        tool:
+          active === "links" ? "link" : active === "images" ? "image" : "text",
+        links: active === "links" ? draft : (sections.links ?? []),
         copy: active === "copy" ? draft : (sections.copy ?? []),
         images: active === "images" ? draft : (sections.images ?? []),
       },
       window.location.origin,
     );
-  }, [visual, active, draft, previewReady, sections.copy, sections.images]);
+  }, [
+    visual,
+    active,
+    draft,
+    previewReady,
+    sections.copy,
+    sections.images,
+    sections.links,
+    previewMode,
+  ]);
   const currentOverride =
     selection && Array.isArray(draft)
       ? draft.find(
@@ -1410,6 +1458,7 @@ export default function AdminPage() {
       dashboard: "Pregled portala",
       media: "Knjižnica datotek",
       submissions: "Delovni nalogi",
+      users: "Dostop in skrbniki",
     }[active] ??
       "Upravljanje");
 
@@ -1424,56 +1473,13 @@ export default function AdminPage() {
     );
   if (!session)
     return (
-      <div className="admin-root admin-auth">
-        <a href="/" className="admin-back">
-          <ArrowLeft size={17} />
-          Na spletno stran
-        </a>
-        <div className="admin-auth-card">
-          <span className="admin-auth-symbol">
-            <LockKeyhole size={30} />
-          </span>
-          <span className="admin-kicker">KPV · UREDNIŠTVO</span>
-          <h1>Dobrodošli nazaj.</h1>
-          <p>Varna prijava za urejanje vsebin in obravnavo oddaj.</p>
-          {notice && (
-            <div className="admin-notice" role="status">
-              {notice}
-            </div>
-          )}
-          {error && (
-            <div className="admin-error" role="alert">
-              {error}
-            </div>
-          )}
-          <form onSubmit={login}>
-            <label className="admin-field">
-              <span>Geslo za upravljanje</span>
-              <input
-                type="password"
-                name="password"
-                required
-                autoComplete="current-password"
-                disabled={busy}
-                autoFocus
-              />
-            </label>
-            <BotProtection action="adminlogin" />
-            <button className="admin-button admin-primary" disabled={busy}>
-              {busy ? (
-                <LoaderCircle size={17} className="admin-spin" />
-              ) : (
-                <LockKeyhole size={17} />
-              )}
-              {busy ? "Prijavljamo …" : "Varno se prijavi"}
-            </button>
-          </form>
-          <small>
-            <ShieldCheck size={15} />
-            Zaščitena povezava in preverjanje Cloudflare Turnstile.
-          </small>
-        </div>
-      </div>
+      <AdminSignIn
+        onAuthenticated={(next) => {
+          setSession(next);
+          setNotice("");
+          setError("");
+        }}
+      />
     );
 
   return (
@@ -1522,6 +1528,16 @@ export default function AdminPage() {
             <Inbox size={18} />
             Delovni nalogi
           </button>
+          {session.user.role === "owner" && (
+            <button
+              type="button"
+              className={active === "users" ? "is-current" : ""}
+              onClick={() => navigate("users")}
+            >
+              <ShieldCheck size={18} />
+              Dostop in skrbniki
+            </button>
+          )}
           {["Portal", "Vsebine"].map((group) => (
             <div key={group} className="admin-nav-group">
               <span>{group}</span>
@@ -1562,7 +1578,7 @@ export default function AdminPage() {
             Odpri spletno stran
             <ExternalLink size={15} />
           </a>
-          <button type="button" onClick={logout} disabled={busy}>
+          <button type="button" onClick={logout} disabled={busy || workBusy}>
             <LogOut size={17} />
             Odjava
           </button>
@@ -1806,9 +1822,44 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-                  {visual ? (
+                  {active === "layout" ? (
+                    <fieldset className="admin-complex-editor" disabled={busy}>
+                      <LayoutEditor
+                        value={draft as unknown as CmsLayoutData}
+                        onChange={(next) => setDraft(next as unknown as Json)}
+                        pages={pages}
+                        disabled={busy}
+                      />
+                    </fieldset>
+                  ) : active === "collection" ? (
+                    <fieldset className="admin-complex-editor" disabled={busy}>
+                      <CollectionEditor
+                        value={draft as unknown as CollectionData}
+                        onChange={(next) => setDraft(next as unknown as Json)}
+                        disabled={busy}
+                      />
+                    </fieldset>
+                  ) : visual ? (
                     <>
                       <div className="admin-preview-toolbar">
+                        <label>
+                          Način predogleda
+                          <select
+                            value={previewMode}
+                            onChange={(e) =>
+                              setPreviewMode(
+                                e.target.value as "edit" | "interact",
+                              )
+                            }
+                          >
+                            <option value="edit">
+                              Urejanje · klik izbere element
+                            </option>
+                            <option value="interact">
+                              Preizkus · gumbi delujejo
+                            </option>
+                          </select>
+                        </label>
                         <label>
                           Stran za urejanje
                           <select
@@ -1820,7 +1871,7 @@ export default function AdminPage() {
                               setSelection(null);
                             }}
                           >
-                            {pages.map(([path, label]) => (
+                            {previewPages.map(([path, label]) => (
                               <option key={path} value={path}>
                                 {label}
                               </option>
@@ -1846,13 +1897,25 @@ export default function AdminPage() {
                             <span />
                             <span />
                             <span />
-                            <small>{previewPage}</small>
+                            <small>
+                              {previewPage} ·{" "}
+                              {previewMode === "edit"
+                                ? "Klik izbere element"
+                                : "Preizkus brez oddaje obrazcev"}
+                            </small>
                           </div>
                           <iframe
+                            name="kpv-cms-preview"
+                            sandbox="allow-scripts allow-same-origin"
                             ref={iframe}
                             title="Predogled spletne strani za urejanje"
                             src={`${previewPage}?cms-preview=1`}
-                            onLoad={() => setPreviewReady(true)}
+                            onLoad={() => {
+                              iframe.current?.contentWindow?.postMessage(
+                                { type: "kpv-cms-request-structure" },
+                                location.origin,
+                              );
+                            }}
                           />
                         </div>
                         <aside
@@ -1884,7 +1947,43 @@ export default function AdminPage() {
                                   ? selection.alt || "Izbrana slika"
                                   : selection.original}
                               </p>
-                              {selection.kind === "text" ? (
+                              {selection.kind === "link" ? (
+                                <>
+                                  <label className="admin-field">
+                                    <span>Besedilo povezave</span>
+                                    <input
+                                      value={String(
+                                        selectedOverride?.label ??
+                                          selection.label ??
+                                          "",
+                                      )}
+                                      onChange={(e) =>
+                                        changeOverride({
+                                          label: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label className="admin-field">
+                                    <span>Cilj povezave</span>
+                                    <input
+                                      value={String(
+                                        selectedOverride?.url ??
+                                          selection.url ??
+                                          selection.original,
+                                      )}
+                                      onChange={(e) =>
+                                        changeOverride({ url: e.target.value })
+                                      }
+                                    />
+                                    <small>
+                                      Uporabite /pot, https://…, mailto: ali
+                                      tel:. V načinu Preizkus lahko preverite
+                                      delovanje notranje povezave.
+                                    </small>
+                                  </label>
+                                </>
+                              ) : selection.kind === "text" ? (
                                 <label className="admin-field">
                                   <span>Novo besedilo</span>
                                   <textarea
@@ -2119,9 +2218,17 @@ export default function AdminPage() {
                   </div>
                 </>
               )}
+              {active === "users" && session.user.role === "owner" && (
+                <AdminUsers
+                  csrfToken={session.csrfToken}
+                  onSessionExpired={() => setSession(null)}
+                />
+              )}
               {active === "submissions" && session && (
                 <WorkQueue
                   csrfToken={session.csrfToken}
+                  onDirtyChange={setWorkDirty}
+                  onBusyChange={setWorkBusy}
                   onSessionExpired={() => {
                     setSession(null);
                     setSections({});

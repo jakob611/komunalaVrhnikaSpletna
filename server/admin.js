@@ -1,11 +1,15 @@
 import defaults from "../shared/site-defaults.json" with { type: "json" };
 import { validateSection } from "../shared/cms-validation.js";
-import { BotError, verifyBot } from "./bot-protection.js";
+import { BotError } from "./bot-protection.js";
+import {
+  AuthError,
+  authenticateAdmin,
+  handleAdminAuth,
+  cleanupAdminAuth,
+} from "./admin-auth.js";
 import { handleWork, getWorkItem, saveWorkItem } from "./work-queue.js";
-import { timingSafeEqual } from "node:crypto";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
-const HOUR = 60 * 60 * 1000;
 const headers = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
@@ -22,55 +26,9 @@ const fail = (status, message) => {
 };
 const json = (value, status = 200, extra = {}) =>
   Response.json(value, { status, headers: { ...headers, ...extra } });
-const hex = (bytes) =>
-  [...new Uint8Array(bytes)]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("");
-const random = () => hex(crypto.getRandomValues(new Uint8Array(32)));
-const digest = async (text) =>
-  hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
-const unhex = (value) =>
-  Uint8Array.from(value.match(/../g) || [], (byte) => parseInt(byte, 16));
-function equal(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length)
-    return false;
-  const left = new TextEncoder().encode(a);
-  const right = new TextEncoder().encode(b);
-  return left.length === right.length && timingSafeEqual(left, right);
-}
 function database(env) {
   if (!env.DB) fail(503, "Skrbniška shramba trenutno ni povezana.");
   return env.DB;
-}
-function secret(env) {
-  const value = env.ADMIN_PASSWORD_HASH;
-  if (
-    typeof value !== "string" ||
-    !/^v1:100000:(?:[a-f0-9]{2}){16,64}:[a-f0-9]{64}$/i.test(value)
-  )
-    fail(503, "Skrbniška prijava trenutno ni pripravljena.");
-  return value;
-}
-function cookieName(request, env) {
-  const url = new URL(request.url);
-  const loopback = ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
-  if (env.LOCAL_STORAGE && !loopback)
-    fail(503, "Lokalna skrbniška prijava ni na voljo na tem naslovu.");
-  if (env.LOCAL_STORAGE && loopback) return "kpv_admin_dev";
-  if (url.protocol !== "https:")
-    fail(403, "Za prijavo uporabite varno povezavo HTTPS.");
-  return "__Host-kpv_admin";
-}
-function cookie(request, env, value, maxAge) {
-  const name = cookieName(request, env);
-  return `${name}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${name === "__Host-kpv_admin" ? "; Secure" : ""}`;
-}
-function sameOrigin(request) {
-  if (
-    request.headers.get("origin") !== new URL(request.url).origin ||
-    request.headers.get("sec-fetch-site") === "cross-site"
-  )
-    fail(403, "Oddaja z druge spletne strani ni dovoljena.");
 }
 function allow(request, method) {
   if (request.method !== method) fail(405, "Metoda ni dovoljena.");
@@ -123,31 +81,6 @@ function sectionName(value) {
   if (!Object.hasOwn(defaults, value))
     fail(404, "Vsebinski razdelek ne obstaja.");
   return value;
-}
-async function authenticate(request, env) {
-  const db = database(env);
-  const configuration = secret(env);
-  const name = cookieName(request, env);
-  const values = (request.headers.get("cookie") || "")
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.startsWith(`${name}=`));
-  if (values.length !== 1) fail(401, "Za nadaljevanje se prijavite.");
-  const token = values[0].slice(name.length + 1);
-  if (!/^[a-f0-9]{64}$/.test(token)) fail(401, "Za nadaljevanje se prijavite.");
-  const row = await db
-    .prepare(
-      "SELECT * FROM admin_sessions WHERE token_hash = ? AND expires_at > ? AND password_tag = ?",
-    )
-    .bind(await digest(token), Date.now(), await digest(configuration))
-    .first();
-  if (!row) fail(401, "Prijava je potekla. Prijavite se znova.");
-  if (!["GET", "HEAD"].includes(request.method)) {
-    sameOrigin(request);
-    if (!equal(row.csrf_token, request.headers.get("x-csrf-token")))
-      fail(403, "Varnostna potrditev ni veljavna. Osvežite prijavo.");
-  }
-  return row;
 }
 async function content(env, admin = false) {
   const sections = structuredClone(defaults);
@@ -217,93 +150,11 @@ async function save(env, section, value, expected, source = "edit") {
     );
   return { value: sanitized, revision: row.revision };
 }
-async function login(request, env) {
-  allow(request, "POST");
-  sameOrigin(request);
-  const db = database(env);
-  const configuration = secret(env);
-  cookieName(request, env);
-  const data = await body(request, 8192);
-  const window = Math.floor(Date.now() / (15 * 60 * 1000));
-  const ip = request.headers.get("cf-connecting-ip") || "unknown";
-  const increment = (key) =>
-    db
-      .prepare(
-        "INSERT INTO admin_login_limits(key,window,attempts) VALUES(?,?,1) ON CONFLICT(key,window) DO UPDATE SET attempts = attempts + 1 RETURNING attempts",
-      )
-      .bind(key, window)
-      .first();
-  if ((await increment(`ip:${await digest(ip)}`)).attempts > 5)
-    fail(429, "Preveč poskusov prijave. Poskusite čez 15 minut.");
-  await verifyBot(
-    request,
-    env,
-    data["cf-turnstile-response"],
-    "adminlogin",
-    data.website,
-  );
-  // Anonymous failed challenges cannot exhaust the owner's global password-attempt budget.
-  if ((await increment("global")).attempts > 50)
-    fail(429, "Prijava je začasno omejena. Poskusite čez 15 minut.");
-  if (
-    typeof data.password !== "string" ||
-    data.password.length < 1 ||
-    data.password.length > 256
-  )
-    fail(401, "Geslo ni pravilno.");
-  const [, , salt, expected] = configuration.split(":");
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(data.password),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const derived = hex(
-    await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        hash: "SHA-256",
-        salt: unhex(salt),
-        iterations: 100000,
-      },
-      key,
-      256,
-    ),
-  );
-  if (!equal(derived, expected.toLowerCase())) fail(401, "Geslo ni pravilno.");
-  const token = random();
-  const csrfToken = random();
-  const now = Date.now();
-  const expires = now + 8 * HOUR;
-  await db
-    .prepare(
-      "INSERT INTO admin_sessions(token_hash,csrf_token,password_tag,created_at,expires_at) VALUES(?,?,?,?,?)",
-    )
-    .bind(
-      await digest(token),
-      csrfToken,
-      await digest(configuration),
-      now,
-      expires,
-    )
-    .run();
-  await cleanupAdmin(env);
-  return json(
-    {
-      authenticated: true,
-      csrfToken,
-      expiresAt: new Date(expires).toISOString(),
-    },
-    200,
-    { "Set-Cookie": cookie(request, env, token, 8 * 3600) },
-  );
-}
-
 /** Bounded maintenance can run alongside the email cron without delaying user requests. */
 export async function cleanupAdmin(env = {}) {
   if (!env.DB) return;
   try {
+    await cleanupAdminAuth(env);
     const now = Date.now();
     const currentWindow = Math.floor(now / (15 * 60 * 1000));
     await env.DB.prepare(
@@ -460,29 +311,20 @@ export async function handleAdmin(request, env = {}) {
     }
     if (path.startsWith("/api/media/"))
       return await publicMedia(request, env, path.slice("/api/media/".length));
-    if (path === "/api/admin/login") return await login(request, env);
-    const session = await authenticate(request, env);
-    const workResponse = await handleWork(request, env, { json, body, fail });
+    const authResponse = await handleAdminAuth(request, env);
+    if (authResponse) return authResponse;
+    const session = await authenticateAdmin(request, env);
+    const sessionResponse = await handleAdminAuth(request, env, session);
+    if (sessionResponse) return sessionResponse;
+    const actor = { email: session.email };
+    const workResponse = await handleWork(request, env, {
+      json,
+      body,
+      fail,
+      actor,
+    });
     if (workResponse) return workResponse;
     const db = database(env);
-    if (path === "/api/admin/session") {
-      allow(request, "GET");
-      return json({
-        authenticated: true,
-        csrfToken: session.csrf_token,
-        expiresAt: new Date(session.expires_at).toISOString(),
-      });
-    }
-    if (path === "/api/admin/logout") {
-      allow(request, "POST");
-      await db
-        .prepare("DELETE FROM admin_sessions WHERE token_hash = ?")
-        .bind(session.token_hash)
-        .run();
-      return json({ authenticated: false }, 200, {
-        "Set-Cookie": cookie(request, env, "", 0),
-      });
-    }
     if (path === "/api/admin/content") {
       allow(request, "GET");
       return json(await content(env, true));
@@ -491,7 +333,15 @@ export async function handleAdmin(request, env = {}) {
     if (edit) {
       allow(request, "PUT");
       const data = await body(request);
-      return json(await save(env, edit[1], data.value, data.revision));
+      return json(
+        await save(
+          env,
+          edit[1],
+          data.value,
+          data.revision,
+          `edit:${session.email}`,
+        ),
+      );
     }
     const history = path.match(/^\/api\/admin\/history\/([A-Za-z0-9_-]+)$/);
     if (history) {
@@ -537,7 +387,7 @@ export async function handleAdmin(request, env = {}) {
           restore[1],
           row ? JSON.parse(row.value) : structuredClone(defaults[restore[1]]),
           data.currentRevision,
-          "restore",
+          `restore:${session.email}`,
         ),
       );
     }
@@ -606,6 +456,7 @@ export async function handleAdmin(request, env = {}) {
         item.id,
         { ...item, status: data.status },
         fail,
+        actor,
       );
       return json(result.item);
     }
@@ -613,6 +464,7 @@ export async function handleAdmin(request, env = {}) {
   } catch (error) {
     if (
       error instanceof AdminError ||
+      error instanceof AuthError ||
       error instanceof BotError ||
       error?.status === 400
     )

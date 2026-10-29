@@ -17,7 +17,11 @@ Stanje: 29. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Sple
 - R2 Standard: 10 GB-mesec shrambe, 1 milijon operacij razreda A in 10 milijonov razreda B na mesec; izhodni promet je brezplačen. Nad brezplačno vključeno porabo se R2 obračunava po uporabi, zato brezplačne porabe ni mogoče zagotavljati ne glede na količino. Omejitve veljajo na račun, tudi za druge njegove projekte. [Uradne cene](https://developers.cloudflare.com/r2/pricing/).
 - Turnstile Free: neomejeno preverjanj, do 20 gradnikov in 10 gostiteljev na gradnik. Način Managed lahko po potrebi zahteva klik, ne uporablja slikovnih ugank. [Paketi](https://developers.cloudflare.com/turnstile/plans/) in [načini](https://developers.cloudflare.com/turnstile/concepts/widget/).
 
-Za običajno majhno testno uporabo niso potrebne nadgradnje. Spremljajte skupno porabo računa, predvsem R2. Rešitve ne predstavljamo kot neomejeno brezplačne shrambe. Posamezna fotografija ima omejitev 5 MB in ni javno dostopna.
+Za običajno majhno testno uporabo niso potrebne nadgradnje. Spremljajte skupno porabo računa, predvsem R2. Rešitve ne predstavljamo kot neomejeno brezplačne shrambe. Posamezna fotografija ima omejitev 5 MB; fotografije prijav ostanejo zasebne, uredniške slike pa se objavljajo prek ločenih naslovov API.
+
+## Dostop skrbnikov
+
+Konzola uporablja e-pošto, osebno geslo in enkratno e-poštno kodo. Prijavne kode in povabila pošilja obstoječi Resend in porabljajo njegovo običajno kvoto. Cloudflare Access ni potreben za ta način prijave in ni bil dodatno vklopljen. Kot morebitna dodatna zaščita ima Cloudflare One brezplačni paket do 50 uporabnikov; za strožje zahteve je mogoče pozneje dodati prijavo z varnostnim ključem ali drug preverjen drugi dejavnik. [Paketi Cloudflare](https://www.cloudflare.com/plans/), [Access OTP](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/). E-poštna koda ni zaščita pred vsemi oblikami lažnega predstavljanja.
 
 ## Nastavitev e-pošte Resend
 
@@ -43,4 +47,4 @@ Naročnine na obvestila za gospodinjstva še vedno shranjujejo samo preizkusne n
 
 ## Kaj bo potrebno za uradno stran
 
-Uradni podatki o odvoznih poteh in terminih, register zbirnih mest, potrjen cenik, kontakti oddelkov ter pravila obravnave so potrebni neodvisno od izbire ponudnikov. Zaščitena konzola `/admin` že vključuje urejanje in interno obravnavo vseh oddaj; navodila so v [ADMIN.md](ADMIN.md). E-poštna obvestila vsebujejo povezavo do naloga, ogled pa zahteva prijavo. Pred uradno uporabo uredite individualne uporabniške račune in pravice zaposlenih, potrjevanje naročnin in odjavo ter rok hrambe podatkov. Prava plačila na tržnici zahtevajo ločeno pogodbo s ponudnikom plačil; za preizkus ostanejo izključena. Dodatna plačljiva storitev za zemljevide ni nujna.
+Uradni podatki o odvoznih poteh in terminih, register zbirnih mest, potrjen cenik, kontakti oddelkov ter pravila obravnave so potrebni neodvisno od izbire ponudnikov. Zaščitena konzola `/admin` že vključuje urejanje, osebne uporabniške račune in interno obravnavo vseh oddaj; navodila so v [ADMIN.md](ADMIN.md). E-poštna obvestila vsebujejo povezavo do naloga, ogled pa zahteva prijavo. Pred uradno uporabo uskladite pristojnosti zaposlenih, potrjevanje naročnin in odjavo ter rok hrambe podatkov. Prava plačila na tržnici zahtevajo ločeno pogodbo s ponudnikom plačil; za preizkus ostanejo izključena. Dodatna plačljiva storitev za zemljevide ni nujna.

@@ -102,3 +102,52 @@ CREATE TABLE IF NOT EXISTS admin_case_events (
   detail TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS admin_case_events_submission ON admin_case_events(submission_id, created_at);
+
+-- Email-verified individual accounts. Old password-only sessions have no user mapping
+-- and are rejected after the two-factor upgrade. No schema ALTER is needed.
+CREATE TABLE IF NOT EXISTS admin_users (
+  email TEXT PRIMARY KEY,
+  role TEXT NOT NULL CHECK (role IN ('owner','editor')),
+  status TEXT NOT NULL CHECK (status IN ('invited','active','revoked')),
+  password_hash TEXT,
+  version INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_session_users (
+  token_hash TEXT PRIMARY KEY,
+  email TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS admin_session_users_email ON admin_session_users(email);
+CREATE TABLE IF NOT EXISTS admin_auth_challenges (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  purpose TEXT NOT NULL CHECK (purpose IN ('login','enroll')),
+  code_hash TEXT NOT NULL,
+  credential_tag TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  resend_at INTEGER NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  consumed_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS admin_auth_challenges_expiry ON admin_auth_challenges(expires_at);
+CREATE INDEX IF NOT EXISTS admin_auth_challenges_email ON admin_auth_challenges(email);
+CREATE TABLE IF NOT EXISTS admin_auth_events (
+  id TEXT PRIMARY KEY,
+  actor_email TEXT NOT NULL,
+  event TEXT NOT NULL,
+  target_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS admin_auth_events_created ON admin_auth_events(created_at);
+
+-- Staff-created issues remain separate from public form submissions and email outbox.
+CREATE TABLE IF NOT EXISTS internal_tasks (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL DEFAULT 'internal' CHECK (kind = 'internal'),
+  created_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'demo-saved',
+  payload TEXT NOT NULL CHECK (json_valid(payload))
+);
+CREATE INDEX IF NOT EXISTS internal_tasks_created ON internal_tasks(created_at);

@@ -23,6 +23,7 @@
   "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kpv-portal-photos" }],
   "routes": [{ "pattern": "kpv.jakobtominc.com", "custom_domain": true }],
   "vars": {
+    "ADMIN_OWNER_EMAIL": "tomincjakob@gmail.com",
     "DEMO_MODE": "true",
     "EMAIL_ENABLED": "true",
     "EMAIL_FROM": "KPV predstavitev <obvestila@kpv.jakobtominc.com>",

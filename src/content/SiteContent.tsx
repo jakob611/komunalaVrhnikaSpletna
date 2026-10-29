@@ -3,12 +3,14 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import defaults from "../../shared/site-defaults.json";
 import type { CollectionPoint, WasteCategory } from "../data/waste";
 import type { Grave } from "../data/cemetery";
 import "./content.css";
+import type { CmsLayoutData, CmsLinkOverride } from "../../shared/page-layout";
 
 export type CopyOverride = {
   page: string;
@@ -32,7 +34,11 @@ export type SiteData = Omit<
   | "cemetery"
   | "notices"
   | "market"
+  | "layout"
+  | "links"
 > & {
+  layout: CmsLayoutData;
+  links: CmsLinkOverride[];
   market: { dates: string[]; closedDates: string[] };
   _revisions?: Record<string, number>;
   wastePoints: CollectionPoint[];
@@ -65,6 +71,26 @@ const Context = createContext<SiteData>(initial);
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState(initial);
+  const previewDraft = useRef<Partial<SiteData>>({});
+  useEffect(() => {
+    if (window.parent === window) return;
+    const receive = (event: MessageEvent) => {
+      if (
+        event.origin !== location.origin ||
+        event.source !== window.parent ||
+        event.data?.type !== "kpv-cms-update"
+      )
+        return;
+      previewDraft.current = {
+        ...previewDraft.current,
+        ...(event.data.layout ? { layout: event.data.layout } : {}),
+        ...(Array.isArray(event.data.links) ? { links: event.data.links } : {}),
+      };
+      setData((current) => ({ ...current, ...previewDraft.current }));
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, []);
   useEffect(() => {
     let active = true;
     const refresh = async () => {
@@ -82,6 +108,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
             ...initial,
             ...body.sections,
             _revisions: body.revisions || {},
+            ...previewDraft.current,
           });
       } catch {
         /* Bundled defaults keep the public portal usable if the CMS is unavailable. */
@@ -128,7 +155,8 @@ export function CmsPageImage({ page }: { page: string }) {
   );
   const preview =
     window.parent !== window &&
-    new URLSearchParams(location.search).has("cms-preview");
+    (window.name === "kpv-cms-preview" ||
+      new URLSearchParams(location.search).has("cms-preview"));
   if (record?.url)
     return (
       <figure className="container cms-page-image">

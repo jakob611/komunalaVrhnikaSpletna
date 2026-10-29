@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { localD1 } from "./local-d1.mjs";
 import { handleAdmin } from "./admin.js";
+import { createTestSession } from "./admin-auth-test-helpers.mjs";
 
 const password = "internal-test-password";
 const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -38,15 +39,7 @@ async function setup() {
     LOCAL_STORAGE: {},
     ADMIN_PASSWORD_HASH: hash,
   };
-  const response = await handleAdmin(
-    call("/api/admin/login", null, { password }, "POST"),
-    env,
-  );
-  assert.equal(response.status, 200);
-  const session = {
-    ...(await response.json()),
-    cookie: response.headers.get("set-cookie").split(";")[0],
-  };
+  const session = await createTestSession(env, { password });
   const payload = {
     name: "Testna oseba",
     email: "person@example.com",
@@ -121,6 +114,7 @@ test("checklists, status, notes and history update atomically, reject stale edit
   const saved = await savedResponse.json();
   assert.equal(saved.item.version, 1);
   assert.equal(saved.timeline.length, 1);
+  assert.match(saved.timeline[0].detail, /Urednik: owner@example\.com/);
   assert.equal(
     (
       await handleAdmin(
@@ -183,6 +177,131 @@ test("checklists, status, notes and history update atomically, reject stale edit
       )
     ).status,
     400,
+  );
+  env.DB.close();
+});
+
+test("staff can create private internal tasks without sending mail; retries do not duplicate tasks", async () => {
+  const { env, session } = await setup();
+  const input = {
+    requestId: crypto.randomUUID(),
+    title: "Popravi povezavo v mobilnem meniju",
+    description: "Puščica odpre napačno stran. Preveri delovanje po popravku.",
+    category: "portal",
+    address: "/kontakt",
+    priority: "high",
+    assignee: "Uredništvo",
+    dueDate: "2026-11-05",
+  };
+  assert.equal(
+    (await handleAdmin(call("/api/admin/work", null, input, "POST"), env))
+      .status,
+    401,
+  );
+  const simultaneous = await Promise.all(
+    [0, 1].map(() =>
+      handleAdmin(call("/api/admin/work", session, input, "POST"), env),
+    ),
+  );
+  assert.ok(simultaneous.every((response) => response.status === 201));
+  const response = simultaneous[0];
+  assert.equal(response.status, 201);
+  const created = await response.json();
+  assert.equal(created.item.kind, "internal");
+  assert.equal(created.item.payload.subject, input.title);
+  assert.equal(created.item.payload.createdBy, "owner@example.com");
+  assert.equal(created.item.dueDate, input.dueDate);
+  assert.equal(created.item.priority, "high");
+  assert.equal(created.item.checklist.length, 3);
+  assert.equal(created.item.notificationStatus, "not-queued");
+  assert.equal(created.timeline.length, 1);
+  assert.match(created.timeline[0].detail, /Urednik: owner@example\.com/);
+  assert.equal(
+    (await env.DB.prepare("SELECT COUNT(*) AS total FROM email_outbox").first())
+      .total,
+    0,
+  );
+  const repeated = await handleAdmin(
+    call("/api/admin/work", session, input, "POST"),
+    env,
+  );
+  assert.equal(repeated.status, 201);
+  const replay = await repeated.json();
+  assert.equal(replay.item.id, created.item.id);
+  assert.equal(replay.timeline.length, 1);
+  const conflict = await handleAdmin(
+    call(
+      "/api/admin/work",
+      session,
+      { ...input, title: "Drug popravek" },
+      "POST",
+    ),
+    env,
+  );
+  assert.equal(conflict.status, 409);
+  const queue = await (
+    await handleAdmin(call("/api/admin/work?kind=internal", session), env)
+  ).json();
+  assert.equal(queue.items.length, 1);
+  assert.equal(queue.stats.open, 2);
+  const publicContent = await (
+    await handleAdmin(call("/api/content"), env)
+  ).text();
+  assert.ok(!publicContent.includes(input.title));
+  const done = await handleAdmin(
+    call(`/api/admin/work/${created.item.id}`, session, {
+      ...created.item,
+      status: "resolved",
+      checklist: created.item.checklist.map((step) => ({
+        ...step,
+        done: true,
+      })),
+    }),
+    env,
+  );
+  assert.equal(done.status, 200);
+  const saved = await done.json();
+  assert.equal(saved.item.status, "resolved");
+  assert.equal(saved.item.version, 2);
+  assert.equal(saved.timeline.length, 2);
+  env.DB.close();
+});
+
+test("internal task creation validates input and refuses client-supplied creator or missing CSRF", async () => {
+  const { env, session } = await setup();
+  const input = { title: "Preveri urnik", category: "waste" };
+  for (const patch of [
+    { title: " " },
+    { priority: "invalid" },
+    { dueDate: "2026-02-31" },
+    { category: "invalid" },
+    { createdBy: "forged@example.com" },
+    { requestId: "not-a-request-id" },
+    { description: "x".repeat(5001) },
+  ]) {
+    const response = await handleAdmin(
+      call("/api/admin/work", session, { ...input, ...patch }, "POST"),
+      env,
+    );
+    assert.equal(response.status, 400);
+  }
+  const request = new Request(base + "/api/admin/work", {
+    method: "POST",
+    headers: {
+      Origin: base,
+      Cookie: session.cookie,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  assert.equal((await handleAdmin(request, env)).status, 403);
+  assert.equal(
+    (
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS total FROM internal_tasks",
+      ).first()
+    ).total,
+    0,
   );
   env.DB.close();
 });

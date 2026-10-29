@@ -1,0 +1,135 @@
+.cms-native-component {
+  display: contents;
+}
+.cms-block {
+  margin: 28px auto;
+  padding: 30px 0;
+  max-width: var(--container, 1200px);
+  width: calc(100% - 48px);
+  overflow-wrap: anywhere;
+}
+.inner-page .cms-block {
+  width: 100%;
+}
+.cms-block h2 {
+  font-size: clamp(1.7rem, 3vw, 2.6rem);
+  line-height: 1.15;
+  margin: 0 0 20px;
+  letter-spacing: -0.04em;
+}
+.cms-block p {
+  line-height: 1.8;
+  white-space: pre-line;
+}
+.cms-tone-soft {
+  background: #edf2e8;
+  border-radius: 22px;
+  padding: 32px;
+}
+.cms-tone-dark {
+  background: #173d30;
+  color: #fff;
+  border-radius: 22px;
+  padding: 32px;
+}
+.cms-tone-dark h2,
+.cms-tone-dark h3,
+.cms-tone-dark a {
+  color: inherit;
+}
+.cms-width-narrow,
+.cms-native-narrow {
+  max-width: 780px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.cms-align-center {
+  text-align: center;
+}
+.cms-align-right {
+  text-align: right;
+}
+.cms-button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  align-items: center;
+}
+.cms-align-center .cms-button-row {
+  justify-content: center;
+}
+.cms-align-right .cms-button-row {
+  justify-content: flex-end;
+}
+.cms-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.cms-card-grid article {
+  border: 1px solid #d8e1d7;
+  border-radius: 16px;
+  padding: 24px;
+  background: #ffffff12;
+}
+.cms-block figure {
+  margin: 0;
+}
+.cms-block img {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  max-height: 700px;
+  object-fit: cover;
+  border-radius: 18px;
+}
+.cms-spacer.small {
+  height: 20px;
+}
+.cms-spacer.medium {
+  height: 48px;
+}
+.cms-spacer.large {
+  height: 90px;
+}
+.cms-native-align-center > :is(h1, h2, h3, p) {
+  text-align: center;
+}
+.cms-native-align-right > :is(h1, h2, h3, p) {
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .cms-block {
+    width: calc(100% - 32px);
+    margin: 20px auto;
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+  .cms-tone-soft,
+  .cms-tone-dark {
+    padding: 22px;
+  }
+  .cms-button-row > .button {
+    max-width: 100%;
+  }
+  .cms-spacer.large {
+    height: 48px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cms-block {
+    scroll-behavior: auto;
+  }
+}
+.cms-native-box {
+  display: block;
+  min-width: 0;
+}
+.cms-native-align-center :is(h1, h2, h3, p) {
+  text-align: center;
+}
+.cms-native-align-right :is(h1, h2, h3, p) {
+  text-align: right;
+}

@@ -1,3 +1,4 @@
+import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import {
   useEffect,
   useRef,
@@ -5,7 +6,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   Check,
@@ -614,364 +615,366 @@ export default function CemeteryPage() {
   );
   return (
     <div className="cemetery-page">
-      <header className="cemetery-intro" data-motion-section>
-        <div>
-          <span className="eyebrow">
-            <Flower2 size={16} /> POKOPALIŠČE VRHNIKA
-          </span>
-          <h1>
-            Spomin ostane.
-            <br />
-            <em>Pot naj bo preprosta.</em>
-          </h1>
+      <CmsLayout>
+        <header className="cemetery-intro" data-motion-section>
+          <div>
+            <span className="eyebrow">
+              <Flower2 size={16} /> POKOPALIŠČE VRHNIKA
+            </span>
+            <h1>
+              Spomin ostane.
+              <br />
+              <em>Pot naj bo preprosta.</em>
+            </h1>
+            <p>
+              Poiščite ime, izberite grob in si oglejte njegovo mesto na načrtu.
+              Tudi ko prihajate od daleč.
+            </p>
+          </div>
+          <div className="cemetery-intro-art" aria-hidden="true">
+            <div className="cemetery-flower-circle">
+              <Flower2 strokeWidth={1} size={76} />
+            </div>
+            <span>
+              Prostor spomina.
+              <br />
+              Bližje vam.
+            </span>
+          </div>
+        </header>
+        <div className="cemetery-demo">
+          <Info size={19} />
           <p>
-            Poiščite ime, izberite grob in si oglejte njegovo mesto na načrtu.
-            Tudi ko prihajate od daleč.
+            <strong>Predogled prihodnjega iskalnika.</strong> Vseh{" "}
+            {graves.length} grobov, imena in datumi ter razporeditev so
+            izmišljeni. Za preizkus vpišite »Novak« ali »Kovač«. Za resnični
+            grob uporabite uradne informacije KPV.
           </p>
         </div>
-        <div className="cemetery-intro-art" aria-hidden="true">
-          <div className="cemetery-flower-circle">
-            <Flower2 strokeWidth={1} size={76} />
+        <section
+          className="cemetery-panel"
+          aria-labelledby="cemetery-search-title"
+          data-motion-section
+        >
+          <div className="cemetery-search-heading">
+            <div>
+              <span className="eyebrow">POIŠČITE SVOJE BLIŽNJE</span>
+              <h2 id="cemetery-search-title">Ime je dovolj za prvi korak.</h2>
+            </div>
+            <span className="cemetery-search-hint">
+              <Compass size={17} /> Prikazni načrt · {sections.length} oddelkov
+            </span>
           </div>
-          <span>
-            Prostor spomina.
-            <br />
-            Bližje vam.
-          </span>
-        </div>
-      </header>
-      <div className="cemetery-demo">
-        <Info size={19} />
-        <p>
-          <strong>Predogled prihodnjega iskalnika.</strong> Vseh {graves.length}{" "}
-          grobov, imena in datumi ter razporeditev so izmišljeni. Za preizkus
-          vpišite »Novak« ali »Kovač«. Za resnični grob uporabite uradne
-          informacije KPV.
-        </p>
-      </div>
-      <section
-        className="cemetery-panel"
-        aria-labelledby="cemetery-search-title"
-        data-motion-section
-      >
-        <div className="cemetery-search-heading">
-          <div>
-            <span className="eyebrow">POIŠČITE SVOJE BLIŽNJE</span>
-            <h2 id="cemetery-search-title">Ime je dovolj za prvi korak.</h2>
-          </div>
-          <span className="cemetery-search-hint">
-            <Compass size={17} /> Prikazni načrt · {sections.length} oddelkov
-          </span>
-        </div>
-        <label className="cemetery-search-label" htmlFor="cemetery-search">
-          Ime, priimek, leto ali oznaka groba
-        </label>
-        <div className="cemetery-search-input">
-          <Search size={22} />
-          <input
-            id="cemetery-search"
-            type="search"
-            autoComplete="off"
-            placeholder="Npr. Novak, Jože Kovač ali A-01-01"
-            maxLength={120}
-            value={query}
-            onChange={(event) => filter(event.target.value, "iskanje")}
-            aria-describedby="cemetery-search-help"
-          />
-          {query && (
-            <button
-              type="button"
-              aria-label="Počisti iskanje grobov"
-              onClick={() => {
-                document.getElementById("cemetery-search")?.focus();
-                filter("", "iskanje");
-              }}
-            >
-              <X size={18} />
-            </button>
-          )}
-        </div>
-        <p className="cemetery-search-help" id="cemetery-search-help">
-          Iščete lahko tudi brez šumnikov. Na načrtu se obarvajo vsi zadetki.
-        </p>
-        <div className="cemetery-filter-row">
-          <div
-            className="cemetery-filters"
-            role="group"
-            aria-label="Oddelek pokopališča"
-          >
-            {["all", ...sections].map((value) => (
+          <label className="cemetery-search-label" htmlFor="cemetery-search">
+            Ime, priimek, leto ali oznaka groba
+          </label>
+          <div className="cemetery-search-input">
+            <Search size={22} />
+            <input
+              id="cemetery-search"
+              type="search"
+              autoComplete="off"
+              placeholder="Npr. Novak, Jože Kovač ali A-01-01"
+              maxLength={120}
+              value={query}
+              onChange={(event) => filter(event.target.value, "iskanje")}
+              aria-describedby="cemetery-search-help"
+            />
+            {query && (
               <button
                 type="button"
-                key={value}
-                aria-pressed={section === value}
-                data-motion-select
-                onClick={() => filter(value, "oddelek")}
+                aria-label="Počisti iskanje grobov"
+                onClick={() => {
+                  document.getElementById("cemetery-search")?.focus();
+                  filter("", "iskanje");
+                }}
               >
-                {value === "all" ? "Vsi oddelki" : `Oddelek ${value}`}
+                <X size={18} />
               </button>
-            ))}
+            )}
           </div>
-          <span
-            role="status"
-            aria-live="polite"
-            className="cemetery-result-count"
-          >
-            {results.length} grobov · {peopleCount} oseb
-          </span>
-        </div>
-      </section>
-      <div className="cemetery-workspace">
-        <GraveMap
-          matches={results}
-          activeFilter={Boolean(query.trim()) || section !== "all"}
-          selected={selected}
-          onSelect={select}
-          plots={graves}
-          plan={cemetery.plan}
-        />
-        <div className="cemetery-sidebar">
-          <section
-            className="cemetery-detail"
-            ref={detail}
-            aria-labelledby="cemetery-detail-title"
-            aria-live="polite"
-          >
-            {selected ? (
-              <div key={selected.id} data-motion-enter>
-                <div className="cemetery-detail-top">
-                  <span className="eyebrow">IZBRANI GROB</span>
+          <p className="cemetery-search-help" id="cemetery-search-help">
+            Iščete lahko tudi brez šumnikov. Na načrtu se obarvajo vsi zadetki.
+          </p>
+          <div className="cemetery-filter-row">
+            <div
+              className="cemetery-filters"
+              role="group"
+              aria-label="Oddelek pokopališča"
+            >
+              {["all", ...sections].map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={section === value}
+                  data-motion-select
+                  onClick={() => filter(value, "oddelek")}
+                >
+                  {value === "all" ? "Vsi oddelki" : `Oddelek ${value}`}
+                </button>
+              ))}
+            </div>
+            <span
+              role="status"
+              aria-live="polite"
+              className="cemetery-result-count"
+            >
+              {results.length} grobov · {peopleCount} oseb
+            </span>
+          </div>
+        </section>
+        <div className="cemetery-workspace">
+          <GraveMap
+            matches={results}
+            activeFilter={Boolean(query.trim()) || section !== "all"}
+            selected={selected}
+            onSelect={select}
+            plots={graves}
+            plan={cemetery.plan}
+          />
+          <div className="cemetery-sidebar">
+            <section
+              className="cemetery-detail"
+              ref={detail}
+              aria-labelledby="cemetery-detail-title"
+              aria-live="polite"
+            >
+              {selected ? (
+                <div key={selected.id} data-motion-enter>
+                  <div className="cemetery-detail-top">
+                    <span className="eyebrow">IZBRANI GROB</span>
+                    <button
+                      type="button"
+                      aria-label="Zapri podatke groba"
+                      onClick={() => {
+                        const trigger = selectionTrigger.current;
+                        if (
+                          trigger?.isConnected &&
+                          !detail.current?.contains(trigger) &&
+                          trigger !== document.body
+                        )
+                          trigger.focus({ preventScroll: true });
+                        else
+                          document
+                            .querySelector<SVGGElement>(
+                              `[data-grave="${selected.id}"]`,
+                            )
+                            ?.focus({ preventScroll: true });
+                        setParams(
+                          (previous) => {
+                            const next = new URLSearchParams(previous);
+                            next.delete("grob");
+                            return next;
+                          },
+                          { replace: true },
+                        );
+                        setShowCopy(false);
+                      }}
+                    >
+                      <X size={17} />
+                    </button>
+                  </div>
+                  <h2 id="cemetery-detail-title">
+                    <Flower2 size={24} /> {selected.id}
+                  </h2>
+                  <p className="cemetery-coordinate">
+                    Oddelek {selected.section}
+                    <ChevronRight size={13} /> vrsta {selected.row}
+                    <ChevronRight size={13} /> grob {selected.number}
+                  </p>
+                  <div className="cemetery-people">
+                    {selected.people.map((person) => (
+                      <div key={person.name}>
+                        <h3>{person.name}</h3>
+                        <p>
+                          <span>Rojen/a</span>
+                          <time dateTime={person.born}>
+                            {dateLabel(person.born)}
+                          </time>
+                        </p>
+                        <p>
+                          <span>Umrl/a</span>
+                          <time dateTime={person.died}>
+                            {dateLabel(person.died)}
+                          </time>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <span className="cemetery-fiction-tag">
+                    Izmišljeni podatki za predstavitev
+                  </span>
                   <button
                     type="button"
-                    aria-label="Zapri podatke groba"
+                    className="button secondary cemetery-share"
+                    onClick={share}
+                  >
+                    {copied ? <Check size={17} /> : <Copy size={17} />}{" "}
+                    {copied
+                      ? "Povezava je kopirana"
+                      : "Kopiraj povezavo do groba"}
+                  </button>
+                  {showCopy && (
+                    <label className="cemetery-copy-fallback" data-motion-enter>
+                      Kopirajte povezavo
+                      <input
+                        readOnly
+                        aria-label="Povezava do izbranega groba"
+                        value={window.location.href}
+                        onFocus={(event) => event.currentTarget.select()}
+                      />
+                    </label>
+                  )}
+                  <p className="cemetery-detail-note">
+                    Povezavo lahko pošljete svojcem. Ta primer prikazuje
+                    funkcijo; ni evidenca resničnega groba.
+                  </p>
+                </div>
+              ) : (
+                <div className="cemetery-detail-empty">
+                  <Flower2 size={35} strokeWidth={1.4} />
+                  <h2 id="cemetery-detail-title">Izberite grob.</h2>
+                  <p>
+                    Kliknite na načrt ali ime na seznamu. Tukaj se pokažejo
+                    podatki in povezava za svojce.
+                  </p>
+                </div>
+              )}
+            </section>
+            <section
+              className="cemetery-results"
+              aria-labelledby="cemetery-results-title"
+            >
+              <div className="cemetery-list-heading">
+                <h2 id="cemetery-results-title">
+                  {query.trim() ? "Rezultati iskanja" : "Prikazni grobovi"}
+                </h2>
+                <span>{results.length}</span>
+              </div>
+              {results.length ? (
+                <>
+                  <ul>
+                    {results.slice(0, limit).map((grave) => (
+                      <li key={grave.id}>
+                        <button
+                          type="button"
+                          className={
+                            selected?.id === grave.id ? "is-selected" : ""
+                          }
+                          aria-pressed={selected?.id === grave.id}
+                          onClick={() => {
+                            select(grave);
+                            if (window.innerWidth <= 760)
+                              requestAnimationFrame(() =>
+                                detail.current?.scrollIntoView({
+                                  behavior: motion(),
+                                  block: "center",
+                                }),
+                              );
+                          }}
+                        >
+                          <span>
+                            <strong>
+                              {grave.people
+                                .map((person) => person.name)
+                                .join(" · ")}
+                            </strong>
+                            <small>
+                              {grave.people
+                                .map(
+                                  (person) =>
+                                    `${shortDate(person.born)}–${shortDate(person.died)}`,
+                                )
+                                .join(" · ")}
+                              {grave.people.length > 1 ? " · 2 osebi" : ""}
+                            </small>
+                          </span>
+                          <span className="cemetery-result-location">
+                            {grave.id}
+                            <ChevronRight size={15} />
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {results.length > limit && (
+                    <button
+                      type="button"
+                      className="cemetery-show-more"
+                      onClick={() => setLimit(limit + 12)}
+                    >
+                      Prikaži še {Math.min(12, results.length - limit)} grobov{" "}
+                      <Plus size={15} />
+                    </button>
+                  )}
+                  <p className="cemetery-list-foot">
+                    Prikazanih {Math.min(limit, results.length)} od{" "}
+                    {results.length}. Vsi zadetki so na načrtu.
+                  </p>
+                </>
+              ) : (
+                <div className="cemetery-empty" data-motion-enter>
+                  <Search size={24} />
+                  <h3>Ni zadetkov.</h3>
+                  <p>Poskusite samo priimek ali drug oddelek.</p>
+                  <button
+                    type="button"
+                    className="cemetery-text-action"
                     onClick={() => {
-                      const trigger = selectionTrigger.current;
-                      if (
-                        trigger?.isConnected &&
-                        !detail.current?.contains(trigger) &&
-                        trigger !== document.body
-                      )
-                        trigger.focus({ preventScroll: true });
-                      else
-                        document
-                          .querySelector<SVGGElement>(
-                            `[data-grave="${selected.id}"]`,
-                          )
-                          ?.focus({ preventScroll: true });
-                      setParams(
-                        (previous) => {
-                          const next = new URLSearchParams(previous);
-                          next.delete("grob");
-                          return next;
-                        },
-                        { replace: true },
-                      );
-                      setShowCopy(false);
+                      setParams({}, { replace: true });
+                      setLimit(8);
+                      document.getElementById("cemetery-search")?.focus();
                     }}
                   >
-                    <X size={17} />
+                    Počisti vse filtre <RotateCcw size={14} />
                   </button>
                 </div>
-                <h2 id="cemetery-detail-title">
-                  <Flower2 size={24} /> {selected.id}
-                </h2>
-                <p className="cemetery-coordinate">
-                  Oddelek {selected.section}
-                  <ChevronRight size={13} /> vrsta {selected.row}
-                  <ChevronRight size={13} /> grob {selected.number}
-                </p>
-                <div className="cemetery-people">
-                  {selected.people.map((person) => (
-                    <div key={person.name}>
-                      <h3>{person.name}</h3>
-                      <p>
-                        <span>Rojen/a</span>
-                        <time dateTime={person.born}>
-                          {dateLabel(person.born)}
-                        </time>
-                      </p>
-                      <p>
-                        <span>Umrl/a</span>
-                        <time dateTime={person.died}>
-                          {dateLabel(person.died)}
-                        </time>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <span className="cemetery-fiction-tag">
-                  Izmišljeni podatki za predstavitev
-                </span>
-                <button
-                  type="button"
-                  className="button secondary cemetery-share"
-                  onClick={share}
-                >
-                  {copied ? <Check size={17} /> : <Copy size={17} />}{" "}
-                  {copied
-                    ? "Povezava je kopirana"
-                    : "Kopiraj povezavo do groba"}
-                </button>
-                {showCopy && (
-                  <label className="cemetery-copy-fallback" data-motion-enter>
-                    Kopirajte povezavo
-                    <input
-                      readOnly
-                      aria-label="Povezava do izbranega groba"
-                      value={window.location.href}
-                      onFocus={(event) => event.currentTarget.select()}
-                    />
-                  </label>
-                )}
-                <p className="cemetery-detail-note">
-                  Povezavo lahko pošljete svojcem. Ta primer prikazuje funkcijo;
-                  ni evidenca resničnega groba.
-                </p>
-              </div>
-            ) : (
-              <div className="cemetery-detail-empty">
-                <Flower2 size={35} strokeWidth={1.4} />
-                <h2 id="cemetery-detail-title">Izberite grob.</h2>
-                <p>
-                  Kliknite na načrt ali ime na seznamu. Tukaj se pokažejo
-                  podatki in povezava za svojce.
-                </p>
-              </div>
-            )}
-          </section>
-          <section
-            className="cemetery-results"
-            aria-labelledby="cemetery-results-title"
-          >
-            <div className="cemetery-list-heading">
-              <h2 id="cemetery-results-title">
-                {query.trim() ? "Rezultati iskanja" : "Prikazni grobovi"}
-              </h2>
-              <span>{results.length}</span>
-            </div>
-            {results.length ? (
-              <>
-                <ul>
-                  {results.slice(0, limit).map((grave) => (
-                    <li key={grave.id}>
-                      <button
-                        type="button"
-                        className={
-                          selected?.id === grave.id ? "is-selected" : ""
-                        }
-                        aria-pressed={selected?.id === grave.id}
-                        onClick={() => {
-                          select(grave);
-                          if (window.innerWidth <= 760)
-                            requestAnimationFrame(() =>
-                              detail.current?.scrollIntoView({
-                                behavior: motion(),
-                                block: "center",
-                              }),
-                            );
-                        }}
-                      >
-                        <span>
-                          <strong>
-                            {grave.people
-                              .map((person) => person.name)
-                              .join(" · ")}
-                          </strong>
-                          <small>
-                            {grave.people
-                              .map(
-                                (person) =>
-                                  `${shortDate(person.born)}–${shortDate(person.died)}`,
-                              )
-                              .join(" · ")}
-                            {grave.people.length > 1 ? " · 2 osebi" : ""}
-                          </small>
-                        </span>
-                        <span className="cemetery-result-location">
-                          {grave.id}
-                          <ChevronRight size={15} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {results.length > limit && (
-                  <button
-                    type="button"
-                    className="cemetery-show-more"
-                    onClick={() => setLimit(limit + 12)}
-                  >
-                    Prikaži še {Math.min(12, results.length - limit)} grobov{" "}
-                    <Plus size={15} />
-                  </button>
-                )}
-                <p className="cemetery-list-foot">
-                  Prikazanih {Math.min(limit, results.length)} od{" "}
-                  {results.length}. Vsi zadetki so na načrtu.
-                </p>
-              </>
-            ) : (
-              <div className="cemetery-empty" data-motion-enter>
-                <Search size={24} />
-                <h3>Ni zadetkov.</h3>
-                <p>Poskusite samo priimek ali drug oddelek.</p>
-                <button
-                  type="button"
-                  className="cemetery-text-action"
-                  onClick={() => {
-                    setParams({}, { replace: true });
-                    setLimit(8);
-                    document.getElementById("cemetery-search")?.focus();
-                  }}
-                >
-                  Počisti vse filtre <RotateCcw size={14} />
-                </button>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          </div>
         </div>
-      </div>
-      <section className="cemetery-help" data-motion-section>
-        <div>
-          <span className="eyebrow">ZA OBISK IN INFORMACIJE</span>
-          <h2>Ko potrebujete več kot načrt.</h2>
-          <p>
-            KPV je upravljavec centralnega pokopališča Vrhnika. Za informacije o
-            evidenci grobov in upravljanju se obrnite na podjetje.
-          </p>
-          <a
-            href="https://www.google.com/maps/search/?api=1&query=Centralno+pokopali%C5%A1%C4%8De+Vrhnika"
-            target="_blank"
-            rel="noreferrer"
-            className="text-link"
-          >
-            <MapPin size={17} /> Pot do pokopališča <ArrowRight size={16} />
-          </a>
-        </div>
-        <div>
-          <h3>Potrebujete podatek o grobu?</h3>
-          <p>
-            Pripravite ime in priimek pokojnika ter približno leto smrti, če ga
-            poznate.
-          </p>
-          <Link to="/kontakt" className="button secondary">
-            Kontakti in uradne ure <ArrowRight size={17} />
-          </Link>
-          <a
-            href="https://www.kpv.si/mDejavnosti/pok/pokOstalo.html"
-            target="_blank"
-            rel="noreferrer"
-            className="cemetery-source"
-          >
-            Vir: KPV · upravljanje pokopališč, preverjeno 29. 10. 2026
-          </a>
-        </div>
-      </section>
-      <p className="cemetery-future-note">
-        <Layers3 size={17} /> Ilustrativni načrt bo mogoče nadomestiti s
-        posnetkom iz zraka in potrjeno evidenco grobov. Imena, datumi in
-        položaji v tem predogledu niso dejanski.
-      </p>
+        <section className="cemetery-help" data-motion-section>
+          <div>
+            <span className="eyebrow">ZA OBISK IN INFORMACIJE</span>
+            <h2>Ko potrebujete več kot načrt.</h2>
+            <p>
+              KPV je upravljavec centralnega pokopališča Vrhnika. Za informacije
+              o evidenci grobov in upravljanju se obrnite na podjetje.
+            </p>
+            <CmsAnchor
+              href="https://www.google.com/maps/search/?api=1&query=Centralno+pokopali%C5%A1%C4%8De+Vrhnika"
+              target="_blank"
+              rel="noreferrer"
+              className="text-link"
+            >
+              <MapPin size={17} /> Pot do pokopališča <ArrowRight size={16} />
+            </CmsAnchor>
+          </div>
+          <div>
+            <h3>Potrebujete podatek o grobu?</h3>
+            <p>
+              Pripravite ime in priimek pokojnika ter približno leto smrti, če
+              ga poznate.
+            </p>
+            <Link to="/kontakt" className="button secondary">
+              Kontakti in uradne ure <ArrowRight size={17} />
+            </Link>
+            <CmsAnchor
+              href="https://www.kpv.si/mDejavnosti/pok/pokOstalo.html"
+              target="_blank"
+              rel="noreferrer"
+              className="cemetery-source"
+            >
+              Vir: KPV · upravljanje pokopališč, preverjeno 29. 10. 2026
+            </CmsAnchor>
+          </div>
+        </section>
+        <p className="cemetery-future-note">
+          <Layers3 size={17} /> Ilustrativni načrt bo mogoče nadomestiti s
+          posnetkom iz zraka in potrjeno evidenco grobov. Imena, datumi in
+          položaji v tem predogledu niso dejanski.
+        </p>
+      </CmsLayout>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import {
   useEffect,
   useMemo,
@@ -6,7 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -291,10 +292,15 @@ function Source({
   children?: ReactNode;
 }) {
   return (
-    <a className="svc-source" href={href} target="_blank" rel="noreferrer">
+    <CmsAnchor
+      className="svc-source"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
       {children}
       <ExternalLink size={14} />
-    </a>
+    </CmsAnchor>
   );
 }
 
@@ -536,7 +542,7 @@ export function NoticesPage() {
       ),
   );
   return (
-    <>
+    <CmsLayout>
       <Intro eyebrow="AKTUALNO V VAŠEM KRAJU" title="Vedno dobro obveščeni.">
         Vzdrževalna dela, spremembe odvozov in druge informacije za lažji
         vsakdan. Vse na enem mestu.
@@ -582,14 +588,14 @@ export function NoticesPage() {
         </div>
       )}
       <SubscriptionForm />
-    </>
+    </CmsLayout>
   );
 }
 export function RoadsPage() {
   const { notices, loading, error, retry } = useNotices();
   const roads = notices.filter((n) => n.category === "roads");
   return (
-    <>
+    <CmsLayout>
       <Intro eyebrow="JAVNE POVRŠINE" title="Varno po naših poteh.">
         Pregled del na cestah in javnih površinah. Ste opazili poškodbo ali
         nedelujočo svetilko? Sporočite nam lokacijo.
@@ -681,7 +687,7 @@ export function RoadsPage() {
         <p className="empty-state">Ni vzorčnih cestnih del.</p>
       )}
       <SubscriptionForm />
-    </>
+    </CmsLayout>
   );
 }
 function MapPosition({
@@ -843,7 +849,7 @@ export function ReportPage() {
     },
   ];
   return (
-    <>
+    <CmsLayout>
       <Intro
         eyebrow="SKUPAJ ZA UREJEN KRAJ"
         title="Opazite. Sporočite. Uredimo."
@@ -854,7 +860,7 @@ export function ReportPage() {
       <Demo>
         Preizkusni obrazec. Prijava se shrani v predstavitveno zbirko in ni
         poslana dežurni službi. Za nujno pomoč pokličite{" "}
-        <a href="tel:+38641364681">041 364 681</a>.
+        <CmsAnchor href="tel:+38641364681">041 364 681</CmsAnchor>.
       </Demo>
       <nav className="svc-report-steps" aria-label="Koraki prijave">
         {[
@@ -863,10 +869,10 @@ export function ReportPage() {
           ["3", "Fotografija", "fotografija"],
           ["4", "Kontakt", "kontakt-prijave"],
         ].map(([n, label, id]) => (
-          <a key={id} href={`#${id}`}>
+          <CmsAnchor key={id} href={`#${id}`}>
             <span>{n}</span>
             {label}
-          </a>
+          </CmsAnchor>
         ))}
       </nav>
       <form
@@ -1243,14 +1249,14 @@ export function ReportPage() {
               Za nujne težave z javno infrastrukturo uporabite uradno dežurno
               številko. Predstavitvena prijava se podjetju ne pošlje.
             </p>
-            <a href="tel:+38641364681">
+            <CmsAnchor href="tel:+38641364681">
               041 364 681
               <ArrowRight size={17} />
-            </a>
+            </CmsAnchor>
           </div>
         </aside>
       </form>
-    </>
+    </CmsLayout>
   );
 }
 const serviceOptions = [
@@ -1355,7 +1361,7 @@ export function ServicesPage() {
   )!;
   const guide = selectedService;
   return (
-    <>
+    <CmsLayout>
       <Intro eyebrow="STORITVE ZA VAŠ DOM" title="Uredite kar od doma.">
         Od odsluženega kavča do praznjenja greznice. Izberite storitev in nam
         zaupajte, kaj potrebujete.
@@ -1580,7 +1586,7 @@ export function ServicesPage() {
           </Link>
         </aside>
       </div>
-    </>
+    </CmsLayout>
   );
 }
 
@@ -1613,7 +1619,7 @@ export function MarketPage() {
     return result.filter((date) => !market.closedDates.includes(date));
   }, [market]);
   return (
-    <>
+    <CmsLayout>
       <Intro eyebrow="LOKALNO JE LEPŠE" title="Vaša ponudba. Naša tržnica.">
         Predstavite svoje pridelke, izdelke in zgodbe. Preizkusite preprosto
         prijavo za prodajno mesto.
@@ -1774,7 +1780,7 @@ export function MarketPage() {
           </div>
         </aside>
       </div>
-    </>
+    </CmsLayout>
   );
 }
 
@@ -1808,7 +1814,7 @@ export function CalculatorPage() {
     },
   ];
   return (
-    <>
+    <CmsLayout>
       <Intro
         eyebrow="PREGLEDNO DO ZADNJEGA EVRA"
         title="Koliko približno nanese?"
@@ -1918,14 +1924,14 @@ export function CalculatorPage() {
           </Link>
         </section>
       </div>
-    </>
+    </CmsLayout>
   );
 }
 
 export function DepoPage() {
   const { settings } = useSiteContent();
   return (
-    <>
+    <CmsLayout>
       <Intro eyebrow="PONOVNA UPORABA" title="Staro za nekoga. Novo za vas.">
         Predmeti s preteklostjo si zaslužijo prihodnost. Odkrijte Depo, trgovino
         z rabljenimi in preoblikovanimi predmeti na Vrhniki.
@@ -1942,7 +1948,7 @@ export function DepoPage() {
             Od pohištva do drobnih najdb za dom. Aktualni izdelki vas čakajo v
             uradnem spletnem katalogu, še več pa v trgovini.
           </p>
-          <a
+          <CmsAnchor
             className="button"
             href={settings.depoUrl}
             target="_blank"
@@ -1950,7 +1956,7 @@ export function DepoPage() {
           >
             Raziščite uradno ponudbo
             <ExternalLink size={17} />
-          </a>
+          </CmsAnchor>
         </div>
         <div className="svc-depo-art" aria-hidden="true">
           <div className="svc-depo-orbit" />
@@ -1975,7 +1981,7 @@ export function DepoPage() {
             <br />
             1360 Vrhnika
           </p>
-          <a
+          <CmsAnchor
             className="svc-inline-link"
             href="https://www.google.com/maps/search/?api=1&query=Depo+Cankarjev+trg+6a+Vrhnika"
             target="_blank"
@@ -1983,7 +1989,7 @@ export function DepoPage() {
           >
             Načrtujte pot
             <ArrowRight size={17} />
-          </a>
+          </CmsAnchor>
         </article>
         <article className="panel">
           <Clock3 size={25} />
@@ -1992,10 +1998,10 @@ export function DepoPage() {
             Ponudba se spreminja. Delovni čas in razpoložljivost predmetov
             preverite na uradni strani ali po telefonu.
           </p>
-          <a className="svc-inline-link" href="tel:+38641777385">
+          <CmsAnchor className="svc-inline-link" href="tel:+38641777385">
             041 777 385
             <Phone size={17} />
-          </a>
+          </CmsAnchor>
         </article>
         <article className="panel">
           <ShoppingBag size={25} />
@@ -2004,10 +2010,10 @@ export function DepoPage() {
             Pred oddajo se z Depojem dogovorite o primernosti in načinu
             prevzema.
           </p>
-          <a className="svc-inline-link" href="mailto:depo@kpv.si">
+          <CmsAnchor className="svc-inline-link" href="mailto:depo@kpv.si">
             depo@kpv.si
             <Mail size={17} />
-          </a>
+          </CmsAnchor>
         </article>
       </div>
       <p className="svc-small">
@@ -2018,7 +2024,7 @@ export function DepoPage() {
         . Ta portal ne prikazuje lastne zaloge in ne sprejema naročil za
         izdelke.
       </p>
-    </>
+    </CmsLayout>
   );
 }
 const contactAreas = [
@@ -2489,14 +2495,14 @@ function ContactHours() {
               </tbody>
             </table>
             <div className="svc-hours-contact">
-              <a href={`tel:${place.telephone}`}>
+              <CmsAnchor href={`tel:${place.telephone}`}>
                 <Phone size={16} />
                 {place.phone}
-              </a>
-              <a href={`mailto:${place.email}`}>
+              </CmsAnchor>
+              <CmsAnchor href={`mailto:${place.email}`}>
                 <Mail size={16} />
                 {place.email}
-              </a>
+              </CmsAnchor>
             </div>
           </article>
         ))}
@@ -2517,7 +2523,7 @@ function ContactHours() {
 export function ContactPage() {
   const { settings } = useSiteContent();
   return (
-    <>
+    <CmsLayout>
       <Intro
         eyebrow="TUKAJ SMO ZA VAS"
         title="Pravi odgovor se začne s stikom."
@@ -2527,21 +2533,21 @@ export function ContactPage() {
         sporočila.
       </Intro>
       <div className="svc-contact-quick-paths">
-        <a href="#kontakt-obrazec">
+        <CmsAnchor href="#kontakt-obrazec">
           <Mail size={18} />
           Pišite nam
           <ArrowRight size={16} />
-        </a>
-        <a href="#uradni-kontakti">
+        </CmsAnchor>
+        <CmsAnchor href="#uradni-kontakti">
           <Phone size={18} />
           Uradni kontakti
           <ArrowRight size={16} />
-        </a>
-        <a href="#delovni-cas">
+        </CmsAnchor>
+        <CmsAnchor href="#delovni-cas">
           <Clock3 size={18} />
           Delovni čas
           <ArrowRight size={16} />
-        </a>
+        </CmsAnchor>
       </div>
       <div className="svc-contact-emergency-note">
         <Phone size={20} />
@@ -2549,10 +2555,10 @@ export function ContactPage() {
           <strong>Nujna komunalna težava?</strong> Za nujno pomoč uporabite
           dežurno službo, ne predstavitvenega obrazca.
         </span>
-        <a href={`tel:${telephone(settings.emergencyPhone)}`}>
+        <CmsAnchor href={`tel:${telephone(settings.emergencyPhone)}`}>
           {settings.emergencyPhone}
           <ArrowRight size={17} />
-        </a>
+        </CmsAnchor>
       </div>
       <div className="svc-contact-layout">
         <ContactForm />
@@ -2563,21 +2569,24 @@ export function ContactPage() {
             </div>
             <h2>Komunalno podjetje Vrhnika</h2>
             <p>Javno podjetje Komunalno podjetje Vrhnika, d. o. o.</p>
-            <a
+            <CmsAnchor
               href={`tel:${telephone(settings.phone)}`}
               className="svc-contact-number"
             >
               {settings.phone}
-            </a>
-            <a href={`mailto:${settings.email}`} className="svc-inline-link">
+            </CmsAnchor>
+            <CmsAnchor
+              href={`mailto:${settings.email}`}
+              className="svc-inline-link"
+            >
               {settings.email}
               <Mail size={18} />
-            </a>
+            </CmsAnchor>
             <div className="svc-address">
               <MapPin size={21} />
               <span>{settings.address}</span>
             </div>
-            <a
+            <CmsAnchor
               className="button secondary"
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.siteName + " " + settings.address)}`}
               target="_blank"
@@ -2585,7 +2594,7 @@ export function ContactPage() {
             >
               Kako do nas
               <ExternalLink size={16} />
-            </a>
+            </CmsAnchor>
           </section>
           <section className="panel svc-contact-small">
             <h3>Za vsakodnevna opravila</h3>
@@ -2621,8 +2630,10 @@ export function ContactPage() {
             <h3>Za dejanski odgovor</h3>
             <p>
               Pokličite uradno številko ali napišite e-pošto na{" "}
-              <a href={`mailto:${settings.email}`}>info@kpv.si</a>.
-              Predstavitveni obrazec še ni povezan z obravnavo sporočil pri
+              <CmsAnchor href={`mailto:${settings.email}`}>
+                info@kpv.si
+              </CmsAnchor>
+              . Predstavitveni obrazec še ni povezan z obravnavo sporočil pri
               podjetju.
             </p>
           </div>
@@ -2637,12 +2648,12 @@ export function ContactPage() {
           Preverjeno 29. oktobra 2026. Portal je predstavitveni projekt.
         </span>
       </div>
-    </>
+    </CmsLayout>
   );
 }
 export function AboutPage() {
   return (
-    <>
+    <CmsLayout>
       <Intro
         eyebrow="O PODJETJU IN PORTALU"
         title="Za okolje, v katerem radi živimo."
@@ -2722,6 +2733,6 @@ export function AboutPage() {
           Uradna predstavitev podjetja
         </Source>
       </section>
-    </>
+    </CmsLayout>
   );
 }

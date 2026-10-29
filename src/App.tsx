@@ -1,9 +1,14 @@
+import {
+  CmsLayout,
+  CmsLink as Link,
+  CmsAnchor,
+  CustomCmsPage,
+} from "./content/PageComposer";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import PageMotion from "./components/PageMotion";
 import ContentBridge from "./content/ContentBridge";
 import { CmsPageImage, useSiteContent, telephone } from "./content/SiteContent";
 import {
-  Link,
   NavLink,
   Route,
   Routes,
@@ -249,6 +254,7 @@ function forgetHomeAddress() {
   }
 }
 function SiteSearch({ close }: { close: () => void }) {
+  const { layout } = useSiteContent();
   const [query, setQuery] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -294,7 +300,12 @@ function SiteSearch({ close }: { close: () => void }) {
   const results =
     query.trim().toLowerCase() === "/admin"
       ? [["Upravljanje portala", "Prijava za skrbnika", "/admin"]]
-      : searchable.filter((v) =>
+      : [
+          ...searchable,
+          ...layout.pages
+            .filter((p) => p.path.startsWith("/strani/"))
+            .map((p) => [p.title, "Vsebinska stran", p.path]),
+        ].filter((v) =>
           normalize(query)
             .trim()
             .split(/\s+/)
@@ -352,7 +363,14 @@ function SiteSearch({ close }: { close: () => void }) {
 }
 
 function Header() {
-  const { settings } = useSiteContent();
+  const { settings, layout } = useSiteContent();
+  const navigation = layout.navigation.length
+    ? layout.navigation.map((item) => ({
+        label: item.label,
+        to: item.url,
+        items: [] as string[][],
+      }))
+    : links;
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -380,10 +398,10 @@ function Header() {
         <div className="container utility-inner">
           <span>Vaša komunala. Vaš vsakdan.</span>
           <div>
-            <a href={`tel:${telephone(settings.phone)}`}>
+            <CmsAnchor href={`tel:${telephone(settings.phone)}`}>
               <Phone size={12} />
               {settings.phone}
-            </a>
+            </CmsAnchor>
             <Link to="/obvestila">
               <Bell size={12} />
               Obvestila
@@ -399,10 +417,10 @@ function Header() {
         <div className="container header-inner">
           <Logo />
           <nav
-            className={mobile ? "primary-nav is-open" : "primary-nav"}
+            className={`${mobile ? "primary-nav is-open" : "primary-nav"}${layout.navigation.length ? " custom-nav" : ""}`}
             aria-label="Glavna navigacija"
           >
-            {links.map((nav, index) => (
+            {navigation.map((nav, index) => (
               <div
                 className={`nav-group${expanded === nav.label ? " is-expanded" : ""}`}
                 key={nav.label}
@@ -436,31 +454,39 @@ function Header() {
                   }
                 }}
               >
-                <NavLink to={nav.to}>{nav.label}</NavLink>
-                <button
-                  type="button"
-                  className="nav-expand"
-                  aria-label={`Možnosti: ${nav.label}`}
-                  aria-expanded={expanded === nav.label}
-                  aria-controls={`nav-dropdown-${index}`}
-                  onClick={() =>
-                    setExpanded(expanded === nav.label ? null : nav.label)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      setExpanded(nav.label);
-                      const group = event.currentTarget.parentElement;
-                      requestAnimationFrame(() =>
-                        group
-                          ?.querySelector<HTMLAnchorElement>(".nav-dropdown a")
-                          ?.focus(),
-                      );
+                {layout.navigation.length ? (
+                  <Link to={nav.to}>{nav.label}</Link>
+                ) : (
+                  <NavLink to={nav.to}>{nav.label}</NavLink>
+                )}
+                {!!nav.items.length && (
+                  <button
+                    type="button"
+                    className="nav-expand"
+                    aria-label={`Možnosti: ${nav.label}`}
+                    aria-expanded={expanded === nav.label}
+                    aria-controls={`nav-dropdown-${index}`}
+                    onClick={() =>
+                      setExpanded(expanded === nav.label ? null : nav.label)
                     }
-                  }}
-                >
-                  <ChevronDown size={13} />
-                </button>
+                    onKeyDown={(event) => {
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setExpanded(nav.label);
+                        const group = event.currentTarget.parentElement;
+                        requestAnimationFrame(() =>
+                          group
+                            ?.querySelector<HTMLAnchorElement>(
+                              ".nav-dropdown a",
+                            )
+                            ?.focus(),
+                        );
+                      }
+                    }}
+                  >
+                    <ChevronDown size={13} />
+                  </button>
+                )}
                 <div className="nav-dropdown" id={`nav-dropdown-${index}`}>
                   {nav.items.map(([label, to]) => (
                     <Link key={to} to={to}>
@@ -562,7 +588,7 @@ function Home() {
     },
   ];
   return (
-    <>
+    <CmsLayout>
       <section className="hero container">
         <div className="hero-copy">
           <div className="eyebrow">
@@ -619,13 +645,13 @@ function Home() {
               <small>Za zeleno prihodnost naših krajev.</small>
             </div>
           </div>
-          <a
+          <CmsAnchor
             className="hero-circle"
             href="#opravila"
             aria-label="Poglej najpogostejša opravila"
           >
             <ArrowDown size={21} />
-          </a>
+          </CmsAnchor>
         </div>
       </section>
       <section
@@ -837,16 +863,16 @@ function Home() {
           <h2>Včasih je najlažje poklicati.</h2>
           <p>Tu smo, da skupaj najdemo odgovor.</p>
         </div>
-        <a className="text-link" href="tel:+38617502960">
+        <CmsAnchor className="text-link" href="tel:+38617502960">
           01 750 29 60
           <ArrowUpRight size={20} />
-        </a>
+        </CmsAnchor>
         <Link className="button secondary" to="/kontakt">
           Vsi kontakti
           <ArrowRight size={17} />
         </Link>
       </section>
-    </>
+    </CmsLayout>
   );
 }
 
@@ -960,58 +986,61 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
   }[kind];
   return (
     <div className="container inner-page">
-      <div className="page-intro">
-        <span className="eyebrow">{data.eyebrow}</span>
-        <h1>{data.title}</h1>
-        <p>{data.intro}</p>
-      </div>
-      <div className="category-grid">
-        {data.cards.map(([title, desc, to, Icon]) => {
-          const Component = Icon as typeof Recycle;
-          const content = (
-            <>
-              <span className="quick-icon green">
-                <Component size={26} />
-              </span>
-              <h2>{String(title)}</h2>
-              <p>{String(desc)}</p>
-              <ArrowUpRight className="category-arrow" />
-            </>
-          );
-          return String(to).startsWith("https") ? (
-            <a
-              className="panel category-card"
-              key={String(to)}
-              href={String(to)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {content}
-            </a>
-          ) : (
-            <Link
-              className="panel category-card"
-              key={String(to)}
-              to={String(to)}
-            >
-              {content}
-            </Link>
-          );
-        })}
-      </div>
-      {kind === "water" && (
-        <div className="notice water-note">
-          <ShieldCheck />
-          <div>
-            <strong>Potrebujete nujno pomoč?</strong>
-            <p>
-              Za nujne težave z vodovodom ali kanalizacijo pokličite dežurno
-              službo <a href="tel:+38641364681">041 364 681</a>. Predstavitveni
-              obrazci se ne pošljejo podjetju.
-            </p>
-          </div>
+      <CmsLayout>
+        <div className="page-intro">
+          <span className="eyebrow">{data.eyebrow}</span>
+          <h1>{data.title}</h1>
+          <p>{data.intro}</p>
         </div>
-      )}
+        <div className="category-grid">
+          {data.cards.map(([title, desc, to, Icon]) => {
+            const Component = Icon as typeof Recycle;
+            const content = (
+              <>
+                <span className="quick-icon green">
+                  <Component size={26} />
+                </span>
+                <h2>{String(title)}</h2>
+                <p>{String(desc)}</p>
+                <ArrowUpRight className="category-arrow" />
+              </>
+            );
+            return String(to).startsWith("https") ? (
+              <CmsAnchor
+                className="panel category-card"
+                key={String(to)}
+                href={String(to)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {content}
+              </CmsAnchor>
+            ) : (
+              <Link
+                className="panel category-card"
+                key={String(to)}
+                to={String(to)}
+              >
+                {content}
+              </Link>
+            );
+          })}
+        </div>
+        {kind === "water" && (
+          <div className="notice water-note">
+            <ShieldCheck />
+            <div>
+              <strong>Potrebujete nujno pomoč?</strong>
+              <p>
+                Za nujne težave z vodovodom ali kanalizacijo pokličite dežurno
+                službo{" "}
+                <CmsAnchor href="tel:+38641364681">041 364 681</CmsAnchor>.
+                Predstavitveni obrazci se ne pošljejo podjetju.
+              </p>
+            </div>
+          </div>
+        )}
+      </CmsLayout>
     </div>
   );
 }
@@ -1076,126 +1105,128 @@ function MyHome() {
   }, [saved, attempt]);
   return (
     <div className="container inner-page">
-      <div className="page-intro">
-        <span className="eyebrow">VAŠE OSEBNO IZHODIŠČE</span>
-        <h1>Moj dom.</h1>
-        <p>
-          Vaš naslov si zapomnimo v tem brskalniku. Prijava in uporabniški račun
-          nista potrebna.
-        </p>
-      </div>
-      <form
-        className="panel address-setting"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saveHomeAddress(address);
-          setEvents([]);
-          setError("");
-          setLoading(true);
-          setSaved(address.trim());
-          setAttempt((previous) => previous + 1);
-        }}
-      >
-        <label className="field">
-          Naslov vašega doma
-          <input
-            required
-            minLength={3}
-            maxLength={250}
-            autoComplete="street-address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Tržaška cesta 1, Vrhnika"
-          />
-        </label>
-        <button className="button">
-          Shrani naslov
-          <Check size={17} />
-        </button>
-        {saved && (
-          <button
-            type="button"
-            className="text-link"
-            onClick={() => {
-              forgetHomeAddress();
-              setSaved("");
-              setAddress("");
-              setEvents([]);
-            }}
-          >
-            Pozabi naslov
-            <X size={15} />
-          </button>
-        )}
-      </form>
-      {saved && (
-        <>
-          <div className="section-heading">
-            <h2>
-              Naslednji odvozi{" "}
-              <span className="tiny-demo">Vzorčni podatki</span>
-            </h2>
-            <Link className="text-link" to="/odpadki/urnik">
-              Celoten urnik
-              <ArrowRight size={17} />
-            </Link>
-          </div>
-          {loading ? (
-            <div className="notice" role="status">
-              <span className="loading-spinner" />
-              Nalagam odvoze za naslov {saved} …
-            </div>
-          ) : error ? (
-            <div className="notice" role="alert">
-              <span>{error}</span>
-              <button
-                className="button secondary"
-                onClick={() => setAttempt((previous) => previous + 1)}
-              >
-                Poskusi znova
-              </button>
-            </div>
-          ) : events.length ? (
-            <div className="card-grid">
-              {events.map((ev, i) => (
-                <div className="panel my-event" key={i}>
-                  <CalendarDays style={{ color: ev.color }} />
-                  <span>
-                    {new Date(ev.date).toLocaleDateString("sl-SI", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                    })}
-                  </span>
-                  <h3>{ev.label}</h3>
-                  <small>Predstavitveni termin, ne uradni odvoz.</small>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="notice">
-              Za ta naslov trenutno ni prikazanih terminov. Preverite naslov ali
-              odprite celoten urnik.
-            </div>
-          )}
-        </>
-      )}
-      <div className="category-grid my-home-links">
-        <Link className="panel category-card" to="/obvestila#narocilo">
-          <Bell />
-          <h2>Obvestila za moj dom</h2>
+      <CmsLayout>
+        <div className="page-intro">
+          <span className="eyebrow">VAŠE OSEBNO IZHODIŠČE</span>
+          <h1>Moj dom.</h1>
           <p>
-            Nastavite e-naslov, teme in območje za predstavitveno naročnino.
+            Vaš naslov si zapomnimo v tem brskalniku. Prijava in uporabniški
+            račun nista potrebna.
           </p>
-          <ArrowUpRight className="category-arrow" />
-        </Link>
-        <Link className="panel category-card" to="/prijavi">
-          <MapPin />
-          <h2>Sporočite nam težavo</h2>
-          <p>Prijavite poškodbo infrastrukture v svoji okolici.</p>
-          <ArrowUpRight className="category-arrow" />
-        </Link>
-      </div>
+        </div>
+        <form
+          className="panel address-setting"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveHomeAddress(address);
+            setEvents([]);
+            setError("");
+            setLoading(true);
+            setSaved(address.trim());
+            setAttempt((previous) => previous + 1);
+          }}
+        >
+          <label className="field">
+            Naslov vašega doma
+            <input
+              required
+              minLength={3}
+              maxLength={250}
+              autoComplete="street-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Tržaška cesta 1, Vrhnika"
+            />
+          </label>
+          <button className="button">
+            Shrani naslov
+            <Check size={17} />
+          </button>
+          {saved && (
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => {
+                forgetHomeAddress();
+                setSaved("");
+                setAddress("");
+                setEvents([]);
+              }}
+            >
+              Pozabi naslov
+              <X size={15} />
+            </button>
+          )}
+        </form>
+        {saved && (
+          <>
+            <div className="section-heading">
+              <h2>
+                Naslednji odvozi{" "}
+                <span className="tiny-demo">Vzorčni podatki</span>
+              </h2>
+              <Link className="text-link" to="/odpadki/urnik">
+                Celoten urnik
+                <ArrowRight size={17} />
+              </Link>
+            </div>
+            {loading ? (
+              <div className="notice" role="status">
+                <span className="loading-spinner" />
+                Nalagam odvoze za naslov {saved} …
+              </div>
+            ) : error ? (
+              <div className="notice" role="alert">
+                <span>{error}</span>
+                <button
+                  className="button secondary"
+                  onClick={() => setAttempt((previous) => previous + 1)}
+                >
+                  Poskusi znova
+                </button>
+              </div>
+            ) : events.length ? (
+              <div className="card-grid">
+                {events.map((ev, i) => (
+                  <div className="panel my-event" key={i}>
+                    <CalendarDays style={{ color: ev.color }} />
+                    <span>
+                      {new Date(ev.date).toLocaleDateString("sl-SI", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })}
+                    </span>
+                    <h3>{ev.label}</h3>
+                    <small>Predstavitveni termin, ne uradni odvoz.</small>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="notice">
+                Za ta naslov trenutno ni prikazanih terminov. Preverite naslov
+                ali odprite celoten urnik.
+              </div>
+            )}
+          </>
+        )}
+        <div className="category-grid my-home-links">
+          <Link className="panel category-card" to="/obvestila#narocilo">
+            <Bell />
+            <h2>Obvestila za moj dom</h2>
+            <p>
+              Nastavite e-naslov, teme in območje za predstavitveno naročnino.
+            </p>
+            <ArrowUpRight className="category-arrow" />
+          </Link>
+          <Link className="panel category-card" to="/prijavi">
+            <MapPin />
+            <h2>Sporočite nam težavo</h2>
+            <p>Prijavite poškodbo infrastrukture v svoji okolici.</p>
+            <ArrowUpRight className="category-arrow" />
+          </Link>
+        </div>
+      </CmsLayout>
     </div>
   );
 }
@@ -1203,58 +1234,61 @@ function MyHome() {
 function Privacy() {
   return (
     <div className="container inner-page prose-page">
-      <div className="page-intro">
-        <span className="eyebrow">PREDSTAVITVENI PORTAL</span>
-        <h1>Zasebnost in dostopnost.</h1>
-        <p>Jasno o tem, kako deluje ta preizkusna različica.</p>
-      </div>
-      <section className="panel">
-        <h2>Vaši podatki</h2>
-        <p>
-          Naslov v razdelku Moj dom se shrani samo v lokalni pomnilnik tega
-          brskalnika. Izbrišete ga z gumbom »Pozabi naslov«. Analitičnih in
-          oglaševalskih piškotkov ne uporabljamo.
-        </p>
-        <h2>Predstavitveni obrazci</h2>
-        <p>
-          Oddane podatke in fotografije shranimo v zaledje tega prototipa.
-          Obrazci niso povezani s Komunalnim podjetjem Vrhnika. Uporabite
-          izmišljene testne podatke. Javna predstavitev pošlje podatke obrazca
-          skrbniku portala prek storitve Resend. Samodejnih odgovorov ali
-          obvestil o motnjah uporabnikom še ne pošiljamo. Storitev ne naročamo
-          in plačil ne izvajamo. Za izbris testnega zapisa in pripadajoče
-          e-pošte se obrnite na skrbnika predstavitve ter navedite referenčno
-          številko.
-        </p>
-        <h2>Zunanji ponudniki</h2>
-        <p>
-          Interaktivni zemljevidi nalagajo kartografske ploščice OpenStreetMap,
-          pri čemer ponudnik prejme vaš IP-naslov. Povezave do Google
-          Zemljevidov, Google Koledarja, uradne komunale in DEPO odprejo zunanje
-          storitve z lastnimi pravili zasebnosti.
-        </p>
-        <p>
-          Oddaje obrazcev varuje Cloudflare Turnstile. Za varnostno preverjanje
-          Cloudflare obdeluje tehnične podatke o brskalniku in naslov IP.
-          Podjetju KPV iz te predstavitve ne pošiljamo sporočil. Vnesena vsebina
-          in varnostni žeton se ne zapisujeta v javne dnevnike; žetona ne
-          hranimo med oddanimi sporočili. Podatke iz javnih obrazcev za dostavo
-          e-poštnega obvestila obdeluje Resend, prejemnik pa je skrbnik
-          predstavitve. Fotografije hranimo zasebno v Cloudflare R2 ter jih prek
-          Resend pošljemo skrbniku portala kot priponke k prijavi.
-        </p>
-        <h2>Dostopnost</h2>
-        <p>
-          Portal podpira upravljanje s tipkovnico, preskok na vsebino, označena
-          polja in zmanjšano gibanje. Zemljevid dopolnjujejo besedilni seznami
-          lokacij. Pred objavo uradne strani je potreben celovit pregled
-          dostopnosti.
-        </p>
-        <Link className="text-link" to="/kontakt">
-          Kontakti podjetja
-          <ArrowRight size={17} />
-        </Link>
-      </section>
+      <CmsLayout>
+        <div className="page-intro">
+          <span className="eyebrow">PREDSTAVITVENI PORTAL</span>
+          <h1>Zasebnost in dostopnost.</h1>
+          <p>Jasno o tem, kako deluje ta preizkusna različica.</p>
+        </div>
+        <section className="panel">
+          <h2>Vaši podatki</h2>
+          <p>
+            Naslov v razdelku Moj dom se shrani samo v lokalni pomnilnik tega
+            brskalnika. Izbrišete ga z gumbom »Pozabi naslov«. Analitičnih in
+            oglaševalskih piškotkov ne uporabljamo.
+          </p>
+          <h2>Predstavitveni obrazci</h2>
+          <p>
+            Oddane podatke in fotografije shranimo v zaledje tega prototipa.
+            Obrazci niso povezani s Komunalnim podjetjem Vrhnika. Uporabite
+            izmišljene testne podatke. Javna predstavitev pošlje podatke obrazca
+            skrbniku portala prek storitve Resend. Samodejnih odgovorov ali
+            obvestil o motnjah uporabnikom še ne pošiljamo. Storitev ne naročamo
+            in plačil ne izvajamo. Za izbris testnega zapisa in pripadajoče
+            e-pošte se obrnite na skrbnika predstavitve ter navedite referenčno
+            številko.
+          </p>
+          <h2>Zunanji ponudniki</h2>
+          <p>
+            Interaktivni zemljevidi nalagajo kartografske ploščice
+            OpenStreetMap, pri čemer ponudnik prejme vaš IP-naslov. Povezave do
+            Google Zemljevidov, Google Koledarja, uradne komunale in DEPO
+            odprejo zunanje storitve z lastnimi pravili zasebnosti.
+          </p>
+          <p>
+            Oddaje obrazcev varuje Cloudflare Turnstile. Za varnostno
+            preverjanje Cloudflare obdeluje tehnične podatke o brskalniku in
+            naslov IP. Podjetju KPV iz te predstavitve ne pošiljamo sporočil.
+            Vnesena vsebina in varnostni žeton se ne zapisujeta v javne
+            dnevnike; žetona ne hranimo med oddanimi sporočili. Podatke iz
+            javnih obrazcev za dostavo e-poštnega obvestila obdeluje Resend,
+            prejemnik pa je skrbnik predstavitve. Fotografije hranimo zasebno v
+            Cloudflare R2 ter jih prek Resend pošljemo skrbniku portala kot
+            priponke k prijavi.
+          </p>
+          <h2>Dostopnost</h2>
+          <p>
+            Portal podpira upravljanje s tipkovnico, preskok na vsebino,
+            označena polja in zmanjšano gibanje. Zemljevid dopolnjujejo
+            besedilni seznami lokacij. Pred objavo uradne strani je potreben
+            celovit pregled dostopnosti.
+          </p>
+          <Link className="text-link" to="/kontakt">
+            Kontakti podjetja
+            <ArrowRight size={17} />
+          </Link>
+        </section>
+      </CmsLayout>
     </div>
   );
 }
@@ -1289,14 +1323,14 @@ function Footer() {
         </div>
         <div>
           <h3>Ostanimo povezani</h3>
-          <a href={`tel:${telephone(settings.phone)}`}>
+          <CmsAnchor href={`tel:${telephone(settings.phone)}`}>
             {settings.phone}
             <ArrowUpRight size={13} />
-          </a>
-          <a href={`mailto:${settings.email}`}>
+          </CmsAnchor>
+          <CmsAnchor href={`mailto:${settings.email}`}>
             {settings.email}
             <ArrowUpRight size={13} />
-          </a>
+          </CmsAnchor>
           <p>{settings.address}</p>
           <Link to="/kontakt">
             Vsi kontakti
@@ -1311,10 +1345,10 @@ function Footer() {
         </span>
         <div>
           <Link to="/zasebnost">Zasebnost in dostopnost</Link>
-          <a href="https://www.kpv.si" target="_blank" rel="noreferrer">
+          <CmsAnchor href="https://www.kpv.si" target="_blank" rel="noreferrer">
             Uradna spletna stran
             <ArrowUpRight size={12} />
-          </a>
+          </CmsAnchor>
         </div>
       </div>
       <div className="container demo-footer">
@@ -1373,6 +1407,7 @@ function ScrollManager() {
 
 export default function App() {
   const location = useLocation();
+  const { layout } = useSiteContent();
   const admin = location.pathname.replace(/\/+$/, "") === "/admin";
   useEffect(() => {
     const match = searchable.find((v) => v[2] === location.pathname);
@@ -1381,13 +1416,15 @@ export default function App() {
         ? "Skupaj za lepši vsakdan"
         : location.pathname === "/admin"
           ? "Upravljanje portala"
-          : match?.[0] || "Vaša komunala") + " · Komunala Vrhnika";
-  }, [location.pathname]);
+          : layout.pages.find((p) => p.path === location.pathname)?.title ||
+            match?.[0] ||
+            "Vaša komunala") + " · Komunala Vrhnika";
+  }, [location.pathname, layout]);
   return (
     <>
-      <a className="skip-link" href="#main">
+      <CmsAnchor className="skip-link" href="#main">
         Preskoči na vsebino
-      </a>
+      </CmsAnchor>
       <ScrollManager />
       {!admin && <Header />}
       {!admin && <PageMotion />}
@@ -1407,6 +1444,7 @@ export default function App() {
                   "/o-podjetju": "O podjetju",
                   "/zasebnost": "Zasebnost in dostopnost",
                 }[location.pathname] ||
+                layout.pages.find((p) => p.path === location.pathname)?.title ||
                 "Stran"}
             </span>
           </div>
@@ -1535,19 +1573,7 @@ export default function App() {
             />
             <Route path="/moj-dom" element={<MyHome />} />
             <Route path="/zasebnost" element={<Privacy />} />
-            <Route
-              path="*"
-              element={
-                <div className="container inner-page empty-state">
-                  <h1>Te strani nismo našli.</h1>
-                  <p>Pravi odgovor vas morda čaka na začetni strani.</p>
-                  <Link className="button" to="/">
-                    Na začetno stran
-                    <ArrowRight size={18} />
-                  </Link>
-                </div>
-              }
-            />
+            <Route path="*" element={<CustomCmsPage />} />
           </Routes>
         </Suspense>
       </main>

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { isCmsPreview } from "./PageComposer";
 import {
   contentKey,
   useSiteContent,
@@ -18,9 +19,9 @@ export default function ContentBridge() {
     if (pathname.replace(/\/+$/, "") === "/admin") return;
     const root = document.getElementById("root");
     if (!root) return;
-    const inspecting =
-      window.parent !== window &&
-      new URLSearchParams(location.search).has("cms-preview");
+    const inspecting = isCmsPreview();
+    let mode = "edit";
+    let tool = "text";
     let copy = data.copy;
     let images = data.images;
     const originals = new WeakMap<
@@ -126,6 +127,11 @@ export default function ContentBridge() {
         return;
       if (Array.isArray(event.data.copy)) copy = event.data.copy;
       if (Array.isArray(event.data.images)) images = event.data.images;
+      if (event.data.mode === "edit" || event.data.mode === "interact")
+        mode = event.data.mode;
+      if (["text", "image", "link", "layout"].includes(event.data.tool))
+        tool = event.data.tool;
+      document.body.classList.toggle("cms-interacting", mode === "interact");
       schedule();
     };
     const select = (event: MouseEvent) => {
@@ -135,10 +141,53 @@ export default function ContentBridge() {
         !(event.target instanceof Element)
       )
         return;
-      const target = event.target;
-      if (target.closest(ignored)) return;
+      const raw = event.target;
+      const anchor = raw.closest<HTMLAnchorElement>("a");
+      if (mode === "interact") {
+        if (anchor) {
+          const url = new URL(anchor.href, location.href);
+          if (
+            url.origin !== location.origin ||
+            /^\/(?:admin|api)(?:\/|$)/.test(url.pathname) ||
+            anchor.target === "_blank"
+          ) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }
+        return;
+      }
+      // Capture before filtering SVG/input targets: icon clicks must never escape edit mode.
       event.preventDefault();
       event.stopImmediatePropagation();
+      const target = raw.closest("svg") ? raw.closest("a,button") || raw : raw;
+      if (tool === "layout") {
+        const block = target.closest<HTMLElement>("[data-cms-block-id]");
+        if (block)
+          window.parent.postMessage(
+            { type: "kpv-cms-block-select", id: block.dataset.cmsBlockId },
+            location.origin,
+          );
+        return;
+      }
+      if (tool === "link") {
+        if (anchor?.dataset.cmsLinkKey)
+          window.parent.postMessage(
+            {
+              type: "kpv-cms-select",
+              kind: "link",
+              key: anchor.dataset.cmsLinkKey,
+              original: anchor.dataset.cmsLinkOriginal,
+              label: anchor.dataset.cmsLinkLabel,
+              url: anchor.getAttribute("href"),
+              tag: "a",
+              page: pageFor(anchor),
+            },
+            location.origin,
+          );
+        return;
+      }
+      if (target.closest(ignored)) return;
       const image = target.closest<HTMLImageElement>("img");
       const slot = target.closest("[data-cms-image-slot]");
       if (image || slot) {
@@ -179,7 +228,24 @@ export default function ContentBridge() {
               (child) =>
                 child instanceof Text &&
                 clean(child.textContent || "").length > 2,
-            );
+            ) ||
+            (() => {
+              const walker = document.createTreeWalker(
+                target,
+                NodeFilter.SHOW_TEXT,
+              );
+              for (
+                let child = walker.nextNode();
+                child;
+                child = walker.nextNode()
+              )
+                if (
+                  clean(child.textContent || "").length > 2 &&
+                  !child.parentElement?.closest(ignored)
+                )
+                  return child;
+              return undefined;
+            })();
       if (!(node instanceof Text)) return;
       const original = clean(
         originals.get(node)?.original || node.nodeValue || "",
@@ -200,15 +266,44 @@ export default function ContentBridge() {
     const hover = (event: MouseEvent) => {
       if (!inspecting || !(event.target instanceof Element)) return;
       highlighted?.classList.remove("cms-inspect-target");
-      highlighted = event.target.closest(ignored) ? null : event.target;
+      highlighted =
+        mode === "interact" || event.target.closest(ignored)
+          ? null
+          : event.target;
       highlighted?.classList.add("cms-inspect-target");
+    };
+    const stopSubmit = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const stopAux = (event: MouseEvent) => {
+      if (
+        mode === "edit" ||
+        (event.target instanceof Element && event.target.closest("a"))
+      )
+        stopSubmit(event);
+    };
+    const stopKeys = (event: KeyboardEvent) => {
+      if (
+        mode === "edit" &&
+        ["Enter", " "].includes(event.key) &&
+        event.target instanceof Element &&
+        event.target.closest('a,button,input,select,textarea,[role="button"]')
+      )
+        stopSubmit(event);
     };
     window.addEventListener("message", message);
     if (inspecting)
-      window.parent.postMessage({ type: "kpv-cms-ready" }, location.origin);
+      window.parent.postMessage(
+        { type: "kpv-cms-ready", page: pathname },
+        location.origin,
+      );
     if (inspecting) {
       document.addEventListener("click", select, true);
       document.addEventListener("mouseover", hover);
+      document.addEventListener("submit", stopSubmit, true);
+      document.addEventListener("auxclick", stopAux, true);
+      document.addEventListener("keydown", stopKeys, true);
       document.body.classList.add("cms-inspecting");
     }
     return () => {
@@ -217,8 +312,12 @@ export default function ContentBridge() {
       window.removeEventListener("message", message);
       document.removeEventListener("click", select, true);
       document.removeEventListener("mouseover", hover);
+      document.removeEventListener("submit", stopSubmit, true);
+      document.removeEventListener("auxclick", stopAux, true);
+      document.removeEventListener("keydown", stopKeys, true);
       highlighted?.classList.remove("cms-inspect-target");
       document.body.classList.remove("cms-inspecting");
+      document.body.classList.remove("cms-interacting");
       // Restore before a pathname/content change so future scans keep the original identifiers.
       const walk = document.createTreeWalker(root!, NodeFilter.SHOW_TEXT);
       for (let node = walk.nextNode(); node; node = walk.nextNode()) {

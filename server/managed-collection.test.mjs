@@ -39,3 +39,22 @@ test("managed schedules select the most specific address, preserve IDs and omit 
   assert.equal(result.events[0].color, "#c79813");
   assert.equal(managedCollection("Maribor", data), null);
 });
+
+test("managed public lookup never assigns a different house or an ambiguous district", () => {
+  const routes = [
+    {
+      id: "house",
+      name: "Hiša 1",
+      addresses: ["Verd 1"],
+      events: [{ id: "one", type: "bio", label: "BIO", date: "2027-01-01" }],
+    },
+  ];
+  assert.equal(managedCollection("Verd 12", { routes }), null);
+  assert.equal(managedCollection("Verd 1a", { routes }), null);
+  assert.equal(
+    managedCollection("Verd 1", {
+      routes: [...routes, { ...routes[0], id: "conflict" }],
+    }),
+    null,
+  );
+});

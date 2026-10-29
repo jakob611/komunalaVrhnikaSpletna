@@ -14,6 +14,32 @@
   max-width: 660px;
   font-size: 13px;
 }
+.work-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+.work-create {
+  padding: 24px;
+  margin-bottom: 22px;
+  border-color: #adc499;
+}
+.work-create > p {
+  max-width: 720px;
+  font-size: 13px;
+}
+.work-create .work-field-wide {
+  grid-column: 1 / -1;
+}
+.work-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
 .work-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -612,6 +638,48 @@
   }
   .work-checklist .admin-icon-button {
     padding: 7px;
+  }
+}
+@media (max-width: 900px) {
+  .work-intro {
+    flex-wrap: wrap;
+  }
+  .work-intro-actions {
+    justify-content: flex-start;
+  }
+  .work-create {
+    padding: 18px;
+  }
+  .work-queue input:not([type="checkbox"]),
+  .work-queue select,
+  .work-queue textarea,
+  .work-dialog input:not([type="checkbox"]),
+  .work-dialog select,
+  .work-dialog textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .work-checklist .admin-icon-button,
+  .work-dialog-heading .admin-icon-button,
+  .work-create .admin-icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .work-checklist input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+}
+@media (max-width: 560px) {
+  .work-intro-actions {
+    margin-top: 14px;
+  }
+  .work-create .work-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .work-create-actions .admin-button {
+    flex: 1;
+    justify-content: center;
   }
 }
 @media (prefers-reduced-motion: reduce) {

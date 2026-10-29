@@ -3,10 +3,15 @@ import { ljubljanaDate } from "./seed.js";
 const statuses = ["demo-saved", "in-progress", "resolved", "spam"];
 const priorities = ["low", "normal", "high", "urgent"];
 const allSubmissions =
-  "(SELECT * FROM submissions UNION ALL SELECT * FROM contact_submissions)";
+  "(SELECT * FROM submissions UNION ALL SELECT * FROM contact_submissions UNION ALL SELECT * FROM internal_tasks)";
 const joined = `SELECT s.*, c.priority, c.assignee, c.due_date, c.notes, c.checklist, c.version, c.updated_at, e.status AS email_status
   FROM ${allSubmissions} s LEFT JOIN admin_cases c ON c.submission_id = s.id LEFT JOIN email_outbox e ON e.id = s.id`;
 const steps = {
+  internal: [
+    "Preveri težavo in določi naslednji korak",
+    "Izvedi popravek oziroma dogovorjeno opravilo",
+    "Preveri rezultat in zaključi nalog",
+  ],
   reports: [
     "Preveri opis, lokacijo in priloženo fotografijo",
     "Določi odgovorno osebo in uredi prijavljeno težavo",
@@ -126,13 +131,25 @@ function validate(data, fail) {
     );
   return { ...data, assignee, notes, dueDate, checklist };
 }
-export async function saveWorkItem(env, id, raw, fail) {
+function actorLabel(actor) {
+  return typeof actor?.email === "string" &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(actor.email) &&
+    actor.email.length <= 254
+    ? `Urednik: ${actor.email}`
+    : "";
+}
+
+export async function saveWorkItem(env, id, raw, fail, actor = {}) {
   const previous = await getWorkItem(env, id, fail);
   const data = validate(raw, fail);
   const token = crypto.randomUUID(),
     at = new Date().toISOString();
   const table =
-    previous.kind === "contact" ? "contact_submissions" : "submissions";
+    previous.kind === "internal"
+      ? "internal_tasks"
+      : previous.kind === "contact"
+        ? "contact_submissions"
+        : "submissions";
   const progress = `${data.checklist.filter((step) => step.done).length}/${data.checklist.length}`;
   const labels = {
     "demo-saved": "Novo",
@@ -156,7 +173,11 @@ export async function saveWorkItem(env, id, raw, fail) {
       ? `Rok: ${data.dueDate || "ni določen"}`
       : "",
     previous.notes !== data.notes ? "Posodobljene interne opombe" : "",
+    JSON.stringify(previous.checklist) !== JSON.stringify(data.checklist)
+      ? "Posodobljen kontrolni seznam"
+      : "",
     `Opravljeni koraki: ${progress}`,
+    actorLabel(actor),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -207,10 +228,150 @@ export async function saveWorkItem(env, id, raw, fail) {
   };
 }
 
+async function createInternalTask(env, raw, fail, actor) {
+  const allowed = [
+    "title",
+    "description",
+    "category",
+    "address",
+    "priority",
+    "assignee",
+    "dueDate",
+    "requestId",
+  ];
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    Array.isArray(raw) ||
+    Object.keys(raw).some((key) => !allowed.includes(key))
+  )
+    fail(400, "Preverite podatke novega naloga.");
+  const text = (key, maximum, minimum = 0) => {
+    const value = raw[key] ?? "";
+    if (
+      typeof value !== "string" ||
+      value.trim().length < minimum ||
+      value.length > maximum ||
+      /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)
+    )
+      fail(400, `Preverite podatek: ${key}.`);
+    return value.trim();
+  };
+  const subject = text("title", 250, 3);
+  const description = text("description", 5000);
+  const address = text("address", 500);
+  const category = raw.category ?? "other";
+  if (
+    ![
+      "portal",
+      "roads",
+      "lighting",
+      "bins",
+      "water",
+      "waste",
+      "billing",
+      "market",
+      "depo",
+      "other",
+    ].includes(category)
+  )
+    fail(400, "Izberite veljavno področje naloga.");
+  const data = validate(
+    {
+      version: 0,
+      status: "demo-saved",
+      priority: raw.priority ?? "normal",
+      assignee: raw.assignee ?? "",
+      dueDate: raw.dueDate ?? "",
+      notes: "",
+      checklist: steps.internal.map((text, index) => ({
+        id: `step-${index + 1}`,
+        text,
+        done: false,
+      })),
+    },
+    fail,
+  );
+  const requestId = raw.requestId ?? crypto.randomUUID();
+  if (
+    typeof requestId !== "string" ||
+    !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(requestId)
+  )
+    fail(400, "Oznaka novega naloga ni veljavna.");
+  const id = `INT-${requestId}`;
+  const at = new Date().toISOString();
+  const token = crypto.randomUUID();
+  const creator = actorLabel(actor) ? actor.email : "";
+  const payload = JSON.stringify({
+    subject,
+    description,
+    category,
+    address,
+    createdBy: creator,
+  });
+  // Internal tasks never enter the public submission or email-sending paths.
+  await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO internal_tasks(id,kind,created_at,status,payload) VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+    ).bind(id, "internal", at, data.status, payload),
+    env.DB.prepare(
+      "INSERT INTO admin_cases(submission_id,priority,assignee,due_date,notes,checklist,version,updated_at,update_token) SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM internal_tasks WHERE id=? AND kind='internal' AND payload=?) ON CONFLICT(submission_id) DO NOTHING",
+    ).bind(
+      id,
+      data.priority,
+      data.assignee,
+      data.dueDate,
+      data.notes,
+      JSON.stringify(data.checklist),
+      1,
+      at,
+      token,
+      id,
+      payload,
+    ),
+    env.DB.prepare(
+      "INSERT INTO admin_case_events(id,submission_id,created_at,event,detail) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM admin_cases WHERE submission_id=? AND update_token=?)",
+    ).bind(
+      crypto.randomUUID(),
+      id,
+      at,
+      "created",
+      ["Ustvarjen interni nalog", actorLabel(actor)]
+        .filter(Boolean)
+        .join(" · "),
+      id,
+      token,
+    ),
+  ]);
+  const stored = await env.DB.prepare(
+    "SELECT payload FROM internal_tasks WHERE id=? AND kind='internal'",
+  )
+    .bind(id)
+    .first();
+  if (!stored || stored.payload !== payload)
+    fail(
+      409,
+      "Oznaka naloga je že uporabljena za drugačno vsebino. Osvežite naloge in preverite prejšnjo oddajo.",
+    );
+  return {
+    item: await getWorkItem(env, id, fail),
+    timeline: await timeline(env, id),
+  };
+}
+
 // The parent admin router authenticates the session and checks CSRF before dispatch.
-export async function handleWork(request, env, { json, body, fail }) {
+export async function handleWork(
+  request,
+  env,
+  { json, body, fail, actor = {} },
+) {
   const url = new URL(request.url);
   if (url.pathname === "/api/admin/work") {
+    if (request.method === "POST")
+      return json(
+        await createInternalTask(env, await body(request, 65536), fail, actor),
+        201,
+      );
     if (request.method !== "GET") fail(405, "Metoda ni dovoljena.");
     const kind = url.searchParams.get("kind") || "",
       status = url.searchParams.get("status") || "open",
@@ -279,7 +440,13 @@ export async function handleWork(request, env, { json, body, fail }) {
     });
   if (request.method === "PUT")
     return json(
-      await saveWorkItem(env, match[1], await body(request, 65536), fail),
+      await saveWorkItem(
+        env,
+        match[1],
+        await body(request, 65536),
+        fail,
+        actor,
+      ),
     );
   fail(405, "Metoda ni dovoljena.");
 }

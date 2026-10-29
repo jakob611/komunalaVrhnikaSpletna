@@ -1,4 +1,6 @@
-// CMS content is plain data. Keep this module dependency-free for Workers and tooling.
+// CMS content is plain data. Shared helpers have no runtime dependencies.
+import { normalizedAddress } from "./collection-utils.js";
+import { validateLayout, validateLinks, CUSTOM_PAGE } from "./page-layout.js";
 export const CMS_SECTIONS = Object.freeze([
   "settings",
   "hours",
@@ -13,6 +15,8 @@ export const CMS_SECTIONS = Object.freeze([
   "cemetery",
   "copy",
   "images",
+  "layout",
+  "links",
 ]);
 export const PUBLIC_PAGES = Object.freeze([
   "/",
@@ -256,6 +260,8 @@ function texts(value, label, maxItems = 30, maxText = 500) {
 }
 
 const validators = {
+  layout: (value) => validateLayout(value, PUBLIC_PAGES),
+  links: (value) => validateLinks(value, PUBLIC_PAGES),
   settings(value) {
     object(value, "nastavitve", [
       "siteName",
@@ -361,8 +367,18 @@ const validators = {
           id: id(route.id, label),
           name: text(route.name, label, 200),
           addresses: unique(
-            texts(route.addresses, label, 500, 300),
-            (item) => item.toLocaleLowerCase("sl"),
+            array(route.addresses, `${label} – pravila naslovov`, 500, 1).map(
+              (item) => {
+                const rule = text(item, `${label} – naslov`, 300);
+                if (!normalizedAddress(rule))
+                  invalid(
+                    label,
+                    "pravilo naslova mora vsebovati besede ali številke",
+                  );
+                return rule;
+              },
+            ),
+            (item) => normalizedAddress(item),
             label,
           ),
           events: unique(
@@ -395,6 +411,23 @@ const validators = {
       (item) => item.id,
       "odvozne poti",
     );
+    const addressOwners = new Map();
+    for (const route of routes) {
+      unique(
+        route.events,
+        (event) => `${event.type}|${event.date}`,
+        `${route.name} – datum in vrsta odpadkov`,
+      );
+      for (const rule of route.addresses) {
+        const key = normalizedAddress(rule);
+        if (addressOwners.has(key))
+          invalid(
+            "odvozne poti",
+            `pravilo »${rule}« že uporablja območje »${addressOwners.get(key)}«`,
+          );
+        addressOwners.set(key, route.name);
+      }
+    }
     return { routes };
   },
   wastePoints(value) {
@@ -603,7 +636,10 @@ const validators = {
         if (typeof item.key !== "string" || !/^[a-f0-9]{64}$/.test(item.key))
           invalid("ključ besedila", "pričakovan je 64-mestni ključ");
         return {
-          page: choice(item.page, "stran", ["*", ...PUBLIC_PAGES]),
+          page:
+            typeof item.page === "string" && CUSTOM_PAGE.test(item.page)
+              ? item.page
+              : choice(item.page, "stran", ["*", ...PUBLIC_PAGES]),
           key: item.key,
           original: text(item.original, "izvirno besedilo", 20_000, 1, false),
           value: text(item.value, "novo besedilo", 20_000, 0, false),
@@ -620,7 +656,10 @@ const validators = {
         if (typeof item.key !== "string" || !/^[a-f0-9]{64}$/.test(item.key))
           invalid("ključ slike", "pričakovan je 64-mestni ključ");
         return {
-          page: choice(item.page, "stran", ["*", ...PUBLIC_PAGES]),
+          page:
+            typeof item.page === "string" && CUSTOM_PAGE.test(item.page)
+              ? item.page
+              : choice(item.page, "stran", ["*", ...PUBLIC_PAGES]),
           key: item.key,
           original:
             item.original === "cms:featured"

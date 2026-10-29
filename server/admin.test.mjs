@@ -4,6 +4,10 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { cleanupAdmin, handleAdmin, readPublished } from "./admin.js";
 import defaults from "../shared/site-defaults.json" with { type: "json" };
+import {
+  createTestSession,
+  installTestMail,
+} from "./admin-auth-test-helpers.mjs";
 
 const password = "test-only-admin-passphrase";
 const salt = new Uint8Array(16).fill(17);
@@ -50,6 +54,13 @@ function environment() {
     },
     LOCAL_STORAGE: {},
     ADMIN_PASSWORD_HASH: passwordHash,
+    ADMIN_OWNER_EMAIL: "owner@example.com",
+    EMAIL_FROM: "KPV <auth@example.com>",
+    RESEND_API_KEY: "test-only-key",
+    AUTH_TEST_MAIL: [],
+    async ADMIN_AUTH_SEND(message) {
+      this.AUTH_TEST_MAIL.push(message);
+    },
     PHOTOS: {
       objects,
       async put(key, bytes, options) {
@@ -94,20 +105,15 @@ function request(
         ? body
         : body === undefined
           ? undefined
-          : JSON.stringify(body),
+          : JSON.stringify(
+              path === "/api/admin/login"
+                ? { email: "owner@example.com", ...body }
+                : body,
+            ),
   });
 }
 async function login(env) {
-  const response = await handleAdmin(
-    request("/api/admin/login", { method: "POST", body: { password } }),
-    env,
-  );
-  assert.equal(response.status, 200, await response.clone().text());
-  return {
-    ...(await response.json()),
-    cookie: response.headers.get("set-cookie").split(";")[0],
-    header: response.headers.get("set-cookie"),
-  };
+  return createTestSession(env, { password });
 }
 const mutation = (session, body, method = "PUT") => ({
   method,
@@ -190,7 +196,7 @@ test("login enforces exact origin and stores hashed expiring sessions with CSRF"
   );
 });
 
-test("production sessions require valid Turnstile and use host-only secure cookies", async (t) => {
+test("production sessions require Turnstile, password AND email code and use secure cookies", async (t) => {
   const env = environment();
   delete env.LOCAL_STORAGE;
   env.TURNSTILE_SECRET = "test-only-turnstile";
@@ -201,15 +207,35 @@ test("production sessions require valid Turnstile and use host-only secure cooki
     origin: "https://admin.example",
     body: { password, "cf-turnstile-response": "test-token" },
   };
-  t.mock.method(globalThis, "fetch", async () =>
-    Response.json({
+  let sent;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    if (url === "https://api.resend.com/emails") {
+      sent = JSON.parse(init.body);
+      return Response.json({ id: "test-receipt" });
+    }
+    return Response.json({
       success: true,
       action: "adminlogin",
       hostname: "admin.example",
+    });
+  });
+  const first = await handleAdmin(request("/api/admin/login", options), env);
+  assert.equal(first.status, 200, await first.clone().text());
+  assert.equal(first.headers.get("set-cookie"), null);
+  const challenge = await first.json();
+  assert.equal(challenge.authenticated, undefined);
+  assert.deepEqual(sent.to, ["owner@example.com"]);
+  const response = await handleAdmin(
+    request("/api/admin/verify", {
+      ...options,
+      body: {
+        challengeId: challenge.challengeId,
+        code: sent.text.match(/Koda: (\d{8})/)[1],
+      },
     }),
+    env,
   );
-  const response = await handleAdmin(request("/api/admin/login", options), env);
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 200, await response.clone().text());
   assert.match(
     response.headers.get("set-cookie"),
     /^__Host-kpv_admin=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Strict; Max-Age=28800; Secure$/,
@@ -228,7 +254,8 @@ test("production sessions require valid Turnstile and use host-only secure cooki
     ).status,
     401,
   );
-  assert.equal(typeof data.csrfToken, "string");
+  assert.equal(data.user.email, "owner@example.com");
+  assert.equal(data.user.role, "owner");
   assert.equal(
     (
       await handleAdmin(
@@ -287,7 +314,7 @@ test("per-IP and global login limits reject attempts before expensive password v
     .prepare(
       "INSERT INTO admin_login_limits(key,window,attempts) VALUES(?,?,?)",
     )
-    .run("global", Math.floor(Date.now() / 900000), 50);
+    .run("900000:login-global", Math.floor(Date.now() / 900000), 50);
   assert.equal(
     (
       await handleAdmin(
@@ -306,7 +333,9 @@ test("unverified IPs cannot consume the global login quota while per-IP limits r
   env.TURNSTILE_HOSTNAMES = "admin.example";
   let verified = false;
   let challenges = 0;
-  t.mock.method(globalThis, "fetch", async () => {
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (url === "https://api.resend.com/emails")
+      return Response.json({ id: "test-receipt" });
     challenges++;
     return Response.json({
       success: verified,
@@ -329,7 +358,9 @@ test("unverified IPs cannot consume the global login quota while per-IP limits r
   }
   assert.equal(
     env.DB.sql
-      .prepare("SELECT attempts FROM admin_login_limits WHERE key = 'global'")
+      .prepare(
+        "SELECT attempts FROM admin_login_limits WHERE key = '900000:login-global'",
+      )
       .get(),
     undefined,
   );
@@ -366,7 +397,9 @@ test("unverified IPs cannot consume the global login quota while per-IP limits r
   );
   assert.equal(
     env.DB.sql
-      .prepare("SELECT attempts FROM admin_login_limits WHERE key = 'global'")
+      .prepare(
+        "SELECT attempts FROM admin_login_limits WHERE key = '900000:login-global'",
+      )
       .get().attempts,
     1,
   );
@@ -393,7 +426,7 @@ test("admin cleanup removes at most 500 expired rows per table and preserves act
     limit.run(`old-${index}`, currentWindow - 1, 5);
   }
   session.run("active", "test-csrf", "test-tag", now, now + 3600000);
-  limit.run("global", currentWindow, 17);
+  limit.run("900000:login-global", currentWindow, 17);
   await cleanupAdmin(env);
   assert.equal(
     env.DB.sql.prepare("SELECT count(*) AS n FROM admin_sessions").get().n,
@@ -405,7 +438,9 @@ test("admin cleanup removes at most 500 expired rows per table and preserves act
   );
   assert.equal(
     env.DB.sql
-      .prepare("SELECT attempts FROM admin_login_limits WHERE key = 'global'")
+      .prepare(
+        "SELECT attempts FROM admin_login_limits WHERE key = '900000:login-global'",
+      )
       .get().attempts,
     17,
   );

@@ -1,0 +1,189 @@
+.admin-auth-card {
+  width: min(100%, 500px);
+}
+.admin-auth-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+.admin-auth-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--ink, #183b2d);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+.admin-root .admin-auth-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid #dce3da;
+  border-radius: 8px;
+  background: white;
+  color: #183b2d;
+  font: inherit;
+  font-size: 16px;
+}
+.admin-auth-form small {
+  color: #778275;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.admin-auth-form .admin-button {
+  margin-top: 0;
+  width: 100%;
+  min-height: 46px;
+}
+.admin-auth-steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 16px 0 0;
+  margin: 0;
+  color: #879182;
+  font-size: 0.76rem;
+}
+.admin-auth-steps .current {
+  color: #214d39;
+  font-weight: 700;
+}
+.admin-auth-steps .done {
+  color: #638254;
+}
+.admin-auth-code {
+  letter-spacing: 0.3em;
+  font-size: 1.5rem !important;
+  font-variant-numeric: tabular-nums;
+}
+.admin-auth-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: #315d43;
+  text-align: center;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.admin-auth-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.admin-auth-footer {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0 0;
+  color: #7a8675;
+  line-height: 1.6;
+  font-size: 0.73rem;
+}
+.admin-auth-footer svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.admin-users {
+  display: grid;
+  gap: 22px;
+}
+.admin-users header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.admin-users h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: -0.04em;
+}
+.admin-users header p:not(.eyebrow),
+.admin-users-help {
+  color: #75816e;
+  font-size: 0.86rem;
+  line-height: 1.8;
+  max-width: 75ch;
+  margin: 0;
+}
+.admin-invite-form {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  padding: 22px;
+  background: white;
+  border: 1px solid #e1e7dc;
+  border-radius: 14px;
+}
+.admin-invite-form label {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+}
+.admin-root .admin-invite-form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid #dce3da;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 16px;
+}
+.admin-user-list {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+}
+.admin-user-list > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  background: white;
+  border: 1px solid #e1e7dc;
+  border-radius: 14px;
+}
+.admin-user-list strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.admin-user-list span {
+  color: #7c8874;
+  font-size: 0.76rem;
+}
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .admin-users header,
+  .admin-invite-form,
+  .admin-user-list > li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-user-actions {
+    flex-direction: column;
+  }
+  .admin-auth-card {
+    padding: 28px 22px;
+  }
+}

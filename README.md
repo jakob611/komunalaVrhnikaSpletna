@@ -64,6 +64,10 @@ Odprite `/admin` neposredno ali v iskanje po portalu vpišite točno `/admin`. V
 
 Konzola ureja besedila in slike v predogledu, kontakte, delovne čase, obvestila, odvozne poti, zbirna mesta, pravila ločevanja, opise storitev, cene, tržnične termine ter načrt in podatke pokopališča. Objave imajo zgodovino različic in zaščito pred prepisom sočasnih sprememb. Nove oddaje se samodejno pokažejo kot delovni nalogi s kontrolnim seznamom, prioriteto, odgovorno osebo, rokom in internimi opombami. E-poštno obvestilo skrbniku vsebuje neposredno povezavo; ogled še vedno zahteva prijavo.
 
+Prijava zdaj zahteva dovoljeni e-poštni naslov, geslo in 8-mestno enkratno kodo prek obstoječega Resend. `ADMIN_OWNER_EMAIL` izrecno določa začetnega lastnika; samo lastnik lahko povabi ali odstrani urednike. Povabljeni nastavijo lastna gesla. Stare seje, ki so bile ustvarjene samo z geslom, ne veljajo več. Konzola beleži urednika objav in sprememb nalogov. Interna opravila je mogoče dodati brez javne oddaje ali pošiljanja e-pošte.
+
+Urejevalnik razporeditve omogoča premikanje in skrivanje obstoječih razdelkov, dodajanje besedil, slik, kartic in delujočih gumbov ter nove vsebinske strani pod `/strani/`. Povezave in glavni meni so uredljivi; poljubni HTML, CSS in skripti niso dovoljeni. Obstoječi obrazci in zemljevidi ostajajo programski moduli. Način **Urejanje** prestreže tudi klike ikon in tipkovnico, **Preizkus** pa dovoli navigacijo, pri čemer oddaja obrazcev v predogledu ostaja izključena. Upravljanje odvozov ima območja, preverjanje naslovov, pripravo ponavljanj, praznične izjeme in množične premike; v javni urnik se objavijo dejanski datumi.
+
 Skrivnost `ADMIN_PASSWORD_HASH` je soljen PBKDF2-SHA256 izpeljan ključ (100.000 ponovitev), shranjen v Cloudflare in za lokalni razvoj v prezrti `.dev.vars`. Navadnega gesla ne vnašajte v repozitorij ali javne spremenljivke. Lokalni razvoj iz `.dev.vars` naloži skrivnost; tudi lokalna prijava potrebuje geslo.
 
 ## Prikazni podatki

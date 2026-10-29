@@ -18,7 +18,12 @@
       "phone": "01 750 29 76",
       "telephone": "+38617502976",
       "email": "informacijska@kpv.si",
-      "rows": [["Ponedeljek–petek", "8.00–12.00"]]
+      "rows": [
+        [
+          "Ponedeljek–petek",
+          "8.00–12.00"
+        ]
+      ]
     },
     {
       "name": "Zbirni center Tojnice",
@@ -28,9 +33,18 @@
       "telephone": "+38631686121",
       "email": "tehtnica@kpv.si",
       "rows": [
-        ["Ponedeljek in petek", "8.00–14.00"],
-        ["Torek–četrtek", "8.00–17.00"],
-        ["Sobota", "8.00–12.00"]
+        [
+          "Ponedeljek in petek",
+          "8.00–14.00"
+        ],
+        [
+          "Torek–četrtek",
+          "8.00–17.00"
+        ],
+        [
+          "Sobota",
+          "8.00–12.00"
+        ]
       ]
     },
     {
@@ -41,10 +55,22 @@
       "telephone": "+38641777385",
       "email": "depo@kpv.si",
       "rows": [
-        ["Ponedeljek", "Zaprto"],
-        ["Torek–četrtek", "10.00–18.00"],
-        ["Petek", "9.00–12.00"],
-        ["Sobota", "9.00–12.30"]
+        [
+          "Ponedeljek",
+          "Zaprto"
+        ],
+        [
+          "Torek–četrtek",
+          "10.00–18.00"
+        ],
+        [
+          "Petek",
+          "9.00–12.00"
+        ],
+        [
+          "Sobota",
+          "9.00–12.30"
+        ]
       ]
     }
   ],
@@ -123,7 +149,11 @@
       "address": "Prikazna točka pri središču Vrhnike",
       "lat": 45.9638,
       "lng": 14.2936,
-      "types": ["papir", "steklo", "embalaza"]
+      "types": [
+        "papir",
+        "steklo",
+        "embalaza"
+      ]
     },
     {
       "id": 3,
@@ -132,7 +162,12 @@
       "address": "Prikazna točka v Verdu",
       "lat": 45.9566,
       "lng": 14.306,
-      "types": ["papir", "steklo", "embalaza", "tekstil"]
+      "types": [
+        "papir",
+        "steklo",
+        "embalaza",
+        "tekstil"
+      ]
     },
     {
       "id": 4,
@@ -141,7 +176,12 @@
       "address": "Prikazna točka v Borovnici",
       "lat": 45.9194,
       "lng": 14.3632,
-      "types": ["papir", "steklo", "embalaza", "elektronika"]
+      "types": [
+        "papir",
+        "steklo",
+        "embalaza",
+        "elektronika"
+      ]
     },
     {
       "id": 5,
@@ -150,7 +190,12 @@
       "address": "Prikazna točka v Logu - Dragomerju",
       "lat": 46.0086,
       "lng": 14.3831,
-      "types": ["papir", "steklo", "embalaza", "baterije"]
+      "types": [
+        "papir",
+        "steklo",
+        "embalaza",
+        "baterije"
+      ]
     },
     {
       "id": 6,
@@ -159,7 +204,12 @@
       "address": "Prikazna točka v Sinji Gorici",
       "lat": 45.977,
       "lng": 14.3186,
-      "types": ["papir", "steklo", "embalaza", "tekstil"]
+      "types": [
+        "papir",
+        "steklo",
+        "embalaza",
+        "tekstil"
+      ]
     },
     {
       "id": 7,
@@ -168,7 +218,9 @@
       "address": "Prikazni koš za drobne odpadke s sprehoda",
       "lat": 45.9609,
       "lng": 14.2972,
-      "types": ["public"]
+      "types": [
+        "public"
+      ]
     },
     {
       "id": 8,
@@ -177,7 +229,9 @@
       "address": "Prikazna točka ob sprehajališču",
       "lat": 45.9665,
       "lng": 14.2991,
-      "types": ["public"]
+      "types": [
+        "public"
+      ]
     }
   ],
   "wasteItems": [
@@ -195,7 +249,11 @@
     },
     {
       "name": "Jogurtov lonček",
-      "keywords": ["jogurt", "loncek", "skuta"],
+      "keywords": [
+        "jogurt",
+        "loncek",
+        "skuta"
+      ],
       "category": "embalaza"
     },
     {
@@ -223,17 +281,32 @@
     },
     {
       "name": "Kartonska škatla",
-      "keywords": ["karton", "skatla", "lepenka"],
+      "keywords": [
+        "karton",
+        "skatla",
+        "lepenka"
+      ],
       "category": "papir"
     },
     {
       "name": "Časopis, revija ali zvezek",
-      "keywords": ["casopis", "revija", "zvezek", "papir", "knjiga"],
+      "keywords": [
+        "casopis",
+        "revija",
+        "zvezek",
+        "papir",
+        "knjiga"
+      ],
       "category": "papir"
     },
     {
       "name": "Steklenica in kozarec za vlaganje",
-      "keywords": ["steklenica", "steklo", "kozarec", "vlaganje"],
+      "keywords": [
+        "steklenica",
+        "steklo",
+        "kozarec",
+        "vlaganje"
+      ],
       "category": "steklo"
     },
     {
@@ -263,27 +336,52 @@
     },
     {
       "name": "Kavna usedlina in jajčne lupine",
-      "keywords": ["kava", "kavna usedlina", "jajce", "jajcna lupina", "caj"],
+      "keywords": [
+        "kava",
+        "kavna usedlina",
+        "jajce",
+        "jajcna lupina",
+        "caj"
+      ],
       "category": "bio"
     },
     {
       "name": "Listje in pokošena trava",
-      "keywords": ["listje", "trava", "vrt", "plevel"],
+      "keywords": [
+        "listje",
+        "trava",
+        "vrt",
+        "plevel"
+      ],
       "category": "bio"
     },
     {
       "name": "Plenice in higienski izdelki",
-      "keywords": ["plenica", "plenice", "vata", "higiena", "vlozek"],
+      "keywords": [
+        "plenica",
+        "plenice",
+        "vata",
+        "higiena",
+        "vlozek"
+      ],
       "category": "mesani"
     },
     {
       "name": "Vrečka iz sesalnika",
-      "keywords": ["sesalnik", "prah", "pometanje"],
+      "keywords": [
+        "sesalnik",
+        "prah",
+        "pometanje"
+      ],
       "category": "mesani"
     },
     {
       "name": "Peki papir",
-      "keywords": ["peki papir", "pecilni papir", "povoscen papir"],
+      "keywords": [
+        "peki papir",
+        "pecilni papir",
+        "povoscen papir"
+      ],
       "category": "mesani"
     },
     {
@@ -300,35 +398,64 @@
     },
     {
       "name": "Cigaretni ogorki",
-      "keywords": ["cigareta", "ogorek", "zvecilni gumi"],
+      "keywords": [
+        "cigareta",
+        "ogorek",
+        "zvecilni gumi"
+      ],
       "category": "mesani"
     },
     {
       "name": "Baterije in akumulatorji",
-      "keywords": ["baterija", "baterije", "akumulator", "litij"],
+      "keywords": [
+        "baterija",
+        "baterije",
+        "akumulator",
+        "litij"
+      ],
       "category": "nevarni",
       "note": "Prenosne baterije lahko oddate tudi v namenske zbiralnike pri prodajalcih."
     },
     {
       "name": "Ostanki barv, lakov in topil",
-      "keywords": ["barva", "lak", "topilo", "kemikalija", "razredcilo"],
+      "keywords": [
+        "barva",
+        "lak",
+        "topilo",
+        "kemikalija",
+        "razredcilo"
+      ],
       "category": "nevarni"
     },
     {
       "name": "Odpadno motorno olje",
-      "keywords": ["motorno olje", "olje", "mazivo"],
+      "keywords": [
+        "motorno olje",
+        "olje",
+        "mazivo"
+      ],
       "category": "nevarni",
       "note": "Motorna olja hranite v zaprti posodi in oddajte kot nevarni odpadek v zbirnem centru. Ne mešajte jih z jedilnim oljem."
     },
     {
       "name": "Odpadno jedilno olje",
-      "keywords": ["jedilno olje", "olje", "olje za cvrtje", "friteza"],
+      "keywords": [
+        "jedilno olje",
+        "olje",
+        "olje za cvrtje",
+        "friteza"
+      ],
       "category": "nevarni",
       "note": "Ohlajeno olje zberite v zaprti posodi in oddajte ločeno v zbirnem centru ali ob akciji nevarnih odpadkov. Ne zlivajte ga v odtok ali med biološke odpadke."
     },
     {
       "name": "Odpadna zdravila",
-      "keywords": ["zdravilo", "tableta", "sirup", "lekarna"],
+      "keywords": [
+        "zdravilo",
+        "tableta",
+        "sirup",
+        "lekarna"
+      ],
       "category": "nevarni",
       "note": "Odpadna zdravila lahko oddate tudi v lekarni. O ravnanju z iglami se posvetujte z zbiralcem."
     },
@@ -357,7 +484,12 @@
     },
     {
       "name": "Varčna ali LED sijalka",
-      "keywords": ["zarnica", "led", "sijalka", "neonska luc"],
+      "keywords": [
+        "zarnica",
+        "led",
+        "sijalka",
+        "neonska luc"
+      ],
       "category": "elektronika",
       "note": "Sijalk ne odlagajte v stekleno embalažo. Oddajte jih ločeno in preprečite razbitje."
     },
@@ -388,7 +520,12 @@
     },
     {
       "name": "Plastična igrača ali vedro",
-      "keywords": ["igraca", "vedro", "plasticni predmet", "trda plastika"],
+      "keywords": [
+        "igraca",
+        "vedro",
+        "plasticni predmet",
+        "trda plastika"
+      ],
       "category": "center",
       "note": "Predmet iz plastike še ni embalaža. O ustrezni oddaji konkretnega materiala vprašajte osebje zbirnega centra."
     },
@@ -2100,5 +2237,10 @@
     ]
   },
   "copy": [],
-  "images": []
+  "images": [],
+  "layout": {
+    "pages": [],
+    "navigation": []
+  },
+  "links": []
 }

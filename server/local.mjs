@@ -42,6 +42,19 @@ const environment = {
   LOCAL_STORAGE: localStorage,
   DB: cmsDB,
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+  ADMIN_OWNER_EMAIL: process.env.ADMIN_OWNER_EMAIL || "tomincjakob@gmail.com",
+  EMAIL_FROM: "KPV razvoj <razvoj@kpv.jakobtominc.com>",
+  async ADMIN_AUTH_SEND(message) {
+    // Development-only private mailbox: no codes in an API response or console log.
+    await writeFile(
+      path.join(root, ".data", "admin-auth-mail.json"),
+      JSON.stringify(
+        { ...message, createdAt: new Date().toISOString() },
+        null,
+        2,
+      ),
+    );
+  },
   PHOTOS: {
     async put(key, bytes) {
       await mkdir(photoDirectory, { recursive: true });
