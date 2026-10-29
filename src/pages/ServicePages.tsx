@@ -27,6 +27,7 @@ import {
   Droplets,
   ExternalLink,
   FileText,
+  Flower2,
   Leaf,
   Lightbulb,
   LocateFixed,
@@ -249,7 +250,16 @@ function useSubmission() {
       resetProtection(action);
     }
   }
-  return { busy, receipt, error, submit };
+  return {
+    busy,
+    receipt,
+    error,
+    submit,
+    clearResult: () => {
+      setReceipt(null);
+      setError("");
+    },
+  };
 }
 function Values(event: FormEvent<HTMLFormElement>) {
   event.preventDefault();
@@ -1356,14 +1366,28 @@ export function ServicesPage() {
           DEPO
           <Recycle size={16} />
         </Link>
+        <Link to="/pokopalisce">
+          Pokopališče
+          <Flower2 size={16} />
+        </Link>
       </div>
-      <div className="svc-service-grid">
+      <div className="svc-service-choice-heading">
+        <span className="eyebrow">01 · IZBIRA STORITVE</span>
+        <h2>Kaj želite urediti?</h2>
+        <p>Izbira spodaj prilagodi navodila in povpraševanje.</p>
+      </div>
+      <div className="svc-service-grid" role="group" aria-label="Izberite storitev">
         {serviceOptions.map((item) => (
           <button
             key={item.value}
             className={`panel svc-service-card${service === item.value ? " selected" : ""}`}
+            type="button"
             aria-pressed={service === item.value}
-            onClick={() => setService(item.value)}
+            disabled={submission.busy}
+            onClick={() => {
+              if (service !== item.value) submission.clearResult();
+              setService(item.value);
+            }}
           >
             <span className="svc-icon">
               <item.icon size={27} />
@@ -1387,10 +1411,6 @@ export function ServicesPage() {
             <span className="eyebrow">IZBRANA STORITEV</span>
             <h2>{selectedService.title}</h2>
           </div>
-          <a href="#povprasevanje" className="button">
-            Nadaljuj na obrazec
-            <ArrowRight size={17} />
-          </a>
         </div>
         <p>{guide.intro}</p>
         <details>
@@ -1420,7 +1440,7 @@ export function ServicesPage() {
       </section>
       <div className="svc-two-column">
         <section className="panel" id="povprasevanje">
-          <div className="eyebrow">POVPRAŠEVANJE</div>
+          <div className="eyebrow">02 · OPIS IN KONTAKT</div>
           <h2>{serviceOptions.find((s) => s.value === service)?.title}</h2>
           <p>
             Izpolnite kontakt, naslov izvedbe in opis. Želeni datum je neobvezen
@@ -2339,6 +2359,94 @@ function ContactForm() {
     </section>
   );
 }
+const contactHours = [
+  {
+    name: "Informacijska pisarna",
+    description: "Računi, vodomeri in informacije za občane.",
+    icon: Phone,
+    tone: "office",
+    phone: "01 750 29 76",
+    telephone: "+38617502976",
+    email: "informacijska@kpv.si",
+    rows: [["Ponedeljek–petek", "8.00–12.00"]],
+  },
+  {
+    name: "Zbirni center Tojnice",
+    description: "Oddaja odpadkov v zbirnem centru.",
+    icon: Recycle,
+    tone: "collection",
+    phone: "031 686 121",
+    telephone: "+38631686121",
+    email: "tehtnica@kpv.si",
+    rows: [
+      ["Ponedeljek in petek", "8.00–14.00"],
+      ["Torek–četrtek", "8.00–17.00"],
+      ["Sobota", "8.00–12.00"],
+    ],
+  },
+  {
+    name: "Trgovina DEPO",
+    description: "Rabljeni in preoblikovani predmeti.",
+    icon: ShoppingBag,
+    tone: "depo",
+    phone: "041 777 385",
+    telephone: "+38641777385",
+    email: "depo@kpv.si",
+    rows: [
+      ["Ponedeljek", "Zaprto"],
+      ["Torek–četrtek", "10.00–18.00"],
+      ["Petek", "9.00–12.00"],
+      ["Sobota", "9.00–12.30"],
+    ],
+  },
+];
+
+function ContactHours() {
+  return (
+    <section className="svc-contact-hours" id="delovni-cas" aria-labelledby="contact-hours-title">
+      <div className="svc-contact-hours-heading">
+        <div>
+          <span className="eyebrow">PREDEN SE ODPRAVITE NA POT</span>
+          <h2 id="contact-hours-title">Kdaj nas lahko obiščete?</h2>
+        </div>
+        <span className="svc-hours-label"><Clock3 size={17} /> Redni delovni čas</span>
+      </div>
+      <div className="svc-hours-grid">
+        {contactHours.map((place) => (
+          <article className={`svc-hours-card svc-hours-${place.tone}`} key={place.name}>
+            <div className="svc-hours-card-heading">
+              <span className="svc-hours-icon"><place.icon size={23} /></span>
+              <div>
+                <h3>{place.name}</h3>
+                <p>{place.description}</p>
+              </div>
+            </div>
+            <table>
+              <caption className="sr-only">Redni delovni čas: {place.name}</caption>
+              <tbody>
+                {place.rows.map(([day, time]) => (
+                  <tr key={day}>
+                    <th scope="row">{day}</th>
+                    <td className={time === "Zaprto" ? "svc-hours-closed" : undefined}>{time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="svc-hours-contact">
+              <a href={`tel:${place.telephone}`}><Phone size={16} />{place.phone}</a>
+              <a href={`mailto:${place.email}`}><Mail size={16} />{place.email}</a>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p className="svc-hours-note">
+        Ob praznikih in izrednih spremembah pred obiskom preverite urnik pri izbrani službi.
+      </p>
+      <Source href="https://www.kpv.si/">Vir urnikov: uradna stran KPV · preverjeno 29. oktobra 2026</Source>
+    </section>
+  );
+}
+
 export function ContactPage() {
   return (
     <>
@@ -2359,6 +2467,11 @@ export function ContactPage() {
         <a href="#uradni-kontakti">
           <Phone size={18} />
           Uradni kontakti
+          <ArrowRight size={16} />
+        </a>
+        <a href="#delovni-cas">
+          <Clock3 size={18} />
+          Delovni čas
           <ArrowRight size={16} />
         </a>
       </div>
@@ -2447,10 +2560,11 @@ export function ContactPage() {
           </div>
         </aside>
       </div>
+      <ContactHours />
       <div className="svc-contact-foot">
-        <Source>Vir kontaktov: uradna spletna stran KPV</Source>
+        <Source href="https://www.kpv.si/mPodjetje/mPkont.html">Vir kontaktov: uradna spletna stran KPV</Source>
         <span>
-          Preverjeno 28. oktobra 2026. Portal je predstavitveni projekt.
+          Preverjeno 29. oktobra 2026. Portal je predstavitveni projekt.
         </span>
       </div>
     </>
@@ -2499,10 +2613,10 @@ export function AboutPage() {
             to: "/ceste",
           },
           {
-            icon: Store,
-            title: "Druge storitve",
-            text: "Tržnična in pokopališka dejavnost ter komunalne storitve.",
-            to: "/storitve",
+            icon: Flower2,
+            title: "Pokopališka dejavnost",
+            text: "Informacije o pokopališču, najemu groba in ustreznih kontaktih.",
+            to: "/pokopalisce",
           },
         ].map((item) => (
           <Link

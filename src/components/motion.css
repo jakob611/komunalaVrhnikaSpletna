@@ -6,32 +6,69 @@
   overflow: hidden;
   overflow: clip;
 }
-@media (max-width: 680px) and (prefers-reduced-motion: no-preference) {
-  #main .inner-page {
+.motion-disclosure[aria-hidden="true"] {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Logical sections enter individually. Their outer page never becomes a fixed-position containing block. */
+  #main .inner-page,
+  #main .quick-card {
     animation: none;
   }
   #main details > summary > svg,
   .calendar-sheet details > summary > svg {
     transition: transform 0.22s cubic-bezier(0.2, 0.75, 0.25, 1);
   }
-  #main details[data-motion-closing="true"] > summary > svg,
-  .calendar-sheet details[data-motion-closing="true"] > summary > svg {
-    transform: rotate(0);
-  }
   .waste-filters button,
   .svc-tabs button,
   .svc-type-grid button,
   .svc-service-card,
-  .svc-contact-topic-card {
+  .svc-contact-topic-card,
+  [data-motion-select] {
     transition:
       background-color 0.18s ease,
       border-color 0.18s ease,
       color 0.18s ease,
       box-shadow 0.18s ease;
   }
+  /* Native toggles need no JavaScript click handler. Unsupported browsers keep instant native behavior. */
+  @supports selector(details::details-content) {
+    #main details::details-content,
+    .calendar-sheet details::details-content {
+      opacity: 0;
+      transition:
+        opacity 0.2s ease,
+        content-visibility 0.24s allow-discrete;
+    }
+    #main details[open]::details-content,
+    .calendar-sheet details[open]::details-content {
+      opacity: 1;
+    }
+    @supports (interpolate-size: allow-keywords) {
+      #main details,
+      .calendar-sheet details {
+        interpolate-size: allow-keywords;
+      }
+      #main details::details-content,
+      .calendar-sheet details::details-content {
+        block-size: 0;
+        overflow: clip;
+        transition:
+          block-size 0.24s cubic-bezier(0.2, 0.75, 0.25, 1),
+          opacity 0.18s ease,
+          content-visibility 0.24s allow-discrete;
+      }
+      #main details[open]::details-content,
+      .calendar-sheet details[open]::details-content {
+        block-size: auto;
+      }
+    }
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .motion-disclosure {
+  .motion-disclosure,
+  #main details::details-content,
+  .calendar-sheet details::details-content {
     animation: none !important;
     transition: none !important;
   }

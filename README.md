@@ -4,7 +4,13 @@ Slovenski demonstracijski portal za pregled komunalnih storitev. React in TypeSc
 
 **Objavljena predstavitev:** <https://kpv.jakobtominc.com> · Cloudflare Worker `kpv-portal`, baza D1 `kpv-portal` (EU), zasebni R2 `kpv-portal-photos`. Konfiguracija že vsebuje povezave do ustvarjenih virov. Resend pošilja obvestila o obrazcih skrbniku predstavitve; plačila so izključena.
 
-Portal vsebuje 18 poti: začetno stran, tri področna izhodišča, zemljevid odpadkov, čarovnik, urnik, obvestila, ceste, prijavo napake, storitve, tržnico, kalkulator, DEPO, kontakte, podjetje, Moj dom in zasebnost. Podatki o naslovu v Moj dom ostanejo v brskalniku.
+Portal vsebuje 19 poti: začetno stran, tri področna izhodišča, zemljevid odpadkov, čarovnik, urnik, obvestila, ceste, prijavo napake, storitve, tržnico, kalkulator, DEPO, pokopališče, kontakte, podjetje, Moj dom in zasebnost. Podatki o naslovu v Moj dom ostanejo v brskalniku.
+
+## Pokopališče in uradne ure
+
+`/pokopalisce` vsebuje interaktivni ilustrativni načrt 96 grobov s 120 izmišljenimi osebami. Iskanje podpira šumnike, več oseb v grobu, letnice in oznake; vsi zadetki so označeni na načrtu. Podprti so povečava, premikanje, tipkovnica in povezava do izbranega groba. To ni dejanska evidenca ali posnetek pokopališča. Navodila za prihodnji posnetek in potrjene podatke so v [CEMETERY.md](docs/CEMETERY.md).
+
+Kontakt vsebuje ločene razpredelnice rednih ur informacijske pisarne, zbirnega centra Tojnice in trgovine DEPO. Vir je uradna stran KPV, preverjeno 29. oktobra 2026; praznične izjeme niso modelirane, zato portal ne prikazuje oznake »odprto zdaj«.
 
 ## Kontaktni obrazec in zaščita
 

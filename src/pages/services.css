@@ -1817,10 +1817,6 @@
   margin: 18px 0;
   max-width: 85ch;
 }
-.svc-service-guide-intro .button {
-  flex-shrink: 0;
-  min-height: 44px;
-}
 .svc-service-guide details {
   border-top: 1px solid #d8e2ce;
   margin-top: 17px;
@@ -1957,9 +1953,6 @@
     align-items: flex-start;
     gap: 15px;
   }
-  .svc-service-guide-intro .button {
-    width: 100%;
-  }
   .svc-service-guide h2 {
     font-size: 21px;
     line-height: 1.45;
@@ -2022,5 +2015,203 @@
   }
   .svc-type-grid button {
     font-size: 12px;
+  }
+}
+
+.svc-service-choice-heading {
+  margin-top: 30px;
+}
+.svc-service-choice-heading h2 {
+  font-size: 27px;
+  margin: 9px 0;
+}
+.svc-service-choice-heading p {
+  margin: 0;
+  color: #687b6b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.svc-service-choice-heading + .svc-service-grid {
+  margin-top: 22px;
+}
+.svc-service-card:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+.svc-contact-hours {
+  margin-top: 48px;
+  scroll-margin-top: 125px;
+}
+.svc-contact-hours-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.svc-contact-hours-heading h2 {
+  margin: 10px 0 0;
+  font-size: 30px;
+  line-height: 1.3;
+  color: #244a36;
+}
+.svc-hours-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #63776a;
+  font-size: 12px;
+}
+.svc-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.svc-hours-card {
+  --hours-accent: #2d6d54;
+  --hours-soft: #e9f2eb;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 25px;
+  border: 1px solid #dce6de;
+  border-top: 3px solid var(--hours-accent);
+  border-radius: 14px;
+  background: #fff;
+}
+.svc-hours-collection {
+  --hours-accent: #4d6e92;
+  --hours-soft: #edf3f9;
+}
+.svc-hours-depo {
+  --hours-accent: #8b6538;
+  --hours-soft: #f8f0e5;
+}
+.svc-hours-card-heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+.svc-hours-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 43px;
+  height: 43px;
+  border-radius: 12px;
+  background: var(--hours-soft);
+  color: var(--hours-accent);
+}
+.svc-hours-card h3 {
+  font-size: 18px;
+  line-height: 1.4;
+  margin: 0 0 6px;
+  color: #294c39;
+}
+.svc-hours-card-heading p {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #6d7d71;
+  margin: 0;
+}
+.svc-hours-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.svc-hours-card th,
+.svc-hours-card td {
+  padding: 10px 0;
+  border-top: 1px solid #edf0eb;
+  vertical-align: top;
+}
+.svc-hours-card th {
+  font-weight: 400;
+  text-align: left;
+  padding-right: 10px;
+  color: #526657;
+}
+.svc-hours-card td {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--hours-accent);
+}
+.svc-hours-card td.svc-hours-closed {
+  font-weight: 400;
+  color: #788279;
+}
+.svc-hours-contact {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #e5ebe4;
+}
+.svc-hours-contact a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hours-accent);
+  overflow-wrap: anywhere;
+}
+.svc-hours-contact a svg {
+  flex-shrink: 0;
+}
+.svc-hours-contact a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.svc-hours-note {
+  margin: 20px 0 10px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #657768;
+}
+@media (max-width: 1050px) {
+  .svc-hours-card {
+    padding: 20px;
+  }
+  .svc-hours-card-heading {
+    flex-direction: column;
+  }
+}
+@media (max-width: 760px) {
+  .svc-contact-quick-paths {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .svc-contact-quick-paths a {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .svc-hours-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+  }
+  .svc-contact-hours {
+    margin-top: 35px;
+  }
+  .svc-contact-hours-heading h2 {
+    font-size: 25px;
+  }
+  .svc-hours-card-heading {
+    flex-direction: row;
+  }
+  .svc-hours-card table {
+    font-size: 14px;
+  }
+  .svc-hours-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 20px;
   }
 }

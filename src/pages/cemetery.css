@@ -1,0 +1,861 @@
+.cemetery-page {
+  padding-bottom: 25px;
+}
+.cemetery-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 35px;
+  padding: 12px 0 35px;
+}
+.cemetery-intro .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cemetery-intro h1 {
+  font-size: clamp(2.4rem, 4.5vw, 3.7rem);
+  line-height: 1.13;
+  letter-spacing: -0.045em;
+  margin: 18px 0;
+}
+.cemetery-intro h1 em {
+  font-weight: 450;
+  font-style: normal;
+  color: #829069;
+}
+.cemetery-intro p {
+  max-width: 530px;
+  font-size: 16px;
+}
+.cemetery-intro-art {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 25px 15px;
+  color: #7e8c72;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.cemetery-flower-circle {
+  display: grid;
+  place-items: center;
+  width: 142px;
+  height: 142px;
+  border: 1px solid #dce3d5;
+  border-radius: 50%;
+  outline: 1px solid #e9ede3;
+  outline-offset: 10px;
+  background: radial-gradient(#e9f0df, #f9fbf5);
+}
+.cemetery-demo {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 16px 20px;
+  border: 1px solid #e2dfca;
+  background: #f8f7ee;
+  border-radius: 12px;
+  margin-bottom: 28px;
+}
+.cemetery-demo > svg {
+  flex-shrink: 0;
+  color: #8b7d47;
+  margin-top: 3px;
+}
+.cemetery-demo p {
+  margin: 0;
+  font-size: 13px;
+  color: #716b51;
+  line-height: 1.7;
+}
+.cemetery-demo strong {
+  color: #5e593f;
+}
+.cemetery-panel {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 28px;
+  margin-bottom: 22px;
+  background: white;
+}
+.cemetery-search-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 23px;
+}
+.cemetery-search-heading h2 {
+  font-size: 22px;
+  margin: 7px 0 0;
+  letter-spacing: -0.025em;
+}
+.cemetery-search-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #79816f;
+}
+.cemetery-search-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.cemetery-search-input {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid #cbd6c4;
+  border-radius: 11px;
+  background: #fbfcf8;
+  padding: 0 16px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.cemetery-search-input:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px #194f3a0c;
+}
+.cemetery-search-input > svg {
+  color: #7b8c70;
+  flex-shrink: 0;
+}
+.cemetery-search-input input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 17px 0;
+  font-size: 16px;
+  outline: 0;
+  color: var(--dark);
+}
+.cemetery-search-input input:focus-visible {
+  outline: 0;
+}
+.cemetery-search-input input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+.cemetery-search-input button {
+  border: 0;
+  background: transparent;
+  min-width: 40px;
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+}
+.cemetery-search-help {
+  font-size: 12px;
+  margin: 9px 0 19px;
+}
+.cemetery-filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.cemetery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.cemetery-filters button {
+  background: #f5f7f0;
+  border: 1px solid #e8ecdf;
+  border-radius: 7px;
+  padding: 8px 13px;
+  font-size: 12px;
+  min-height: 38px;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+.cemetery-filters button[aria-pressed="true"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+.cemetery-result-count {
+  font-size: 12px;
+  color: var(--green);
+  white-space: nowrap;
+}
+.cemetery-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.cemetery-map-panel {
+  min-width: 0;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.cemetery-map-heading {
+  padding: 24px 24px 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.cemetery-map-heading h2 {
+  font-size: 18px;
+  letter-spacing: -0.025em;
+  margin: 7px 0 0;
+}
+.cemetery-plan-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #768467;
+  background: #f2f5ed;
+  padding: 6px 9px;
+  border-radius: 6px;
+}
+.cemetery-map {
+  position: relative;
+  background: #eef1e7;
+  overflow: hidden;
+  isolation: isolate;
+}
+.cemetery-map > svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1000/760;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cemetery-map-controls {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  background: #ffffffed;
+  padding: 4px;
+  border: 1px solid #d9dfd2;
+  border-radius: 10px;
+  z-index: 1;
+  box-shadow: 0 3px 12px #294d3010;
+}
+.cemetery-map-controls button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+}
+.cemetery-map-controls button:hover:enabled {
+  background: #edf2e7;
+}
+.cemetery-map-controls button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+.cemetery-map-controls span {
+  font-size: 10px;
+  min-width: 42px;
+  text-align: center;
+  color: #627359;
+}
+.cemetery-grave {
+  cursor: pointer;
+  color: #5d6c59;
+  outline: none;
+}
+.cemetery-grave-stone {
+  fill: #f7f8f0;
+  stroke: #a9b7a1;
+  stroke-width: 1.3;
+  transition:
+    fill 0.18s,
+    stroke 0.18s;
+}
+.cemetery-grave > *:not(.cemetery-grave-hit) {
+  pointer-events: none;
+}
+.cemetery-grave.is-dimmed {
+  opacity: 0.35;
+}
+.cemetery-grave.is-match .cemetery-grave-stone {
+  fill: #d8e8a8;
+  stroke: #7f9d4f;
+  stroke-width: 2;
+}
+.cemetery-grave.is-selected {
+  opacity: 1;
+  color: white;
+}
+.cemetery-grave.is-selected .cemetery-grave-stone {
+  fill: var(--green);
+  stroke: #103c28;
+  stroke-width: 2;
+}
+.cemetery-grave:hover .cemetery-grave-stone,
+.cemetery-grave:focus-visible .cemetery-grave-stone {
+  stroke: #173e2c;
+  stroke-width: 3;
+}
+.cemetery-grave:focus-visible .cemetery-grave-hit {
+  fill: #c4d09d30;
+  stroke: #173e2c;
+  stroke-width: 2;
+}
+.cemetery-map-watermark {
+  position: absolute;
+  right: 14px;
+  bottom: 13px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #718064;
+  pointer-events: none;
+}
+.cemetery-pan-tip {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffffeb;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 10px;
+  pointer-events: none;
+}
+.cemetery-map-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 17px 22px 7px;
+}
+.cemetery-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  font-size: 10px;
+  color: #76816e;
+}
+.cemetery-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cemetery-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #f7f8f0;
+  border: 1px solid #a9b7a1;
+}
+.cemetery-legend i.match {
+  background: #d8e8a8;
+  border-color: #7f9d4f;
+}
+.cemetery-legend i.selected {
+  background: var(--green);
+  border-color: var(--green);
+}
+.cemetery-text-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 38px;
+}
+.cemetery-map-note {
+  margin: 5px 22px 19px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.cemetery-sidebar {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+.cemetery-detail {
+  background: #f1f5e9;
+  border: 1px solid #dbe3ce;
+  border-radius: 17px;
+  padding: 23px;
+  scroll-margin-top: 130px;
+}
+.cemetery-detail-empty {
+  text-align: center;
+  padding: 7px;
+}
+.cemetery-detail-empty > svg {
+  color: #769264;
+  margin-bottom: 7px;
+}
+.cemetery-detail-empty h2 {
+  font-size: 20px;
+  margin: 4px 0 10px;
+}
+.cemetery-detail-empty p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 0;
+}
+.cemetery-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cemetery-detail-top button {
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  margin: -8px;
+}
+.cemetery-detail h2:not(.cemetery-detail-empty h2) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 13px 0 4px;
+  font-size: 24px;
+}
+.cemetery-coordinate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  margin: 7px 0 19px;
+}
+.cemetery-people > div {
+  padding: 15px 0;
+  border-top: 1px solid #dce3d1;
+}
+.cemetery-people h3 {
+  font-size: 17px;
+  margin: 0 0 7px;
+}
+.cemetery-people p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  margin: 2px 0;
+}
+.cemetery-people time {
+  color: #455943;
+}
+.cemetery-fiction-tag {
+  display: block;
+  font-size: 10px;
+  color: #7d8064;
+  margin: 0 0 15px;
+}
+.cemetery-share.button {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  padding: 10px;
+  background: #ffffffa6;
+  border-color: #cad6bb;
+}
+.cemetery-detail-note {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+.cemetery-copy-fallback {
+  display: block;
+  font-size: 11px;
+  margin-top: 10px;
+}
+.cemetery-copy-fallback input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  font-size: 12px;
+  border: 1px solid #cbd6c4;
+  border-radius: 6px;
+}
+.cemetery-results {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 18px;
+}
+.cemetery-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2px 2px 12px;
+}
+.cemetery-list-heading h2 {
+  font-size: 14px;
+  margin: 0;
+}
+.cemetery-list-heading > span {
+  color: #73836a;
+  background: #f0f4e9;
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 9px;
+}
+.cemetery-results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 335px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c8d1bf transparent;
+}
+.cemetery-results li + li {
+  border-top: 1px solid #edf0e7;
+}
+.cemetery-results li button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 13px 9px;
+  text-align: left;
+  border-radius: 7px;
+  transition: background 0.17s;
+}
+.cemetery-results li button:hover {
+  background: #f6f8f1;
+}
+.cemetery-results li button.is-selected {
+  background: #eaf1dd;
+}
+.cemetery-results strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cemetery-results small {
+  display: block;
+  font-size: 10px;
+  color: #7f8778;
+  margin-top: 2px;
+}
+.cemetery-result-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #718166;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.cemetery-list-foot {
+  font-size: 10px;
+  line-height: 1.8;
+  text-align: center;
+  margin: 12px 0 0;
+}
+.cemetery-show-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  background: #f4f7ed;
+  border: 0;
+  border-radius: 7px;
+  min-height: 38px;
+  padding: 8px;
+  width: 100%;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--green);
+}
+.cemetery-empty {
+  text-align: center;
+  padding: 25px 10px;
+}
+.cemetery-empty > svg {
+  color: #8b9c7e;
+}
+.cemetery-empty h3 {
+  font-size: 16px;
+  margin: 11px 0 7px;
+}
+.cemetery-empty p {
+  font-size: 12px;
+}
+.cemetery-help {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 65px;
+  margin-top: 38px;
+  padding: 30px;
+  background: #f3f5ee;
+  border-radius: 18px;
+}
+.cemetery-help h2 {
+  font-size: 24px;
+  letter-spacing: -0.025em;
+  margin: 9px 0 12px;
+}
+.cemetery-help h3 {
+  font-size: 17px;
+  margin: 2px 0 11px;
+}
+.cemetery-help p {
+  font-size: 13px;
+  line-height: 1.9;
+}
+.cemetery-help .text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+.cemetery-help .button {
+  font-size: 12px;
+  min-height: 43px;
+}
+.cemetery-source {
+  display: block;
+  font-size: 10px;
+  color: #7b8772;
+  margin-top: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cemetery-future-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 22px 4px 0;
+}
+.cemetery-future-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cemetery-route {
+    animation: cemetery-route-in 0.55s ease both;
+  }
+  .cemetery-selection-ring {
+    animation: cemetery-ring-in 0.55s ease both;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+}
+@keyframes cemetery-route-in {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 35;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes cemetery-ring-in {
+  from {
+    opacity: 0.15;
+    transform: scale(1.25);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .cemetery-intro-art .cemetery-flower-circle > svg {
+    animation: cemetery-breathe 7s ease-in-out infinite;
+  }
+}
+@keyframes cemetery-breathe {
+  50% {
+    transform: rotate(9deg) scale(1.05);
+  }
+}
+@media (max-width: 1100px) {
+  .cemetery-workspace {
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+    gap: 16px;
+  }
+  .cemetery-plan-tag {
+    display: none;
+  }
+  .cemetery-intro-art {
+    gap: 17px;
+  }
+  .cemetery-intro-art > span {
+    display: none;
+  }
+  .cemetery-help {
+    gap: 30px;
+  }
+}
+@media (max-width: 760px) {
+  .cemetery-workspace {
+    grid-template-columns: 1fr;
+  }
+  .cemetery-sidebar {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .cemetery-detail,
+  .cemetery-results {
+    padding: 20px;
+  }
+  .cemetery-search-hint {
+    display: none;
+  }
+  .cemetery-help {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .cemetery-map-heading {
+    padding: 20px;
+  }
+  .cemetery-plan-tag {
+    display: inline-flex;
+  }
+  .cemetery-intro-art {
+    display: none;
+  }
+  .cemetery-map-controls button {
+    width: 40px;
+    height: 40px;
+  }
+}
+@media (max-width: 540px) {
+  .cemetery-intro {
+    padding: 5px 0 22px;
+  }
+  .cemetery-intro h1 {
+    font-size: 36px;
+  }
+  .cemetery-intro p {
+    font-size: 14px;
+  }
+  .cemetery-demo {
+    padding: 14px;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .cemetery-demo p {
+    font-size: 12px;
+  }
+  .cemetery-panel {
+    padding: 20px 16px;
+  }
+  .cemetery-search-heading h2 {
+    font-size: 19px;
+  }
+  .cemetery-search-input {
+    padding: 0 12px;
+    gap: 9px;
+  }
+  .cemetery-filter-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .cemetery-filters {
+    gap: 6px;
+  }
+  .cemetery-filters button {
+    padding: 9px;
+    font-size: 11px;
+    min-height: 40px;
+  }
+  .cemetery-sidebar {
+    grid-template-columns: 1fr;
+  }
+  .cemetery-map-heading {
+    align-items: flex-start;
+    padding: 18px 16px;
+  }
+  .cemetery-map-heading h2 {
+    font-size: 16px;
+  }
+  .cemetery-plan-tag {
+    display: none;
+  }
+  .cemetery-map-controls {
+    top: 9px;
+    left: 9px;
+    padding: 2px;
+  }
+  .cemetery-map-controls button {
+    width: 35px;
+    height: 38px;
+  }
+  .cemetery-map-controls span {
+    min-width: 37px;
+  }
+  .cemetery-map-footer {
+    padding: 14px 16px 5px;
+  }
+  .cemetery-map-note {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .cemetery-map-watermark {
+    font-size: 7px;
+    right: 8px;
+    bottom: 9px;
+  }
+  .cemetery-pan-tip {
+    font-size: 9px;
+    bottom: 8px;
+    left: 8px;
+  }
+  .cemetery-legend {
+    font-size: 10px;
+  }
+  .cemetery-help {
+    padding: 22px;
+    margin-top: 25px;
+  }
+  .cemetery-help h2 {
+    font-size: 23px;
+  }
+  .cemetery-share.button {
+    font-size: 12px;
+  }
+  .cemetery-results li button {
+    min-height: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cemetery-page *,
+  .cemetery-page *::before,
+  .cemetery-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

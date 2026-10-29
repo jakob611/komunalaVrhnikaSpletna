@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import "./motion.css";
 
-/** Keeps an optional section mounted until its phone-only closing motion finishes. */
+/** Retains a small optional section only until its closing motion is finished. */
 export default function AnimatedDisclosure({
   open,
   children,
@@ -16,59 +16,113 @@ export default function AnimatedDisclosure({
   const [mounted, setMounted] = useState(open);
   const element = useRef<HTMLDivElement>(null);
   const animation = useRef<Animation | null>(null);
-  const previousOpen = useRef(false);
+  const timer = useRef<number | undefined>(undefined);
+  const previouslyOpen = useRef(false);
+  const currentOpen = useRef(open);
+  currentOpen.current = open;
+
   useLayoutEffect(() => {
     if (open && !mounted) {
+      animation.current?.cancel();
+      animation.current = null;
       setMounted(true);
       return;
     }
     const node = element.current;
-    if (!node) return;
+    if (!node) {
+      animation.current?.cancel();
+      animation.current = null;
+      return;
+    }
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const phone = window.matchMedia("(max-width: 680px)");
-    const currentHeight = animation.current
+    const interrupted = animation.current;
+    const startHeight = interrupted
       ? node.getBoundingClientRect().height
-      : previousOpen.current
+      : previouslyOpen.current
         ? node.scrollHeight
         : 0;
-    animation.current?.cancel();
+    const startOpacity = interrupted
+      ? getComputedStyle(node).opacity
+      : open
+        ? ".65"
+        : "1";
+    window.clearTimeout(timer.current);
     animation.current = null;
-    previousOpen.current = open;
-    if (!phone.matches || reduced.matches || !node.animate) {
+    interrupted?.cancel();
+    delete node.dataset.motionAnimating;
+    previouslyOpen.current = open;
+
+    if (!open && node.contains(document.activeElement)) {
+      // A close button inside the panel returns focus to its actual external disclosure trigger.
+      const controls = document.querySelectorAll<HTMLButtonElement>(
+        "button[aria-controls]",
+      );
+      for (const control of controls) {
+        const controlled = document.getElementById(
+          control.getAttribute("aria-controls") || "",
+        );
+        if (
+          controlled &&
+          node.contains(controlled) &&
+          !node.contains(control)
+        ) {
+          control.focus({ preventScroll: true });
+          break;
+        }
+      }
+    }
+    if (reduced.matches || !node.animate) {
       if (!open) setMounted(false);
       return;
     }
+    const duration = window.matchMedia("(max-width: 680px)").matches
+      ? 240
+      : 280;
     const run = node.animate(
       [
-        { height: `${currentHeight}px`, opacity: open ? 0.35 : 1 },
+        { height: `${startHeight}px`, opacity: startOpacity },
         {
           height: open ? `${node.scrollHeight}px` : "0px",
-          opacity: open ? 1 : 0.25,
+          opacity: open ? 1 : 0.4,
         },
       ],
-      { duration: 250, easing: "cubic-bezier(.2,.75,.25,1)", fill: "both" },
+      { duration, easing: "cubic-bezier(.2,.75,.25,1)", fill: "both" },
     );
     animation.current = run;
     node.dataset.motionAnimating = "true";
     const finish = () => {
       if (animation.current !== run) return;
+      window.clearTimeout(timer.current);
+      if (!currentOpen.current) {
+        // Keep the finished zero-height frame until React actually unmounts the content.
+        // Canceling it first can briefly flash the full panel during a deferred render.
+        setMounted(false);
+        return;
+      }
       animation.current = null;
       delete node.dataset.motionAnimating;
       run.cancel();
-      if (!open) setMounted(false);
     };
     run.onfinish = finish;
+    // A canceled or throttled animation cannot leave a closing panel mounted indefinitely.
+    timer.current = window.setTimeout(finish, duration + 120);
     const preferenceChange = () => {
-      if (reduced.matches || !phone.matches) finish();
+      if (reduced.matches) finish();
     };
     reduced.addEventListener("change", preferenceChange);
-    phone.addEventListener("change", preferenceChange);
     return () => {
       reduced.removeEventListener("change", preferenceChange);
-      phone.removeEventListener("change", preferenceChange);
+      window.clearTimeout(timer.current);
     };
   }, [open, mounted]);
-  useLayoutEffect(() => () => animation.current?.cancel(), []);
+  useLayoutEffect(
+    () => () => {
+      animation.current?.cancel();
+      animation.current = null;
+      window.clearTimeout(timer.current);
+    },
+    [],
+  );
   if (!mounted) return null;
   return (
     <div

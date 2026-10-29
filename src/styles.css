@@ -206,9 +206,52 @@ p {
   padding: 10px;
   min-width: 240px;
 }
-.nav-group:hover .nav-dropdown,
-.nav-group:focus-within .nav-dropdown {
+.nav-group.is-expanded .nav-dropdown {
   display: block;
+}
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.nav-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 40px;
+  padding: 4px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+.nav-expand:hover {
+  background: var(--surface);
+}
+.nav-expand svg {
+  transition: transform 0.2s ease;
+}
+.nav-expand[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.nav-dropdown {
+  z-index: 2;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nav-group.is-expanded .nav-dropdown {
+    animation: float-in 0.16s ease both;
+  }
+}
+@media (max-width: 950px) {
+  .nav-group {
+    display: block;
+  }
+  .nav-expand {
+    display: none;
+  }
+  .nav-group.is-expanded .nav-dropdown {
+    display: grid;
+  }
 }
 .nav-dropdown a {
   display: flex;
@@ -2107,5 +2150,19 @@ main:focus {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Avoid moving targets and sticky hover transforms on touch and hybrid input. */
+@media (hover: none), (pointer: coarse) {
+  .button:hover,
+  .quick-card:hover,
+  .category-card:hover,
+  .service-overview:hover,
+  .svc-service-card:hover,
+  .button:active,
+  .quick-card:active,
+  .category-card:active {
+    transform: none;
   }
 }

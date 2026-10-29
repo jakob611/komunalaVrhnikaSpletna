@@ -19,6 +19,7 @@ import {
   Clock3,
   Droplets,
   ExternalLink,
+  Flower2,
   Leaf,
   MapPin,
   Menu,
@@ -70,6 +71,7 @@ const ContactPage = lazy(() =>
 const AboutPage = lazy(() =>
   services().then((m) => ({ default: m.AboutPage })),
 );
+const CemeteryPage = lazy(() => import("./pages/CemeteryPage"));
 
 const links = [
   {
@@ -98,6 +100,7 @@ const links = [
       ["Ceste in zapore", "/ceste"],
       ["Prijavite težavo", "/prijavi"],
       ["Javna razsvetljava", "/prijavi?category=lighting"],
+      ["Pokopališče – poiščite grob", "/pokopalisce"],
     ],
   },
   {
@@ -160,6 +163,11 @@ const searchable = [
   ],
   ["DEPO", "Predmeti z zgodbo in ponovna uporaba", "/depo"],
   ["Kontakt", "Telefoni, e-pošta in lokacija podjetja", "/kontakt"],
+  [
+    "Pokopališče",
+    "Iskanje pokojnikov, grobov in interaktivni načrt pokopališča",
+    "/pokopalisce",
+  ],
   [
     "Pitna voda in odvajanje",
     "Oskrba, vodomer, računi, plačila, e-račun in greznice",
@@ -323,21 +331,35 @@ function SiteSearch({ close }: { close: () => void }) {
 function Header() {
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const location = useLocation();
   useEffect(() => {
     setMobile(false);
     setSearch(false);
+    setExpanded(null);
   }, [location]);
+  useEffect(() => {
+    if (!expanded) return;
+    const outside = (event: PointerEvent) => {
+      if (
+        !(event.target instanceof Element) ||
+        !event.target.closest(".primary-nav")
+      )
+        setExpanded(null);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [expanded]);
   return (
     <>
       <div className="utility-bar">
         <div className="container utility-inner">
           <span>Vaša komunala. Vaš vsakdan.</span>
           <div>
-            <Link to="/kontakt">
+            <a href="tel:+38617502960">
               <Phone size={12} />
               01 750 29 60
-            </Link>
+            </a>
             <Link to="/obvestila">
               <Bell size={12} />
               Obvestila
@@ -356,13 +378,66 @@ function Header() {
             className={mobile ? "primary-nav is-open" : "primary-nav"}
             aria-label="Glavna navigacija"
           >
-            {links.map((nav) => (
-              <div className="nav-group" key={nav.label}>
-                <NavLink to={nav.to}>
-                  {nav.label}
+            {links.map((nav, index) => (
+              <div
+                className={`nav-group${expanded === nav.label ? " is-expanded" : ""}`}
+                key={nav.label}
+                onPointerEnter={(event) => {
+                  if (
+                    event.pointerType === "mouse" &&
+                    window.matchMedia("(min-width: 951px) and (hover: hover)")
+                      .matches
+                  )
+                    setExpanded(nav.label);
+                }}
+                onPointerLeave={(event) => {
+                  if (
+                    event.pointerType === "mouse" &&
+                    !event.currentTarget.contains(document.activeElement)
+                  )
+                    setExpanded(null);
+                }}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget))
+                    setExpanded((current) =>
+                      current === nav.label ? null : current,
+                    );
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setExpanded(null);
+                    event.currentTarget
+                      .querySelector<HTMLButtonElement>(".nav-expand")
+                      ?.focus();
+                  }
+                }}
+              >
+                <NavLink to={nav.to}>{nav.label}</NavLink>
+                <button
+                  type="button"
+                  className="nav-expand"
+                  aria-label={`Možnosti: ${nav.label}`}
+                  aria-expanded={expanded === nav.label}
+                  aria-controls={`nav-dropdown-${index}`}
+                  onClick={() =>
+                    setExpanded(expanded === nav.label ? null : nav.label)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setExpanded(nav.label);
+                      const group = event.currentTarget.parentElement;
+                      requestAnimationFrame(() =>
+                        group
+                          ?.querySelector<HTMLAnchorElement>(".nav-dropdown a")
+                          ?.focus(),
+                      );
+                    }
+                  }}
+                >
                   <ChevronDown size={13} />
-                </NavLink>
-                <div className="nav-dropdown">
+                </button>
+                <div className="nav-dropdown" id={`nav-dropdown-${index}`}>
                   {nav.items.map(([label, to]) => (
                     <Link key={to} to={to}>
                       {label}
@@ -850,6 +925,12 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
           "/prijavi?category=bins",
           Recycle,
         ],
+        [
+          "Pokopališče",
+          "Poiščite grob in odprite interaktivni prikazni načrt.",
+          "/pokopalisce",
+          Flower2,
+        ],
       ],
     },
   }[kind];
@@ -1135,8 +1216,8 @@ function Privacy() {
           in varnostni žeton se ne zapisujeta v javne dnevnike; žetona ne
           hranimo med oddanimi sporočili. Podatke iz javnih obrazcev za dostavo
           e-poštnega obvestila obdeluje Resend, prejemnik pa je skrbnik
-          predstavitve. Fotografije hranimo zasebno v Cloudflare R2 ter jih
-          prek Resend pošljemo skrbniku portala kot priponke k prijavi.
+          predstavitve. Fotografije hranimo zasebno v Cloudflare R2 ter jih prek
+          Resend pošljemo skrbniku portala kot priponke k prijavi.
         </p>
         <h2>Dostopnost</h2>
         <p>
@@ -1183,6 +1264,7 @@ function Footer() {
           <Link to="/ceste">Ceste in zapore</Link>
           <Link to="/prijavi">Prijavite težavo</Link>
           <Link to="/trznica">Tržnica Vrhnika</Link>
+          <Link to="/pokopalisce">Pokopališče</Link>
         </div>
         <div>
           <h3>Ostanimo povezani</h3>
@@ -1207,7 +1289,8 @@ function Footer() {
       </div>
       <div className="container footer-bottom">
         <span>
-          © {new Date().getFullYear()} · Predstavitveni koncept Komunale Vrhnika
+          © {new Date().getFullYear()} · Predstavitveni koncept Komunale
+          Vrhnika
         </span>
         <div>
           <Link to="/zasebnost">Zasebnost in dostopnost</Link>
@@ -1228,29 +1311,46 @@ function Footer() {
 
 function ScrollManager() {
   const location = useLocation();
-  const previousPath = useRef(location.pathname);
+  const previousPath = useRef<string | null>(null);
   useEffect(() => {
     const changed = previousPath.current !== location.pathname;
     previousPath.current = location.pathname;
     if (location.hash) {
-      const timer = setTimeout(
-        () =>
-          document
-            .getElementById(decodeURIComponent(location.hash.slice(1)))
-            ?.scrollIntoView({
-              behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-                .matches
-                ? "auto"
-                : "smooth",
-            }),
-        450,
-      );
-      return () => clearTimeout(timer);
+      let anchor = location.hash.slice(1);
+      try {
+        anchor = decodeURIComponent(anchor);
+      } catch {
+        /* Keep malformed fragments harmless. */
+      }
+      let frame = 0;
+      const reveal = () => {
+        const target = document.getElementById(anchor);
+        if (!target) return;
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() =>
+          target.scrollIntoView({
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+              .matches
+              ? "auto"
+              : "smooth",
+          }),
+        );
+      };
+      const observer = new MutationObserver(reveal);
+      observer.observe(document.body, { childList: true, subtree: true });
+      reveal();
+      const timer = setTimeout(() => observer.disconnect(), 5000);
+      return () => {
+        clearTimeout(timer);
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+      };
     }
     window.scrollTo(0, 0);
     if (changed)
       document.getElementById("main")?.focus({ preventScroll: true });
-  }, [location]);
+  }, [location.pathname, location.hash]);
   return null;
 }
 
@@ -1383,6 +1483,14 @@ export default function App() {
               element={
                 <div className="container inner-page">
                   <DepoPage />
+                </div>
+              }
+            />
+            <Route
+              path="/pokopalisce"
+              element={
+                <div className="container inner-page">
+                  <CemeteryPage />
                 </div>
               }
             />
