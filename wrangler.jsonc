@@ -11,6 +11,7 @@
     "run_worker_first": ["/api/*"],
   },
   "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "account_id": "7ed72e8dc43d8eec786d45b92cf0d9d6",
   "d1_databases": [
     {
@@ -23,6 +24,9 @@
   "routes": [{ "pattern": "kpv.jakobtominc.com", "custom_domain": true }],
   "vars": {
     "DEMO_MODE": "true",
+    "EMAIL_ENABLED": "true",
+    "EMAIL_FROM": "KPV predstavitev <obvestila@kpv.jakobtominc.com>",
+    "EMAIL_TO": "tomincjakob@gmail.com",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFqL1NMuXraOCXUy",
     "TURNSTILE_HOSTNAMES": "kpv.jakobtominc.com",
   },

@@ -2,13 +2,13 @@
 
 Slovenski demonstracijski portal za pregled komunalnih storitev. React in TypeScript z Vite na odjemalcu; skupni Fetch API zaledni del za lokalni Node.js in Cloudflare Workers. To je oblikovni in funkcionalni prototip, ne uradna spletna stran podjetja.
 
-**Objavljena predstavitev:** <https://kpv.jakobtominc.com> · Cloudflare Worker `kpv-portal`, baza D1 `kpv-portal` (EU), zasebni R2 `kpv-portal-photos`. Konfiguracija že vsebuje povezave do ustvarjenih virov. E-pošta in plačila sta izključena.
+**Objavljena predstavitev:** <https://kpv.jakobtominc.com> · Cloudflare Worker `kpv-portal`, baza D1 `kpv-portal` (EU), zasebni R2 `kpv-portal-photos`. Konfiguracija že vsebuje povezave do ustvarjenih virov. Resend pošilja obvestila o obrazcih skrbniku predstavitve; plačila so izključena.
 
 Portal vsebuje 18 poti: začetno stran, tri področna izhodišča, zemljevid odpadkov, čarovnik, urnik, obvestila, ceste, prijavo napake, storitve, tržnico, kalkulator, DEPO, kontakte, podjetje, Moj dom in zasebnost. Podatki o naslovu v Moj dom ostanejo v brskalniku.
 
 ## Kontaktni obrazec in zaščita
 
-Kontakt ima sedem področij in odvisne podkategorije, uredljivo zadevo, sporočilo, ime, e-pošto, neobvezen telefon in privolitev. `/api/contact` sporočilo dejansko shrani v zasebno tabelo D1 `contact_submissions`; e-pošte še ne pošilja. Ostali obrazci ostanejo v tabeli `submissions`.
+Kontakt ima sedem področij in odvisne podkategorije, uredljivo zadevo, sporočilo, ime, e-pošto, neobvezen telefon in privolitev. `/api/contact` sporočilo dejansko shrani v zasebno tabelo D1 `contact_submissions`. Ostali obrazci ostanejo v tabeli `submissions`. Javna oddaja ustvari tudi obvestilo skrbniku predstavitve prek Resend; podjetju KPV se ne pošlje.
 
 Vseh pet oddaj varuje Cloudflare Turnstile v načinu Managed z `appearance: interaction-only`. Običajno poteka samodejno, potrditveno polje pa se pokaže, če je potrebno. Zaledje preveri uspeh, točno gostiteljsko ime in dejanje ter preverjanje opravi pred zapisom v D1 ali R2. Žetoni so enkratni in se po poskusu osvežijo. Dodano je tudi skrito polje proti neželenim oddajam. Brez povezane zaščite javno zaledje oddajo zavrne. Lokalni Node strežnik na zanki `127.0.0.1` je jasno označen razvojni preizkus brez zunanjega preverjanja.
 
@@ -56,7 +56,13 @@ Lokalno se oddaje hranijo v `.data/records.json`, fotografije pa zasebno v `.dat
 
 Urniki, zbirne točke, ceniki, razpoložljivost tržnice in operativna obvestila so primeri in niso uradni podatki KPV. Urnik se ustvari za prihodnje datume glede na časovni pas `Europe/Ljubljana`; podprta so prikazna območja Vrhnika, Borovnica in Log - Dragomer. Ne predstavlja natančne povezave med hišno številko in odvozno potjo. Steklo in papir se praviloma oddajata na zbirnih mestih, zato v vzorcu hišnega urnika prikazujemo embalažo, biološke in mešane komunalne odpadke. Pred uporabo podatke uskladite z uradnim urnikom in pravili KPV.
 
-E-pošta se **ne pošilja**. Prijave se shranijo v prikazno zbirko, podjetju pa niso posredovane. Tržnica ne obdeluje resničnih plačil in ne potrdi dejanske razpoložljivosti stojnice. Obrazec vrne referenco oddaje in jasno opozorilo. Ne vnašajte občutljivih ali resničnih osebnih podatkov v javni demo.
+Prijave se shranijo v prikazno zbirko in prek Resend posredujejo skrbniku predstavitve na `tomincjakob@gmail.com`, podjetju KPV pa niso posredovane. Obrazec vrne referenco in dejansko stanje čakalne vrste e-pošte. Samodejnih odgovorov uporabnikom ali rednih obvestil gospodinjstvom še ne pošilja. Tržnica ne obdeluje resničnih plačil in ne potrdi dejanske razpoložljivosti stojnice. Ne vnašajte občutljivih ali resničnih osebnih podatkov v javni demo.
+
+## Resend
+
+Pošiljatelj je `KPV predstavitev <obvestila@kpv.jakobtominc.com>` na preverjeni domeni. Nastavitve Workerja so `EMAIL_ENABLED`, `EMAIL_FROM` in `EMAIL_TO`; `RESEND_API_KEY` mora biti shranjen kot skrivnost Workerja. Ključa ne dodajajte v repozitorij ali v spremenljivko z začetkom `VITE_`. `/api/config` vrne samo javni podatek o vklopljeni e-pošti.
+
+Oddaja in obvestilo se najprej shranita v D1. Trajna čakalna vrsta omogoča ponovno dostavo po začasni napaki, Workerjev Cron pa jo preverja vsakih pet minut. Ponovni poskusi so omejeni na največ 20 ur in uporabljajo enak idempotentni ključ Resend. Uspeh oddaje pomeni shranjen zapis in uvrstitev obvestila v čakalno vrsto, ne zagotovljene dostave v predal. Lokalni Node strežnik e-pošte ne pošilja. Podrobnosti in koraki za selitev so v [SERVICES.md](docs/SERVICES.md).
 
 ## Cloudflare Workers
 
@@ -101,15 +107,15 @@ Custom Domain `kpv.jakobtominc.com` je povezana prek nastavitve `routes` v `wran
 npm run test:smoke -- https://kpv.jakobtominc.com
 ```
 
-Ukaz preveri koledar, urnik, zaščito pred oddajami z drugega izvora in vseh pet obrazcev. Na javni strani preveri, da oddaje brez žetona niso sprejete; CAPTCHA ne obide. Lokalno ustvari jasno označene testne zapise z naslovom `portal-test@example.com`, vključno s fotografijo. Ne pošilja e-pošte in ne bremeni plačil. Samodejna preverjanja v GitHub Actions izvajajo gradnjo in petnajst testov API, vključno s kontaktom, preverjanjem dejanja in gostitelja Turnstile, ponovitvijo žetona ter pravili koledarja. Pravo uspešno zaščiteno oddajo preverite v brskalniku.
+Ukaz preveri koledar, urnik, zaščito pred oddajami z drugega izvora in vseh pet obrazcev. Na javni strani preveri, da oddaje brez žetona niso sprejete; CAPTCHA ne obide. Lokalno ustvari jasno označene testne zapise z naslovom `portal-test@example.com`, vključno s fotografijo. Ne pošilja e-pošte in ne bremeni plačil. Samodejna preverjanja v GitHub Actions izvajajo gradnjo in teste API, vključno s kontaktom, preverjanjem dejanja in gostitelja Turnstile, ponovitvijo žetona ter pravili koledarja. Pravo uspešno zaščiteno oddajo preverite v brskalniku.
 
 ## API in zasebnost
 
 Javne bralne poti: `GET /api/health`, `/api/notices`, `/api/collection?address=Vrhnika`, `/api/calendar?address=Vrhnika`.
 
-Oddaje JSON: `POST /api/subscriptions`, `/api/requests`, `/api/market`. Prijava infrastrukture uporablja `POST /api/reports` in `multipart/form-data`. Fotografije JPG, PNG ali WebP imajo omejitev 5 MB; preverjata se MIME in podpis datoteke. JSON ima omejitev 32 KB. Oddaje zahtevajo privolitev; dovoljena so samo pričakovana polja in vrednosti. Zapis vsebuje le validirane podatke. Navzkrižne oddaje iz drugega spletnega izvora so zavrnjene. Koledar ubeži in prelomi vrednosti po pravilih ICS.
+Oddaje JSON: `POST /api/contact`, `/api/subscriptions`, `/api/requests`, `/api/market`. Prijava infrastrukture uporablja `POST /api/reports` in `multipart/form-data`. Fotografije JPG, PNG ali WebP imajo omejitev 5 MB; preverjata se MIME in podpis datoteke. JSON ima omejitev 32 KB. Oddaje zahtevajo privolitev; dovoljena so samo pričakovana polja in vrednosti. Zapis vsebuje le validirane podatke. Navzkrižne oddaje iz drugega spletnega izvora so zavrnjene. Koledar ubeži in prelomi vrednosti po pravilih ICS.
 
-API ne objavlja seznama prijav, osebnih podatkov ali fotografij. Za pregled lokalnih oddaj uporabite zasebne datoteke, v Cloudflare pa nadzorovani dostop do D1 in R2. Pred uradno uporabo dodajte upravljanje uporabnikov in pooblastil za interno obravnavo, preverjanje e-pošte, omejitve hitrosti in hrambe/brisanja ter dejanski operativni podatkovni vir. Turnstile je že aktiven; integracija e-pošte in plačil je prihodnji korak.
+API ne objavlja seznama prijav, osebnih podatkov ali fotografij. Za pregled lokalnih oddaj uporabite zasebne datoteke, v Cloudflare pa nadzorovani dostop do D1 in R2. Podatki javnih obrazcev se za dostavo obvestila obdelajo tudi pri Resend in v prejemnikovem predalu. Pred uradno uporabo dodajte upravljanje uporabnikov in pooblastil za interno obravnavo, preverjanje e-pošte naročnikov in odjavo, omejitve hitrosti in hrambe/brisanja ter dejanski operativni podatkovni vir. Turnstile in Resend sta vključena; prava plačila ostajajo ločen prihodnji korak.
 
 ## Reference
 

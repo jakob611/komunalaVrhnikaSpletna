@@ -1,6 +1,6 @@
 # Storitve in stroški predstavitve KPV
 
-Stanje: 28. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Spletna stran ostaja predstavitev z vzorčnimi operativnimi podatki, brez pošiljanja e-pošte in brez plačil.
+Stanje: 29. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Spletna stran ostaja predstavitev z vzorčnimi operativnimi podatki. Obrazci pošiljajo obvestila skrbniku predstavitve prek Resend; plačila so izključena.
 
 | Storitev                               | Namen                                                      | Stanje                                                       |
 | -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
@@ -8,7 +8,7 @@ Stanje: 28. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Sple
 | Cloudflare D1                          | Shranjevanje vseh petih vrst obrazcev                      | Že povezano; EU, baza kpv-portal                             |
 | Cloudflare R2 Standard                 | Zasebne fotografije prijav                                 | Že povezano; bucket kpv-portal-photos                        |
 | Cloudflare Turnstile Managed           | Zaščita obrazcev pred boti                                 | Nameščeno; tiho preverjanje ali potrditveno polje po potrebi |
-| Pošiljanje e-pošte                     | Kontaktna obvestila, potrditve in obvestila gospodinjstvom | Še ni nastavljeno                                            |
+| Resend                                | Obvestilo skrbniku o oddaji katerega koli obrazca           | Integrirano z Workerjem in zasebno čakalno vrsto D1           |
 
 ## Brezplačne omejitve
 
@@ -19,17 +19,27 @@ Stanje: 28. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Sple
 
 Za običajno majhno testno uporabo niso potrebne nadgradnje. Spremljajte skupno porabo računa, predvsem R2. Rešitve ne predstavljamo kot neomejeno brezplačne shrambe. Posamezna fotografija ima omejitev 5 MB in ni javno dostopna.
 
-## Kaj potrebujete za e-pošto
+## Nastavitev e-pošte Resend
 
-Za sedanjo predstavitev nič: obrazci se shranjujejo in ob oddaji jasno povedo, da e-pošta ni poslana.
+Javna predstavitev po uspešni oddaji najprej shrani zapis in obvestilo v D1. Worker obvestilo pošlje skrbniku na `tomincjakob@gmail.com` s pošiljateljem `KPV predstavitev <obvestila@kpv.jakobtominc.com>`. Odgovor na prejeto obvestilo je naslovljen na e-pošto, vneseno v obrazec. Podjetju KPV se sporočila ne posredujejo. Vsaka oddaja ustvari eno obvestilo; obrazci uporabnikom ne pošiljajo samodejnih potrdil. Fotografija prijave se priloži e-pošti iz zasebne shrambe R2, brez javne povezave.
 
-Za dejanska sporočila in obvestila poljubnim naročnikom priporočamo **Resend Free** z obstoječim Workerjem. Ob preverjanju je brezplačni paket omogočal 3.000 e-poštnih sporočil na mesec, največ 100 na dan. Potrebni so račun, API-ključ, preverjena pošiljateljska domena (lahko poddomena jakobtominc.com) in izbrani prejemniki po področjih. Ključ mora ostati v skrivnostih Workerja. Nato je treba dodati dostavo, ponovne poskuse, potrjevanje naročnine in odjavo. [Cene](https://resend.com/pricing), [preverjanje domene](https://resend.com/docs/dashboard/domains/introduction).
+Nastavitve Workerja:
+
+- Skrivnost `RESEND_API_KEY`: ključ se vnese v Cloudflare Worker → Settings → Variables and Secrets oziroma prek `wrangler secret put`. Ne sodi v Git, odjemalsko kodo ali javne nastavitve API.
+- Spremenljivka `EMAIL_ENABLED`: `"true"` vklopi pošiljanje, `"false"` ga izklopi.
+- Spremenljivka `EMAIL_FROM`: pošiljatelj na domeni, preverjeni pri Resend.
+- Spremenljivka `EMAIL_TO`: izbrani predal skrbnika predstavitve.
+- Shema D1 vključuje trajno čakalno vrsto e-poštnih obvestil; ob selitvi uporabite posodobljeno `schema.sql`.
+
+Občasne napake pri dostavi ne izbrišejo oddaje. Ponovne poskuse izvaja Worker s sprožilcem Cron vsakih pet minut; ponavljanje je omejeno na največ 20 ur. Enolični ključ Resend za vsako obvestilo preprečuje podvojeno pošiljanje pri ponovnem poskusu. Potrdilo vmesnika pove, da je obvestilo v čakalni vrsti, ne zagotavlja dostave v predal. Trajne napake in izčrpane poskuse preverite v zasebni čakalni vrsti ter v Resend.
+
+Lokalni Node strežnik in samodejni testi e-pošte ne pošiljajo. `/api/health` sporoči `email: "resend"`, če je javno pošiljanje nastavljeno, sicer `"not-configured"`; `/api/config` razkrije samo, ali je vključeno. Ključ se prek API ne razkriva.
+
+Za preizkus ostane paket Resend brez nadgradnje. Spremljajte njegove dnevne in mesečne omejitve ter skupno porabo računa. [Cene](https://resend.com/pricing), [preverjanje domene](https://resend.com/docs/dashboard/domains/introduction).
 
 **Web3Forms ni potreben**, ker projekt že ima zaledje in zbirko podatkov. Njegov brezplačni paket ima 250 oddaj na mesec. Integracija Turnstile/reCAPTCHA in priponke so v plačljivih funkcijah; naša zaščita Turnstile deluje neposredno prek Workerja in ni vezana na Web3Forms. [Cene](https://web3forms.com/pricing).
 
-Možna alternativa samo za dostavo v upravljavčev preverjeni predal je Cloudflare Email Service: pošiljanje na preverjene ciljne naslove v računu je brezplačno. Pošiljanje poljubnim naslovom zahteva Workers Paid, zato ga za ta brezplačni preizkus nismo vklopili. [Uradne cene](https://developers.cloudflare.com/email-service/platform/pricing/).
-
-Računa pri ponudniku e-pošte nismo odprli, DNS za pošto nismo spreminjali in sporočil nismo pošiljali.
+Naročnine na obvestila za gospodinjstva še vedno shranjujejo samo preizkusne nastavitve; o oddaji je obveščen skrbnik. Za dejanska redna obvestila so potrebni uradni vir motenj, potrditev e-poštnega naslova naročnika, odjava in obravnava nedostavljenih sporočil. Vzorčnih obvestil o motnjah samodejno ne razpošiljamo.
 
 ## Kaj bo potrebno za uradno stran
 

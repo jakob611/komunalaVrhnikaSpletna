@@ -1114,9 +1114,12 @@ function Privacy() {
         <p>
           Oddane podatke in fotografije shranimo v zaledje tega prototipa.
           Obrazci niso povezani s Komunalnim podjetjem Vrhnika. Uporabite
-          izmišljene testne podatke. E-pošte ne pošiljamo, storitev ne naročamo
-          in plačil ne izvajamo. Za izbris testnega zapisa se obrnite na
-          skrbnika predstavitve in navedite referenčno številko.
+          izmišljene testne podatke. Javna predstavitev pošlje podatke obrazca
+          skrbniku portala prek storitve Resend. Samodejnih odgovorov ali
+          obvestil o motnjah uporabnikom še ne pošiljamo. Storitev ne naročamo
+          in plačil ne izvajamo. Za izbris testnega zapisa in pripadajoče
+          e-pošte se obrnite na skrbnika predstavitve ter navedite referenčno
+          številko.
         </p>
         <h2>Zunanji ponudniki</h2>
         <p>
@@ -1130,7 +1133,10 @@ function Privacy() {
           Cloudflare obdeluje tehnične podatke o brskalniku in naslov IP.
           Podjetju KPV iz te predstavitve ne pošiljamo sporočil. Vnesena vsebina
           in varnostni žeton se ne zapisujeta v javne dnevnike; žetona ne
-          hranimo med oddanimi sporočili.
+          hranimo med oddanimi sporočili. Podatke iz javnih obrazcev za dostavo
+          e-poštnega obvestila obdeluje Resend, prejemnik pa je skrbnik
+          predstavitve. Fotografije hranimo zasebno v Cloudflare R2 ter jih
+          prek Resend pošljemo skrbniku portala kot priponke k prijavi.
         </p>
         <h2>Dostopnost</h2>
         <p>

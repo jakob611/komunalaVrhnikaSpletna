@@ -1,5 +1,6 @@
 import { notices, getCollection, ljubljanaDate, addDays } from "./seed.js";
 import { BotError, verifyBot } from "./bot-protection.js";
+import { emailEnabled, outboxInsert, processEmail } from "./email.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -119,7 +120,7 @@ function storage(env) {
     async save(record) {
       const table =
         record.kind === "contact" ? "contact_submissions" : "submissions";
-      await env.DB.prepare(
+      const submission = env.DB.prepare(
         `INSERT INTO ${table} (id, kind, created_at, status, payload) VALUES (?, ?, ?, ?, ?)`,
       )
         .bind(
@@ -128,8 +129,9 @@ function storage(env) {
           record.createdAt,
           record.status,
           JSON.stringify(record.payload),
-        )
-        .run();
+        );
+      if (emailEnabled(env)) await env.DB.batch([submission, outboxInsert(env.DB, record, env)]);
+      else await submission.run();
     },
     async putPhoto(key, bytes, type) {
       if (!env.PHOTOS)
@@ -343,7 +345,7 @@ async function report(request) {
   };
 }
 
-export async function handleRequest(request, env = {}) {
+export async function handleRequest(request, env = {}, ctx) {
   const url = new URL(request.url);
   const route = url.pathname;
   if (!route.startsWith("/api/"))
@@ -364,7 +366,7 @@ export async function handleRequest(request, env = {}) {
             : env.DB
               ? "d1"
               : "unavailable",
-          email: "not-configured",
+          email: emailEnabled(env) ? "resend" : "not-configured",
           payments: "demo-only",
           botProtection: env.LOCAL_STORAGE
             ? "local-demo"
@@ -374,6 +376,7 @@ export async function handleRequest(request, env = {}) {
         });
       if (route === "/api/config")
         return json({
+          email: { enabled: emailEnabled(env) },
           turnstile: {
             enabled: !env.LOCAL_STORAGE,
             siteKey: env.LOCAL_STORAGE ? "" : env.TURNSTILE_SITE_KEY || "",
@@ -522,13 +525,17 @@ export async function handleRequest(request, env = {}) {
       if (upload) await store.deletePhoto(upload.key);
       throw error;
     }
+    const queued = emailEnabled(env);
+    if (queued && ctx?.waitUntil) ctx.waitUntil(processEmail(env, { id }));
     return json(
       {
         id,
         status: "demo-saved",
         demo: true,
-        message:
-          "Prikazna oddaja je shranjena. Podjetju KPV ni bila poslana, e-pošta ni poslana in plačilo ni izvedeno.",
+        emailStatus: queued ? "queued" : "disabled",
+        message: queued
+          ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za upravljavca predstavitvenega portala. To ni uradna oddaja podjetju KPV, rezervacija ali plačilo."
+          : "Prikazna oddaja je shranjena. E-pošta ni vključena. To ni uradna oddaja podjetju KPV, rezervacija ali plačilo.",
       },
       201,
     );
@@ -553,4 +560,7 @@ export async function handleRequest(request, env = {}) {
   }
 }
 
-export default { fetch: handleRequest };
+export default {
+  fetch: handleRequest,
+  async scheduled(_controller, env) { await processEmail(env); },
+};

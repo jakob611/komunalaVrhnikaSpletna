@@ -61,7 +61,11 @@ type Notice = {
   latitude: number;
   longitude: number;
 };
-type Receipt = { id: string; message?: string };
+type Receipt = {
+  id: string;
+  message?: string;
+  emailStatus?: "queued" | "disabled";
+};
 const categories = {
   water: "Voda in kanalizacija",
   roads: "Ceste in javne površine",
@@ -123,7 +127,7 @@ function Demo({ children }: { children?: ReactNode }) {
   );
 }
 function Consent({
-  text = "Strinjam se s shranjevanjem vnesenih podatkov za preizkus te predstavitvene storitve.",
+  text = "Strinjam se s shranjevanjem podatkov in posredovanjem skrbniku predstavitve za preizkus obrazca.",
 }: {
   text?: string;
 }) {
@@ -158,8 +162,8 @@ function Result({
         <div>
           <strong>Vaš preizkusni obrazec je shranjen.</strong>
           <p>
-            Referenca: {receipt.id}. To je predstavitveni zapis. Sporočilo ni
-            poslano izvajalcu, storitev ni naročena in plačilo ni izvedeno.
+            Referenca: {receipt.id}. {receipt.message ||
+              "Podatki so shranjeni za preizkus. Storitev ni naročena in plačilo ni izvedeno."}
           </p>
         </div>
       </div>
@@ -295,8 +299,9 @@ function SubscriptionForm() {
         <div className="eyebrow">OBVESTILA ZA MOJ DOM</div>
         <h2>Naj vas spremembe ne presenetijo.</h2>
         <p>
-          Izberite območje in teme, ki vas zanimajo. V tej različici shranimo
-          preizkusno naročilo; e-pošte še ne pošiljamo.
+          Izberite območje in teme, ki vas zanimajo. Shranimo preizkusne
+          nastavitve in o oddaji obvestimo skrbnika javne predstavitve.
+          Samodejnih obvestil o motnjah na vaš naslov še ne pošiljamo.
         </p>
       </div>
       <form
@@ -1165,8 +1170,9 @@ export function ReportPage() {
               <h2>Vaš kontakt</h2>
             </div>
             <p className="svc-step-explanation">
-              V preizkusu uporabite izmišljene podatke. Na ta naslov ne bomo
-              poslali e-pošte.
+              V preizkusu uporabite izmišljene podatke. Kontakt bo vključen v
+              obvestilo skrbniku javne predstavitve; samodejnega odgovora ne
+              pošiljamo.
             </p>
             <div className="form-grid">
               <Field label="Ime in priimek · obvezno">
@@ -2143,9 +2149,9 @@ function ContactForm() {
         po svoje.
       </p>
       <Demo>
-        Ta obrazec je preizkusni. Shranimo predstavitveni zapis, sporočila pa ne
-        pošljemo podjetju in ne pošiljamo e-pošte. Uporabite izmišljene osebne
-        podatke.
+        Ta obrazec je preizkusni. Sporočilo shranimo in v javni predstavitvi
+        pošljemo skrbniku tega portala. Uradno podjetje KPV ga ne prejme.
+        Uporabite izmišljene osebne podatke.
       </Demo>
       <form
         onSubmit={async (event) => {
@@ -2303,7 +2309,7 @@ function ContactForm() {
             />
           </Field>
         </div>
-        <Consent text="Strinjam se s shranjevanjem podatkov iz sporočila za preizkus tega obrazca." />
+        <Consent />
         <BotProtection action="contact" />
         <button
           className="button svc-contact-submit"
@@ -2312,7 +2318,7 @@ function ContactForm() {
         >
           {submission.busy
             ? "Shranjujemo sporočilo …"
-            : "Shrani preizkusno sporočilo"}
+            : "Oddaj preizkusno sporočilo"}
           <ArrowRight size={18} />
         </button>
         {submission.receipt ? (
@@ -2321,10 +2327,8 @@ function ContactForm() {
             <div>
               <strong>Preizkusno sporočilo je shranjeno.</strong>
               <p>
-                Referenca: {submission.receipt.id}. To je samo predstavitveni
-                zapis. Sporočilo ni poslano podjetju KPV; odgovora po e-pošti ne
-                boste prejeli. Za dejanski stik uporabite uradne kontakte na tej
-                strani.
+                Referenca: {submission.receipt.id}. {submission.receipt.message ||
+                  "Sporočilo je shranjeno za preizkus. Za dejanski stik s podjetjem KPV uporabite uradne kontakte na tej strani."}
               </p>
             </div>
           </div>
@@ -2522,7 +2526,8 @@ export function AboutPage() {
           portala, ne uradna spletna stran podjetja. Uradni kontakti so povzeti
           iz javnih virov. Urniki, obvestila, točke na zemljevidu, tarife in
           tržnični termini so vzorčni. Oddani obrazci se uporabljajo za preizkus
-          delovanja; e-pošta, uradna naročila in plačila niso vključeni.
+          delovanja in v javni predstavitvi pošljejo obvestilo skrbniku portala.
+          Uradna naročila, potrjeni termini in plačila niso vključeni.
         </p>
         <p>
           Naslov se lahko shrani v vaš brskalnik za hitrejši ponovni obisk.
