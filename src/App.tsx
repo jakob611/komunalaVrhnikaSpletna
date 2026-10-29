@@ -1125,6 +1125,13 @@ function Privacy() {
           Zemljevidov, Google Koledarja, uradne komunale in DEPO odprejo zunanje
           storitve z lastnimi pravili zasebnosti.
         </p>
+        <p>
+          Oddaje obrazcev varuje Cloudflare Turnstile. Za varnostno preverjanje
+          Cloudflare obdeluje tehnične podatke o brskalniku in naslov IP.
+          Podjetju KPV iz te predstavitve ne pošiljamo sporočil. Vnesena vsebina
+          in varnostni žeton se ne zapisujeta v javne dnevnike; žetona ne
+          hranimo med oddanimi sporočili.
+        </p>
         <h2>Dostopnost</h2>
         <p>
           Portal podpira upravljanje s tipkovnico, preskok na vsebino, označena

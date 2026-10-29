@@ -34,6 +34,16 @@ const checks = [
     },
   ],
   [
+    "/api/contact",
+    {
+      ...person,
+      category: "other",
+      subcategory: "",
+      subject: "Test kontaktnega obrazca",
+      message: "Predstavitveno sporočilo za preverjanje shranjevanja.",
+    },
+  ],
+  [
     "/api/market",
     {
       ...person,
@@ -50,10 +60,17 @@ for (const [route, body] of checks) {
     body: JSON.stringify(body),
   });
   const result = await response.json();
-  assert.equal(response.status, 201, JSON.stringify(result));
-  assert.equal(result.status, "demo-saved");
-  assert.ok(result.id.startsWith("KPV-"));
-  console.log(`PASS ${route} · stored demo receipt`);
+  if (health.botProtection === "turnstile") {
+    assert.equal(response.status, 403, JSON.stringify(result));
+    console.log(
+      `PASS ${route} · blocks requests without a browser verification token`,
+    );
+  } else {
+    assert.equal(response.status, 201, JSON.stringify(result));
+    assert.equal(result.status, "demo-saved");
+    assert.ok(result.id.startsWith("KPV-"));
+    console.log(`PASS ${route} · stored local demo receipt`);
+  }
 }
 const form = new FormData();
 for (const [key, value] of Object.entries(person)) form.set(key, String(value));
@@ -79,7 +96,11 @@ const report = await fetch(`${base}/api/reports`, {
   headers: { Origin: base },
   body: form,
 });
-assert.equal(report.status, 201, await report.text());
+assert.equal(
+  report.status,
+  health.botProtection === "turnstile" ? 403 : 201,
+  await report.text(),
+);
 const blocked = await fetch(`${base}/api/subscriptions`, {
   method: "POST",
   headers: {
@@ -89,6 +110,10 @@ const blocked = await fetch(`${base}/api/subscriptions`, {
   body: JSON.stringify({ ...person, topics: ["water"] }),
 });
 assert.equal(blocked.status, 403);
-console.log("PASS photo attachment · private storage");
+console.log(
+  health.botProtection === "turnstile"
+    ? "PASS photo upload requires browser verification"
+    : "PASS photo attachment · local private storage",
+);
 console.log("PASS cross-origin protection, collection and calendar");
 console.log(`Verified ${base} · ${health.storage}`);

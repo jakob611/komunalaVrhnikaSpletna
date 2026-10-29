@@ -38,6 +38,7 @@ import {
 } from "../data/waste";
 import type { CollectionPoint, WasteCategory } from "../data/waste";
 import { CalendarDialog } from "../components/CalendarDialog";
+import AnimatedDisclosure from "../components/AnimatedDisclosure";
 import "./waste.css";
 
 function Intro({
@@ -723,7 +724,7 @@ export function CollectionPage() {
             {storageMessage}
           </p>
         )}
-        {showMap && (
+        <AnimatedDisclosure open={showMap}>
           <div className="waste-picker" id="collection-location-picker">
             <p>
               Izberite točko na zemljevidu, nato pritisnite Prikaži urnik.
@@ -753,7 +754,7 @@ export function CollectionPage() {
               </p>
             )}
           </div>
-        )}
+        </AnimatedDisclosure>
       </section>
       {schedule ? (
         <section className="waste-schedule">

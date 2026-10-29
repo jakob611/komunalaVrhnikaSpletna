@@ -6,6 +6,149 @@ import path from "node:path";
 import { handleRequest, calendar } from "./worker.js";
 import { createFileStorage } from "./storage.mjs";
 import { getCollection, ljubljanaDate } from "./seed.js";
+import { verifyBot } from "./bot-protection.js";
+
+test("contact stores categorized messages and rejects incompatible subcategories", async () => {
+  const rows = [];
+  const env = { LOCAL_STORAGE: { save: async (record) => rows.push(record) } };
+  const body = {
+    ...person,
+    category: "waste",
+    subcategory: "sorting",
+    subject: "Vprašanje o ločevanju",
+    message: "Kam lahko oddam večje plastične predmete?",
+  };
+  const response = await handleRequest(post("/api/contact", body), env);
+  assert.equal(response.status, 201);
+  assert.equal(rows[0].kind, "contact");
+  assert.equal(rows[0].payload.subcategory, "sorting");
+  assert.equal(rows[0].payload.email, person.email);
+  for (const invalid of [
+    { ...body, subcategory: "invoice" },
+    { ...body, category: "other" },
+    { ...body, subject: "" },
+    { ...body, message: "kratko" },
+  ])
+    assert.equal(
+      (await handleRequest(post("/api/contact", invalid), env)).status,
+      400,
+    );
+  assert.equal(rows.length, 1);
+  assert.equal(
+    (
+      await handleRequest(
+        post("/api/contact", {
+          ...body,
+          category: "other",
+          subcategory: "",
+          subject: "Drugo vprašanje",
+        }),
+        env,
+      )
+    ).status,
+    201,
+  );
+});
+
+test("production write APIs require bot verification before saving", async () => {
+  const env = {
+    DB: { prepare: () => assert.fail("unverified record must not be saved") },
+    TURNSTILE_SECRET: "test-secret",
+    TURNSTILE_HOSTNAMES: "kpv.example",
+  };
+  const response = await handleRequest(
+    post("/api/subscriptions", { ...person, topics: ["water"] }),
+    env,
+  );
+  assert.equal(response.status, 403);
+  const reportRequest = new Request(url("/api/reports"), {
+    method: "POST",
+    headers: { Origin: "https://kpv.example" },
+    body: form(),
+  });
+  assert.equal((await handleRequest(reportRequest, env)).status, 403);
+  assert.equal(
+    (
+      await handleRequest(
+        post("/api/contact", {
+          ...person,
+          category: "other",
+          subcategory: "",
+          subject: "Vprašanje",
+          message: "To je dovolj dolgo testno sporočilo.",
+        }),
+        env,
+      )
+    ).status,
+    403,
+  );
+});
+
+test("Turnstile validates success, exact hostname, action, failures and replay", async () => {
+  const env = {
+    TURNSTILE_SECRET: "test-secret",
+    TURNSTILE_HOSTNAMES: "kpv.example",
+  };
+  const request = new Request(url("/api/contact"));
+  for (const result of [
+    { success: false, action: "contact", hostname: "kpv.example" },
+    { success: true, action: "reports", hostname: "kpv.example" },
+    { success: true, action: "contact", hostname: "localhost" },
+  ])
+    await assert.rejects(
+      verifyBot(request, env, "token", "contact", "", async () =>
+        Response.json(result),
+      ),
+      (error) => error.status === 403,
+    );
+  await assert.rejects(
+    verifyBot(request, env, "token", "contact", "", async () => {
+      throw Error("offline");
+    }),
+    (error) => error.status === 503,
+  );
+  await assert.rejects(
+    verifyBot(request, env, "token", "contact", "bot-filled-field"),
+    (error) => error.status === 400,
+  );
+  await assert.rejects(
+    verifyBot(
+      request,
+      { ...env, TURNSTILE_HOSTNAMES: "localhost" },
+      "token",
+      "contact",
+      "",
+    ),
+    (error) => error.status === 503,
+  );
+  const redeemed = new Set();
+  const siteverify = async (_url, options) => {
+    const token = options.body.get("response");
+    const success = !redeemed.has(token);
+    redeemed.add(token);
+    assert.equal(options.body.get("secret"), "test-secret");
+    return Response.json({
+      success,
+      action: "contact",
+      hostname: "kpv.example",
+    });
+  };
+  await verifyBot(request, env, "single-use", "contact", "", siteverify);
+  await assert.rejects(
+    verifyBot(request, env, "single-use", "contact", "", siteverify),
+    (error) => error.status === 403,
+  );
+});
+
+test("public bot configuration never exposes a secret", async () => {
+  const response = await handleRequest(new Request(url("/api/config")), {
+    TURNSTILE_SITE_KEY: "public-key",
+    TURNSTILE_SECRET: "never-public",
+  });
+  const body = await response.text();
+  assert.ok(body.includes("public-key"));
+  assert.ok(!body.includes("never-public"));
+});
 
 test("selected calendar event exports one occurrence without recurrence", async () => {
   const schedule = getCollection(person.address);

@@ -46,6 +46,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import BotProtection, { resetProtection } from "../components/BotProtection";
+import AnimatedDisclosure from "../components/AnimatedDisclosure";
 import "./services.css";
 
 type Notice = {
@@ -176,9 +178,26 @@ function useSubmission() {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [error, setError] = useState("");
   async function submit(endpoint: string, payload: object | FormData) {
-    setBusy(true);
     setError("");
     setReceipt(null);
+    const action = endpoint.replace("/api/", "");
+    const surface = document.querySelector<HTMLElement>(
+      `[data-bot-action="${action}"]`,
+    );
+    const token =
+      payload instanceof FormData
+        ? payload.get("cf-turnstile-response")
+        : (payload as Record<string, unknown>)["cf-turnstile-response"];
+    if (
+      surface?.dataset.botMode === "protected" &&
+      (typeof token !== "string" || !token)
+    ) {
+      setError(
+        "Počakajte na varnostno preverjanje. Če se pokaže potrditveno polje, ga označite, nato znova oddajte obrazec.",
+      );
+      return false;
+    }
+    setBusy(true);
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 20000);
     try {
@@ -223,6 +242,7 @@ function useSubmission() {
     } finally {
       window.clearTimeout(timeout);
       setBusy(false);
+      resetProtection(action);
     }
   }
   return { busy, receipt, error, submit };
@@ -352,6 +372,7 @@ function SubscriptionForm() {
         </fieldset>
         {!topics.length && <p className="svc-error">Izberite vsaj eno temo.</p>}
         <Consent />
+        <BotProtection action="subscriptions" />
         <button className="button" disabled={submission.busy || !topics.length}>
           {submission.busy ? "Shranjujemo …" : "Shrani preizkusno naročilo"}
           <ArrowRight size={17} />
@@ -974,7 +995,7 @@ export function ReportPage() {
                   </button>
                 </div>
               )}
-              {mapOpen && (
+              <AnimatedDisclosure open={mapOpen}>
                 <div id="report-map" className="svc-report-map-picker">
                   <div className="svc-map-picker-heading">
                     <strong>Izberite mesto težave</strong>
@@ -1054,7 +1075,7 @@ export function ReportPage() {
                     lahko prijavo oddate samo z opisom.
                   </p>
                 </div>
-              )}
+              </AnimatedDisclosure>
             </div>
           </section>
           <section id="fotografija" className="svc-report-step">
@@ -1175,6 +1196,7 @@ export function ReportPage() {
                 samo že potrjena točka.
               </p>
             )}
+            <BotProtection action="reports" />
             <button
               className="button svc-report-submit"
               disabled={submission.busy || !!photoError}
@@ -1477,6 +1499,7 @@ export function ServicesPage() {
               </Field>
             </div>
             <Consent />
+            <BotProtection action="requests" />
             <button className="button" disabled={submission.busy}>
               {submission.busy
                 ? "Shranjujemo …"
@@ -1656,6 +1679,7 @@ export function MarketPage() {
               </Field>
             </div>
             <Consent />
+            <BotProtection action="market" />
             <button className="button" disabled={submission.busy}>
               {submission.busy ? "Shranjujemo …" : "Oddaj preizkusno prijavo"}
               <ArrowRight size={17} />
@@ -1945,6 +1969,372 @@ export function DepoPage() {
     </>
   );
 }
+const contactAreas = [
+  {
+    value: "water",
+    label: "Voda in kanalizacija",
+    topics: [
+      { value: "supply", label: "Oskrba s pitno vodo" },
+      { value: "septic", label: "Greznica ali mala čistilna naprava" },
+      { value: "connection", label: "Priključek in druga vprašanja" },
+    ],
+  },
+  {
+    value: "waste",
+    label: "Odpadki in ločevanje",
+    topics: [
+      { value: "collection", label: "Odvoz odpadkov in urnik" },
+      { value: "sorting", label: "Ločevanje in zbirna mesta" },
+      { value: "bulky", label: "Kosovni odpadki" },
+    ],
+  },
+  {
+    value: "roads",
+    label: "Ceste in javni prostor",
+    topics: [
+      { value: "road", label: "Cesta ali pločnik" },
+      { value: "lighting", label: "Javna razsvetljava" },
+      { value: "public", label: "Druge javne površine" },
+    ],
+  },
+  {
+    value: "billing",
+    label: "Računi in obračun",
+    topics: [
+      { value: "invoice", label: "Vprašanje o računu" },
+      { value: "meter", label: "Vodomer in poraba" },
+      { value: "payment", label: "Plačilo ali e-račun" },
+    ],
+  },
+  {
+    value: "market",
+    label: "Tržnica",
+    topics: [
+      { value: "booking", label: "Prijava prodajnega mesta" },
+      { value: "conditions", label: "Pogoji in druga vprašanja" },
+    ],
+  },
+  {
+    value: "depo",
+    label: "DEPO in ponovna uporaba",
+    topics: [
+      { value: "donation", label: "Oddaja uporabnih predmetov" },
+      { value: "purchase", label: "Ponudba in nakup predmetov" },
+    ],
+  },
+  { value: "other", label: "Drugo vprašanje", topics: [] },
+];
+const contactSuggestions: Record<
+  string,
+  { text: string; label: string; to: string }
+> = {
+  "water:supply": {
+    text: "Iščete informacije o trenutni motnji oskrbe?",
+    label: "Preverite obvestila",
+    to: "/obvestila?category=water",
+  },
+  "water:septic": {
+    text: "Želite oddati povpraševanje za praznjenje?",
+    label: "Odprite obrazec za storitev",
+    to: "/storitve?service=septic",
+  },
+  "water:connection": {
+    text: "Za načrtovan poseg lahko oddate tudi podrobnejše povpraševanje.",
+    label: "Vodovodne storitve",
+    to: "/storitve?service=water",
+  },
+  "waste:collection": {
+    text: "Datum odvoza lahko preverite tudi sami.",
+    label: "Poiščite urnik",
+    to: "/odpadki/urnik",
+  },
+  "waste:sorting": {
+    text: "Za vsakdanje predmete vam pomaga čarovnik za ločevanje.",
+    label: "Kam z odpadkom?",
+    to: "/odpadki/kam-z-odpadki",
+  },
+  "waste:bulky": {
+    text: "Za seznam predmetov in predlog termina uporabite namenski obrazec.",
+    label: "Povpraševanje za kosovni odvoz",
+    to: "/storitve?service=bulky",
+  },
+  "roads:road": {
+    text: "Prijavljate poškodbo ceste? V namenskem obrazcu lahko dodate fotografijo in lokacijo.",
+    label: "Prijavite poškodbo",
+    to: "/prijavi?category=roads",
+  },
+  "roads:lighting": {
+    text: "Za nedelujočo svetilko je na voljo prijava s točno lokacijo.",
+    label: "Prijavite težavo s svetilko",
+    to: "/prijavi?category=lighting",
+  },
+  "roads:public": {
+    text: "Poškodbo ali drugo težavo v javnem prostoru lahko opišete s fotografijo in lokacijo.",
+    label: "Prijavite težavo",
+    to: "/prijavi?category=other",
+  },
+  "market:booking": {
+    text: "Za preizkus prijave izberite termin in vrsto prodajnega mesta.",
+    label: "Prijava na tržnico",
+    to: "/trznica",
+  },
+  "depo:donation": {
+    text: "Še uporabnim predmetom lahko podarite novo priložnost.",
+    label: "Spoznajte DEPO",
+    to: "/depo",
+  },
+  "depo:purchase": {
+    text: "Aktualna ponudba je povezana na predstavitveni strani DEPO.",
+    label: "Odprite DEPO",
+    to: "/depo",
+  },
+};
+function ContactForm() {
+  const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const submission = useSubmission();
+  const receiptElement = useRef<HTMLDivElement>(null);
+  const area = contactAreas.find((item) => item.value === category);
+  const suggestion = contactSuggestions[`${category}:${subcategory}`];
+  useEffect(() => {
+    if (submission.receipt)
+      receiptElement.current?.scrollIntoView({
+        block: "nearest",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+  }, [submission.receipt]);
+  function chooseCategory(value: string) {
+    const selected = contactAreas.find((item) => item.value === value);
+    setCategory(value);
+    setSubcategory("");
+    setSubject(
+      value === "other" || !selected ? "" : `${selected.label} – vprašanje`,
+    );
+  }
+  function chooseSubcategory(value: string) {
+    setSubcategory(value);
+    const topic = area?.topics.find((item) => item.value === value);
+    if (area)
+      setSubject(
+        topic ? `${area.label} – ${topic.label}` : `${area.label} – vprašanje`,
+      );
+  }
+  return (
+    <section
+      className="panel svc-contact-form"
+      id="kontakt-obrazec"
+      aria-labelledby="contact-form-title"
+    >
+      <div className="svc-contact-form-heading">
+        <span className="svc-icon">
+          <Mail size={25} />
+        </span>
+        <div>
+          <span className="eyebrow">SPOROČILO ZA PRAVO PODROČJE</span>
+          <h2 id="contact-form-title">Pišite nam.</h2>
+        </div>
+      </div>
+      <p>
+        Izberite področje in opišite vprašanje. Predlagano zadevo lahko uredite
+        po svoje.
+      </p>
+      <Demo>
+        Ta obrazec je preizkusni. Shranimo predstavitveni zapis, sporočila pa ne
+        pošljemo podjetju in ne pošiljamo e-pošte. Uporabite izmišljene osebne
+        podatke.
+      </Demo>
+      <form
+        onSubmit={async (event) => {
+          const values = Values(event);
+          await submission.submit("/api/contact", {
+            ...values,
+            category,
+            subcategory: category === "other" ? "" : subcategory,
+            subject,
+            message,
+            consent: true,
+          });
+        }}
+      >
+        <div className="svc-contact-form-step">
+          <span>01</span>
+          <h3>O čem nam pišete?</h3>
+        </div>
+        <div className="form-grid">
+          <Field label="Področje · obvezno">
+            <select
+              name="category"
+              required
+              value={category}
+              onChange={(event) => chooseCategory(event.target.value)}
+            >
+              <option value="" disabled>
+                Izberite področje
+              </option>
+              {contactAreas.map((item) => (
+                <option value={item.value} key={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {area && category !== "other" && (
+            <div className="svc-contact-subcategory">
+              <Field label="Kaj vas zanima? · obvezno">
+                <select
+                  name="subcategory"
+                  required
+                  value={subcategory}
+                  onChange={(event) => chooseSubcategory(event.target.value)}
+                >
+                  <option value="" disabled>
+                    Izberite temo
+                  </option>
+                  {area.topics.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          )}
+        </div>
+        {category === "other" && (
+          <p className="svc-contact-topic-help">
+            Teme ni na seznamu? V zadevo vpišite kratek naslov svojega
+            vprašanja.
+          </p>
+        )}
+        {suggestion && (
+          <div className="svc-contact-suggestion">
+            <CircleAlert size={18} />
+            <div>
+              <p>{suggestion.text}</p>
+              <Link to={suggestion.to}>
+                {suggestion.label}
+                <ArrowRight size={16} />
+              </Link>
+              <span>
+                Za splošno vprašanje lahko nadaljujete s tem sporočilom.
+              </span>
+            </div>
+          </div>
+        )}
+        <div className="svc-contact-subject">
+          <Field label="Zadeva sporočila · obvezno">
+            <input
+              name="subject"
+              required
+              minLength={3}
+              maxLength={200}
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              placeholder={
+                category === "other"
+                  ? "Npr. vprašanje o urejanju javne površine"
+                  : "Kratek naslov vašega vprašanja"
+              }
+              aria-describedby="contact-subject-help"
+            />
+          </Field>
+          <p id="contact-subject-help" className="svc-small">
+            Zadeva naj v enem stavku povzame, pri čem potrebujete pomoč.
+          </p>
+        </div>
+        <Field label="Vaše sporočilo · obvezno">
+          <textarea
+            name="message"
+            required
+            minLength={10}
+            maxLength={4000}
+            rows={6}
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            aria-describedby="contact-message-help"
+            placeholder="Opišite vprašanje in dodajte podatke, ki pomagajo razumeti primer. V preizkusu uporabite izmišljene podatke …"
+          />
+        </Field>
+        <div className="svc-contact-message-help">
+          <span id="contact-message-help">
+            Najmanj 10 znakov. Osebnih dokumentov in podatkov o plačilni kartici
+            ne vključujte.
+          </span>
+          <span aria-label={`Vnesenih ${message.length} od 4000 znakov`}>
+            {message.length.toLocaleString("sl-SI")} / 4.000
+          </span>
+        </div>
+        <div className="svc-contact-form-step">
+          <span>02</span>
+          <h3>Kako vas lahko dosežemo?</h3>
+        </div>
+        <div className="form-grid">
+          <Field label="Ime in priimek · obvezno">
+            <input
+              name="name"
+              required
+              minLength={2}
+              maxLength={120}
+              autoComplete="name"
+              placeholder="Testna oseba"
+            />
+          </Field>
+          <Field label="E-poštni naslov · obvezno">
+            <input
+              name="email"
+              required
+              type="email"
+              maxLength={254}
+              autoComplete="email"
+              placeholder="test@primer.si"
+            />
+          </Field>
+          <Field label="Telefon · neobvezno" wide>
+            <input
+              name="phone"
+              type="tel"
+              maxLength={40}
+              autoComplete="tel"
+              placeholder="040 000 000"
+            />
+          </Field>
+        </div>
+        <Consent text="Strinjam se s shranjevanjem podatkov iz sporočila za preizkus tega obrazca." />
+        <BotProtection action="contact" />
+        <button
+          className="button svc-contact-submit"
+          disabled={submission.busy}
+          aria-busy={submission.busy}
+        >
+          {submission.busy
+            ? "Shranjujemo sporočilo …"
+            : "Shrani preizkusno sporočilo"}
+          <ArrowRight size={18} />
+        </button>
+        {submission.receipt ? (
+          <div className="svc-success" role="status" ref={receiptElement}>
+            <CheckCircle2 size={23} />
+            <div>
+              <strong>Preizkusno sporočilo je shranjeno.</strong>
+              <p>
+                Referenca: {submission.receipt.id}. To je samo predstavitveni
+                zapis. Sporočilo ni poslano podjetju KPV; odgovora po e-pošti ne
+                boste prejeli. Za dejanski stik uporabite uradne kontakte na tej
+                strani.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <Result receipt={null} error={submission.error} />
+        )}
+      </form>
+    </section>
+  );
+}
 export function ContactPage() {
   return (
     <>
@@ -1952,51 +2342,65 @@ export function ContactPage() {
         eyebrow="TUKAJ SMO ZA VAS"
         title="Pravi odgovor se začne s stikom."
       >
-        Poiščite pravi kanal za svoje vprašanje. Za dejanska naročila in nujne
-        težave uporabite uradne kontakte podjetja.
+        Za vprašanje izberite področje v obrazcu ali uporabite uradne kontakte
+        podjetja. Predstavitveni obrazec omogoča preizkus shranjevanja
+        sporočila.
       </Intro>
-      <div className="svc-contact-grid">
-        <section className="panel svc-contact-main">
-          <div className="svc-icon">
-            <Phone size={25} />
-          </div>
-          <h2>Komunalno podjetje Vrhnika</h2>
-          <p>Javno podjetje Komunalno podjetje Vrhnika, d. o. o.</p>
-          <a href="tel:+38617502960" className="svc-contact-number">
-            01 750 29 60
-          </a>
-          <a href="mailto:info@kpv.si" className="svc-inline-link">
-            info@kpv.si
-            <Mail size={18} />
-          </a>
-          <div className="svc-address">
-            <MapPin size={21} />
-            <span>
-              Pot na Tojnice 40
-              <br />
-              1360 Vrhnika
-            </span>
-          </div>
-          <a
-            className="button secondary"
-            href="https://www.google.com/maps/search/?api=1&query=Komunalno+podjetje+Vrhnika+Pot+na+Tojnice+40"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Kako do nas
-            <ExternalLink size={16} />
-          </a>
-        </section>
-        <div>
-          <section className="svc-contact-urgent">
-            <div className="eyebrow">DEŽURNA SLUŽBA</div>
-            <h2>Potrebujete nujno pomoč?</h2>
-            <p>
-              Za nujne komunalne težave uporabite uradno dežurno številko KPV.
-            </p>
-            <a href="tel:+38641364681">
-              <Phone size={22} />
-              041 364 681
+      <div className="svc-contact-quick-paths">
+        <a href="#kontakt-obrazec">
+          <Mail size={18} />
+          Pišite nam
+          <ArrowRight size={16} />
+        </a>
+        <a href="#uradni-kontakti">
+          <Phone size={18} />
+          Uradni kontakti
+          <ArrowRight size={16} />
+        </a>
+      </div>
+      <div className="svc-contact-emergency-note">
+        <Phone size={20} />
+        <span>
+          <strong>Nujna komunalna težava?</strong> Za nujno pomoč uporabite
+          dežurno službo, ne predstavitvenega obrazca.
+        </span>
+        <a href="tel:+38641364681">
+          041 364 681
+          <ArrowRight size={17} />
+        </a>
+      </div>
+      <div className="svc-contact-layout">
+        <ContactForm />
+        <aside className="svc-contact-sidebar" id="uradni-kontakti">
+          <section className="panel svc-contact-main">
+            <div className="svc-icon">
+              <Phone size={25} />
+            </div>
+            <h2>Komunalno podjetje Vrhnika</h2>
+            <p>Javno podjetje Komunalno podjetje Vrhnika, d. o. o.</p>
+            <a href="tel:+38617502960" className="svc-contact-number">
+              01 750 29 60
+            </a>
+            <a href="mailto:info@kpv.si" className="svc-inline-link">
+              info@kpv.si
+              <Mail size={18} />
+            </a>
+            <div className="svc-address">
+              <MapPin size={21} />
+              <span>
+                Pot na Tojnice 40
+                <br />
+                1360 Vrhnika
+              </span>
+            </div>
+            <a
+              className="button secondary"
+              href="https://www.google.com/maps/search/?api=1&query=Komunalno+podjetje+Vrhnika+Pot+na+Tojnice+40"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Kako do nas
+              <ExternalLink size={16} />
             </a>
           </section>
           <section className="panel svc-contact-small">
@@ -2005,7 +2409,9 @@ export function ContactPage() {
               <Wrench size={20} />
               <span>
                 Prijava težave
-                <small>Preizkusni obrazec s fotografijo in lokacijo</small>
+                <small>
+                  Poškodba ceste, svetilka ali zabojnik; fotografija in lokacija
+                </small>
               </span>
               <ChevronRight size={18} />
             </Link>
@@ -2013,7 +2419,7 @@ export function ContactPage() {
               <FileText size={20} />
               <span>
                 Povpraševanje za storitev
-                <small>Odvoz kosovnih odpadkov, greznice in drugo</small>
+                <small>Kosovni odvoz, praznjenje greznice in drugo</small>
               </span>
               <ChevronRight size={18} />
             </Link>
@@ -2021,12 +2427,21 @@ export function ContactPage() {
               <Bell size={20} />
               <span>
                 Obvestila za moj dom
-                <small>Preizkus prijave na lokalne informacije</small>
+                <small>Preizkus naročila na lokalne informacije</small>
               </span>
               <ChevronRight size={18} />
             </Link>
           </section>
-        </div>
+          <div className="svc-contact-real-help">
+            <CheckCircle2 size={20} />
+            <h3>Za dejanski odgovor</h3>
+            <p>
+              Pokličite uradno številko ali napišite e-pošto na{" "}
+              <a href="mailto:info@kpv.si">info@kpv.si</a>. Predstavitveni
+              obrazec še ni povezan z obravnavo sporočil pri podjetju.
+            </p>
+          </div>
+        </aside>
       </div>
       <div className="svc-contact-foot">
         <Source>Vir kontaktov: uradna spletna stran KPV</Source>

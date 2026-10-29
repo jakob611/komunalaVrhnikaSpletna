@@ -1,0 +1,58 @@
+.bot-protection {
+  margin: 15px 0 20px;
+  min-width: 0;
+  max-width: 100%;
+}
+.bot-protection > div:empty {
+  display: none;
+}
+.bot-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #6b7c63;
+  font-size: 11px;
+  line-height: 1.65;
+  margin-top: 8px;
+}
+.bot-status > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.bot-status.error {
+  color: #985843;
+  flex-wrap: wrap;
+}
+.bot-status button {
+  border: 1px solid #d7dfce;
+  background: #f8faf3;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  min-height: 44px;
+}
+.bot-honeypot {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bot-status.ready {
+  font-size: 10px;
+}
+.bot-status.local {
+  font-size: 10px;
+}
+@media (max-width: 680px) {
+  .bot-status {
+    font-size: 11px;
+  }
+  .bot-status.ready,
+  .bot-status.local {
+    font-size: 10px;
+  }
+}

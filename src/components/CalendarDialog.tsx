@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import "./calendar.css";
+import AnimatedDisclosure from "./AnimatedDisclosure";
 
 export type CalendarCollectionEvent = {
   id: string;
@@ -211,7 +212,7 @@ export function CalendarDialog({
                 {repeat && <Check size={17} />}
               </label>
             </div>
-            {repeat && (
+            <AnimatedDisclosure open={repeat}>
               <div className="calendar-recurrence">
                 <div className="calendar-rule-inputs">
                   <label className="field">
@@ -272,7 +273,7 @@ export function CalendarDialog({
                   ni uradni razpored; prazniki in spremembe niso upoštevani.
                 </small>
               </div>
-            )}
+            </AnimatedDisclosure>
           </fieldset>
           <fieldset className="calendar-fieldset">
             <legend>

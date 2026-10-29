@@ -6,6 +6,16 @@ Slovenski demonstracijski portal za pregled komunalnih storitev. React in TypeSc
 
 Portal vsebuje 18 poti: začetno stran, tri področna izhodišča, zemljevid odpadkov, čarovnik, urnik, obvestila, ceste, prijavo napake, storitve, tržnico, kalkulator, DEPO, kontakte, podjetje, Moj dom in zasebnost. Podatki o naslovu v Moj dom ostanejo v brskalniku.
 
+## Kontaktni obrazec in zaščita
+
+Kontakt ima sedem področij in odvisne podkategorije, uredljivo zadevo, sporočilo, ime, e-pošto, neobvezen telefon in privolitev. `/api/contact` sporočilo dejansko shrani v zasebno tabelo D1 `contact_submissions`; e-pošte še ne pošilja. Ostali obrazci ostanejo v tabeli `submissions`.
+
+Vseh pet oddaj varuje Cloudflare Turnstile v načinu Managed z `appearance: interaction-only`. Običajno poteka samodejno, potrditveno polje pa se pokaže, če je potrebno. Zaledje preveri uspeh, točno gostiteljsko ime in dejanje ter preverjanje opravi pred zapisom v D1 ali R2. Žetoni so enkratni in se po poskusu osvežijo. Dodano je tudi skrito polje proti neželenim oddajam. Brez povezane zaščite javno zaledje oddajo zavrne. Lokalni Node strežnik na zanki `127.0.0.1` je jasno označen razvojni preizkus brez zunanjega preverjanja.
+
+Javni ključ in gostitelj sta v `wrangler.jsonc`; `TURNSTILE_SECRET` je shranjen samo kot skrivnost obstoječega Workerja v Cloudflare. `/api/config` vrne samo javne nastavitve. Ob selitvi skrivnost nastavite v nadzorni plošči Worker → Settings → Variables and Secrets in omejite `TURNSTILE_HOSTNAMES` na dejanske javne gostitelje. Produkcijski seznam ne sme vsebovati lokalnih ali testnih imen.
+
+Pregled potrebnih storitev, brezplačnih omejitev in naslednjih korakov: [SERVICES.md](docs/SERVICES.md).
+
 ## Telefon, koledar in prijave
 
 Vmesnik je preverjen tudi pri širini 320 px. Navigacija, obrazci in zemljevidi ostanejo znotraj zaslona; polja imajo na telefonu velikost pisave 16 px, da vnos ne sproži samodejne povečave v brskalniku iOS. Prehodi menija, koledarskega lista in prikazovanje razdelkov med drsenjem upoštevajo nastavitev zmanjšanega gibanja.
@@ -91,7 +101,7 @@ Custom Domain `kpv.jakobtominc.com` je povezana prek nastavitve `routes` v `wran
 npm run test:smoke -- https://kpv.jakobtominc.com
 ```
 
-Ukaz preveri koledar, urnik, zaščito pred oddajami z drugega izvora in vse štiri obrazce, vključno s fotografijo. Ustvari jasno označene testne zapise z naslovom `portal-test@example.com`; ne pošilja e-pošte in ne bremeni plačil. Samodejna preverjanja v GitHub Actions izvajajo gradnjo in enajst testov API ob spremembah kode, vključno s ponavljanjem in zavračanjem neveljavnih pravil koledarja.
+Ukaz preveri koledar, urnik, zaščito pred oddajami z drugega izvora in vseh pet obrazcev. Na javni strani preveri, da oddaje brez žetona niso sprejete; CAPTCHA ne obide. Lokalno ustvari jasno označene testne zapise z naslovom `portal-test@example.com`, vključno s fotografijo. Ne pošilja e-pošte in ne bremeni plačil. Samodejna preverjanja v GitHub Actions izvajajo gradnjo in petnajst testov API, vključno s kontaktom, preverjanjem dejanja in gostitelja Turnstile, ponovitvijo žetona ter pravili koledarja. Pravo uspešno zaščiteno oddajo preverite v brskalniku.
 
 ## API in zasebnost
 
@@ -99,7 +109,7 @@ Javne bralne poti: `GET /api/health`, `/api/notices`, `/api/collection?address=V
 
 Oddaje JSON: `POST /api/subscriptions`, `/api/requests`, `/api/market`. Prijava infrastrukture uporablja `POST /api/reports` in `multipart/form-data`. Fotografije JPG, PNG ali WebP imajo omejitev 5 MB; preverjata se MIME in podpis datoteke. JSON ima omejitev 32 KB. Oddaje zahtevajo privolitev; dovoljena so samo pričakovana polja in vrednosti. Zapis vsebuje le validirane podatke. Navzkrižne oddaje iz drugega spletnega izvora so zavrnjene. Koledar ubeži in prelomi vrednosti po pravilih ICS.
 
-API ne objavlja seznama prijav, osebnih podatkov ali fotografij. Za pregled lokalnih oddaj uporabite zasebne datoteke, v Cloudflare pa nadzorovani dostop do D1 in R2. Pred dejansko javno uporabo dodajte upravljanje uporabnikov in pooblastil za interno obravnavo, preverjanje e-pošte, zaščito pred zlorabami (npr. Turnstile in omejitve hitrosti), pravila hrambe/brisanja in dejanski operativni podatkovni vir. Integracija e-pošte in plačil je namenoma prihodnji korak.
+API ne objavlja seznama prijav, osebnih podatkov ali fotografij. Za pregled lokalnih oddaj uporabite zasebne datoteke, v Cloudflare pa nadzorovani dostop do D1 in R2. Pred uradno uporabo dodajte upravljanje uporabnikov in pooblastil za interno obravnavo, preverjanje e-pošte, omejitve hitrosti in hrambe/brisanja ter dejanski operativni podatkovni vir. Turnstile je že aktiven; integracija e-pošte in plačil je prihodnji korak.
 
 ## Reference
 

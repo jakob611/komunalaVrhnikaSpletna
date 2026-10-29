@@ -21,5 +21,9 @@
   ],
   "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kpv-portal-photos" }],
   "routes": [{ "pattern": "kpv.jakobtominc.com", "custom_domain": true }],
-  "vars": { "DEMO_MODE": "true" },
+  "vars": {
+    "DEMO_MODE": "true",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFqL1NMuXraOCXUy",
+    "TURNSTILE_HOSTNAMES": "kpv.jakobtominc.com",
+  },
 }

@@ -1,4 +1,5 @@
 import { notices, getCollection, ljubljanaDate, addDays } from "./seed.js";
+import { BotError, verifyBot } from "./bot-protection.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -116,8 +117,10 @@ function storage(env) {
     );
   return {
     async save(record) {
+      const table =
+        record.kind === "contact" ? "contact_submissions" : "submissions";
       await env.DB.prepare(
-        "INSERT INTO submissions (id, kind, created_at, status, payload) VALUES (?, ?, ?, ?, ?)",
+        `INSERT INTO ${table} (id, kind, created_at, status, payload) VALUES (?, ?, ?, ?, ?)`,
       )
         .bind(
           record.id,
@@ -332,7 +335,12 @@ async function report(request) {
     };
     payload.photoKey = upload.key;
   }
-  return { payload, upload };
+  return {
+    payload,
+    upload,
+    token: data["cf-turnstile-response"],
+    honeypot: data.website,
+  };
 }
 
 export async function handleRequest(request, env = {}) {
@@ -358,6 +366,19 @@ export async function handleRequest(request, env = {}) {
               : "unavailable",
           email: "not-configured",
           payments: "demo-only",
+          botProtection: env.LOCAL_STORAGE
+            ? "local-demo"
+            : env.TURNSTILE_SECRET && env.TURNSTILE_SITE_KEY
+              ? "turnstile"
+              : "not-configured",
+        });
+      if (route === "/api/config")
+        return json({
+          turnstile: {
+            enabled: !env.LOCAL_STORAGE,
+            siteKey: env.LOCAL_STORAGE ? "" : env.TURNSTILE_SITE_KEY || "",
+            mode: env.LOCAL_STORAGE ? "local-demo" : "managed",
+          },
         });
       if (route === "/api/notices") return json({ notices, demo: true });
       if (route === "/api/collection" || route === "/api/calendar") {
@@ -403,17 +424,49 @@ export async function handleRequest(request, env = {}) {
         "/api/requests",
         "/api/market",
         "/api/reports",
+        "/api/contact",
       ].includes(route)
     )
       throw new ApiError(404, "Ta naslov API ne obstaja.");
     const store = storage(env);
     let payload;
     let upload = null;
-    if (route === "/api/reports") ({ payload, upload } = await report(request));
+    let token;
+    let honeypot;
+    if (route === "/api/reports")
+      ({ payload, upload, token, honeypot } = await report(request));
     else {
       const data = await readJson(request);
+      token = data["cf-turnstile-response"];
+      honeypot = data.website;
       const person = contact(data);
-      if (route === "/api/subscriptions") {
+      if (route === "/api/contact") {
+        const subcategories = {
+          water: ["supply", "septic", "connection"],
+          waste: ["collection", "sorting", "bulky"],
+          roads: ["road", "lighting", "public"],
+          billing: ["invoice", "meter", "payment"],
+          market: ["booking", "conditions"],
+          depo: ["donation", "purchase"],
+          other: [],
+        };
+        const category = choice(data, "category", Object.keys(subcategories));
+        const subcategory = optional(data, "subcategory", 40);
+        if (
+          category === "other"
+            ? subcategory !== ""
+            : !subcategories[category].includes(subcategory)
+        )
+          throw new ApiError(400, "Izberite ustrezno podkategorijo vprašanja.");
+        payload = {
+          ...person,
+          category,
+          subcategory,
+          subject: field(data, "subject", 3, 180),
+          message: field(data, "message", 10, 4000),
+          phone: optional(data, "phone", 40),
+        };
+      } else if (route === "/api/subscriptions") {
         if (
           !Array.isArray(data.topics) ||
           !data.topics.length ||
@@ -453,6 +506,7 @@ export async function handleRequest(request, env = {}) {
         };
       }
     }
+    await verifyBot(request, env, token, route.slice(5), honeypot);
     const id = `KPV-${crypto.randomUUID()}`;
     const record = {
       id,
@@ -479,7 +533,7 @@ export async function handleRequest(request, env = {}) {
       201,
     );
   } catch (error) {
-    if (error instanceof ApiError)
+    if (error instanceof ApiError || error instanceof BotError)
       return json({ error: error.message, demo: true }, error.status);
     // Never log submitted personal data or request bodies.
     console.error(
