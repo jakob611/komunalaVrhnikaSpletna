@@ -80,12 +80,17 @@ export function normalizeGraveSearch(value: string) {
     .toLocaleLowerCase("sl")
     .trim();
 }
-export function findGraves(query: string, section = "all") {
+export function findGraves(
+  query: string,
+  section = "all",
+  records: Grave[] = graves,
+) {
   const words = normalizeGraveSearch(query).split(/\s+/).filter(Boolean);
-  return graves.filter(
+  return records.filter(
     (grave) =>
       (section === "all" || grave.section === section) &&
       (words.length === 0 ||
+        words.every((word) => normalizeGraveSearch(grave.id).includes(word)) ||
         grave.people.some((person) =>
           words.every((word) =>
             normalizeGraveSearch(

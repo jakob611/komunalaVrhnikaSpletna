@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { cemeteryPlan, findGraves, graves, type Grave } from "../data/cemetery";
+import { useSiteContent } from "../content/SiteContent";
 import "./cemetery.css";
 
 const dateLabel = (value: string) =>
@@ -46,15 +47,19 @@ function GraveMap({
   selected,
   activeFilter,
   onSelect,
+  plots: graves,
+  plan: cemeteryPlan,
 }: {
   matches: Grave[];
   selected: Grave | null;
   activeFilter: boolean;
   onSelect: (grave: Grave) => void;
+  plots: Grave[];
+  plan: { width: number; height: number; imageUrl: string | null };
 }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [focused, setFocused] = useState(selected?.id || graves[0].id);
+  const [focused, setFocused] = useState(selected?.id || graves[0]?.id || "");
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{
     x: number;
@@ -69,12 +74,16 @@ function GraveMap({
   const left = (cemeteryPlan.width - width) / 2;
   const top = (cemeteryPlan.height - height) / 2;
   useEffect(() => {
+    if (!graves.some((grave) => grave.id === focused))
+      setFocused(selected?.id || graves[0]?.id || "");
+  }, [graves, focused, selected?.id]);
+  useEffect(() => {
     if (!selected) return;
     setFocused(selected.id);
     if (zoom > 1)
       setPan({
-        x: clamp(selected.x + 18 - 500, -left, left),
-        y: clamp(selected.y + 16 - 380, -top, top),
+        x: clamp(selected.x + 18 - cemeteryPlan.width / 2, -left, left),
+        y: clamp(selected.y + 16 - cemeteryPlan.height / 2, -top, top),
       });
     // Keep a newly selected plot in view at the current zoom.
   }, [selected?.id]);
@@ -126,8 +135,8 @@ function GraveMap({
         ?.querySelector<SVGGElement>(`[data-grave="${candidate.id}"]`)
         ?.focus();
       setPan({
-        x: clamp(candidate.x - 500 + 18, -left, left),
-        y: clamp(candidate.y - 380 + 16, -top, top),
+        x: clamp(candidate.x - cemeteryPlan.width / 2 + 18, -left, left),
+        y: clamp(candidate.y - cemeteryPlan.height / 2 + 16, -top, top),
       });
     }
   }
@@ -167,8 +176,16 @@ function GraveMap({
     const newZoom = 2;
     setZoom(newZoom);
     setPan({
-      x: clamp(selected.x + 18 - 500, -250, 250),
-      y: clamp(selected.y + 16 - 380, -190, 190),
+      x: clamp(
+        selected.x + 18 - cemeteryPlan.width / 2,
+        -cemeteryPlan.width / 4,
+        cemeteryPlan.width / 4,
+      ),
+      y: clamp(
+        selected.y + 16 - cemeteryPlan.height / 2,
+        -cemeteryPlan.height / 4,
+        cemeteryPlan.height / 4,
+      ),
     });
   }
   return (
@@ -218,9 +235,10 @@ function GraveMap({
           ref={svg}
           viewBox={`${left + pan.x} ${top + pan.y} ${width} ${height}`}
           role="group"
-          aria-label="Interaktivni prikazni načrt s 96 grobovi. S tipko Tab vstopite, s puščicami izberete sosednji grob."
+          aria-label={`Interaktivni prikazni načrt s ${graves.length} grobovi. S tipko Tab vstopite, s puščicami izberete sosednji grob.`}
           style={{
             touchAction: zoom > 1 ? "none" : "pan-y",
+            aspectRatio: `${cemeteryPlan.width}/${cemeteryPlan.height}`,
             cursor: zoom > 1 ? "grab" : "default",
           }}
           onPointerDown={pointerDown}
@@ -262,12 +280,15 @@ function GraveMap({
           {cemeteryPlan.imageUrl ? (
             <image
               href={cemeteryPlan.imageUrl}
-              width="1000"
-              height="760"
+              width={cemeteryPlan.width}
+              height={cemeteryPlan.height}
               preserveAspectRatio="none"
             />
           ) : (
-            <g aria-hidden="true">
+            <g
+              aria-hidden="true"
+              transform={`scale(${cemeteryPlan.width / 1000} ${cemeteryPlan.height / 760})`}
+            >
               <rect width="1000" height="760" fill="#eef1e7" />
               <rect
                 x="70"
@@ -398,7 +419,7 @@ function GraveMap({
               </text>
             </g>
           )}
-          {selected && (
+          {selected && !cemeteryPlan.imageUrl && (
             <path
               className="cemetery-route"
               d={`M500 675V350H${selected.section === "A" || selected.section === "C" ? 420 : 850}V${selected.y + 37}H${selected.x + 18}V${selected.y + 20}`}
@@ -519,12 +540,15 @@ function GraveMap({
 }
 
 export default function CemeteryPage() {
+  const { cemetery } = useSiteContent();
+  const graves = cemetery.graves;
+  const sections = [...new Set(graves.map((grave) => grave.section))].sort();
   const [params, setParams] = useSearchParams();
   const query = (params.get("iskanje") || "").slice(0, 120);
-  const section = ["A", "B", "C", "D"].includes(params.get("oddelek") || "")
+  const section = sections.includes(params.get("oddelek") || "")
     ? params.get("oddelek")!
     : "all";
-  const results = findGraves(query, section);
+  const results = findGraves(query, section, graves);
   const selected =
     graves.find((grave) => grave.id === params.get("grob")) || null;
   const [limit, setLimit] = useState(8);
@@ -619,10 +643,10 @@ export default function CemeteryPage() {
       <div className="cemetery-demo">
         <Info size={19} />
         <p>
-          <strong>Predogled prihodnjega iskalnika.</strong> Vseh 96 grobov,
-          imena in datumi ter razporeditev so izmišljeni. Za preizkus vpišite
-          »Novak« ali »Kovač«. Za resnični grob uporabite uradne informacije
-          KPV.
+          <strong>Predogled prihodnjega iskalnika.</strong> Vseh {graves.length}{" "}
+          grobov, imena in datumi ter razporeditev so izmišljeni. Za preizkus
+          vpišite »Novak« ali »Kovač«. Za resnični grob uporabite uradne
+          informacije KPV.
         </p>
       </div>
       <section
@@ -636,7 +660,7 @@ export default function CemeteryPage() {
             <h2 id="cemetery-search-title">Ime je dovolj za prvi korak.</h2>
           </div>
           <span className="cemetery-search-hint">
-            <Compass size={17} /> Prikazni načrt · 4 oddelki
+            <Compass size={17} /> Prikazni načrt · {sections.length} oddelkov
           </span>
         </div>
         <label className="cemetery-search-label" htmlFor="cemetery-search">
@@ -676,7 +700,7 @@ export default function CemeteryPage() {
             role="group"
             aria-label="Oddelek pokopališča"
           >
-            {["all", "A", "B", "C", "D"].map((value) => (
+            {["all", ...sections].map((value) => (
               <button
                 type="button"
                 key={value}
@@ -703,6 +727,8 @@ export default function CemeteryPage() {
           activeFilter={Boolean(query.trim()) || section !== "all"}
           selected={selected}
           onSelect={select}
+          plots={graves}
+          plan={cemetery.plan}
         />
         <div className="cemetery-sidebar">
           <section

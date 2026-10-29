@@ -56,7 +56,15 @@ node --test server/backend.test.mjs
 - Obrazci za obvestila, naročilo storitev in prijavo na tržnico z dejanskim shranjevanjem prikaznih oddaj.
 - Informativni kalkulator, predstavitev DEPO ter kontaktne in vsebinske strani.
 
-Lokalno se oddaje hranijo v `.data/records.json`, fotografije pa zasebno v `.data/photos/`. Mapa `.data` mora biti izključena iz Gita. Shramba uporablja zaporedno obdelavo in atomsko zamenjavo datoteke za varen lokalni enoprocesni razvoj. Ponovni zagon ohrani podatke. Za več procesov uporabite D1.
+Lokalni strežnik uporablja SQLite v `.data/cms.sqlite` za vsebine, seje, oddaje in obravnavo nalogov. Fotografije prijav so v `.data/photos/`, javne uredniške slike pa ločeno v `.data/cms-media/`. Mapa `.data` je izključena iz Gita in ponovni zagon ohrani podatke. Adapter `server/storage.mjs` ostaja na voljo za ločene datotečne teste. V objavljeni različici se uporablja D1 in R2.
+
+## Skrbniška konzola
+
+Odprite `/admin` neposredno ali v iskanje po portalu vpišite točno `/admin`. V javni navigaciji ni povezave. Prijava in vsi skrbniški API so zaščiteni na strežniku, ne samo s skrito stranjo. Navodila za urejanje, obravnavo prijav, varnost in selitev so v [ADMIN.md](docs/ADMIN.md).
+
+Konzola ureja besedila in slike v predogledu, kontakte, delovne čase, obvestila, odvozne poti, zbirna mesta, pravila ločevanja, opise storitev, cene, tržnične termine ter načrt in podatke pokopališča. Objave imajo zgodovino različic in zaščito pred prepisom sočasnih sprememb. Nove oddaje se samodejno pokažejo kot delovni nalogi s kontrolnim seznamom, prioriteto, odgovorno osebo, rokom in internimi opombami. E-poštno obvestilo skrbniku vsebuje neposredno povezavo; ogled še vedno zahteva prijavo.
+
+Skrivnost `ADMIN_PASSWORD_HASH` je soljen PBKDF2-SHA256 izpeljan ključ (100.000 ponovitev), shranjen v Cloudflare in za lokalni razvoj v prezrti `.dev.vars`. Navadnega gesla ne vnašajte v repozitorij ali javne spremenljivke. Lokalni razvoj iz `.dev.vars` naloži skrivnost; tudi lokalna prijava potrebuje geslo.
 
 ## Prikazni podatki
 

@@ -37,11 +37,12 @@ export function notification(record, env) {
   if (record.payload.photoKey) lines.push('Fotografija: v priponki.');
   if (record.kind === 'subscriptions') lines.push('', 'Izbira je prikazna. Samodejna obvestila o motnjah še niso vključena.');
   const details = lines.join('\n');
+  const adminUrl = `https://kpv.jakobtominc.com/admin?case=${encodeURIComponent(record.id)}`;
   return {
     from: env.EMAIL_FROM, to: [env.EMAIL_TO], reply_to: record.payload.email,
     subject: `[KPV preizkus] ${title} · ${record.id.slice(0, 12)}`,
-    html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => escapeHtml(details).replace(/\n/g, '<br/>')),
-    text: `${title}\n\n${details}\n\nPreizkusni portal; oddaja ne pomeni uradnega naročila, rezervacije ali plačila pri KPV.`,
+    html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => escapeHtml(details).replace(/\n/g, '<br/>')).replace('KPV_ADMIN_LINK_TOKEN', escapeHtml(adminUrl)),
+    text: `${title}\n\n${details}\n\nObravnava v skrbniški konzoli (potrebna je prijava): ${adminUrl}\n\nPreizkusni portal; oddaja ne pomeni uradnega naročila, rezervacije ali plačila pri KPV.`,
   };
 }
 

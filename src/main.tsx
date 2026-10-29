@@ -6,11 +6,14 @@ import "@fontsource-variable/dm-sans";
 import "@fontsource-variable/manrope";
 import App from "./App";
 import "./styles.css";
+import { SiteContentProvider } from "./content/SiteContent";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <SiteContentProvider>
+        <App />
+      </SiteContentProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

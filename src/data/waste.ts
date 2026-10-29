@@ -426,6 +426,7 @@ export const normalizeWaste = (value: string) =>
 export function findWasteItems(
   query: string,
   category: WasteCategory | "all" = "all",
+  items: typeof wasteItems = wasteItems,
 ) {
   const normalized = normalizeWaste(query)
     .replace(/[^\p{L}\p{N}\s-]/gu, "")
@@ -454,7 +455,7 @@ export function findWasteItems(
   const tokens = normalized
     .split(" ")
     .filter((token) => token && !ignored.has(token));
-  return wasteItems
+  return items
     .map((item) => {
       const title = normalizeWaste(item.name);
       const keywords = item.keywords.map(normalizeWaste);

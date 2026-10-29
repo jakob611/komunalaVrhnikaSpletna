@@ -37,6 +37,8 @@ test('notification fixes recipient, sets reply-to, escapes HTML and preserves pl
   assert.ok(email.html.includes('$&amp;'));
   assert.ok(email.text.includes('<script>unsafe</script>'));
   assert.ok(!email.html.includes('KPV_DETAILS_TOKEN'));
+  assert.ok(email.html.includes('https://kpv.jakobtominc.com/admin?case=KPV-test'));
+  assert.ok(email.text.includes('/admin?case=KPV-test'));
 });
 
 test('local file storage cannot enable real email even when credentials are present', async () => {

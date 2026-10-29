@@ -4,10 +4,74 @@ import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { handleRequest } from "./worker.js";
 import { createFileStorage } from "./storage.mjs";
+import { localD1 } from "./local-d1.mjs";
+import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.API_PORT || 8787);
 const storage = createFileStorage(path.join(root, ".data"));
+const cmsDB = localD1(path.join(root, ".data", "cms.sqlite"));
+const photoDirectory = path.join(root, ".data", "cms-media");
+const photoPath = (key) =>
+  path.join(
+    key.startsWith("cms/")
+      ? photoDirectory
+      : path.join(root, ".data", "photos"),
+    path.basename(key),
+  );
+const localStorage = {
+  ...storage,
+  async save(record) {
+    const table =
+      record.kind === "contact" ? "contact_submissions" : "submissions";
+    await cmsDB
+      .prepare(
+        `INSERT INTO ${table}(id,kind,created_at,status,payload) VALUES(?,?,?,?,?)`,
+      )
+      .bind(
+        record.id,
+        record.kind,
+        record.createdAt,
+        record.status,
+        JSON.stringify(record.payload),
+      )
+      .run();
+  },
+};
+const environment = {
+  LOCAL_STORAGE: localStorage,
+  DB: cmsDB,
+  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+  PHOTOS: {
+    async put(key, bytes) {
+      await mkdir(photoDirectory, { recursive: true });
+      await writeFile(photoPath(key), new Uint8Array(bytes));
+    },
+    async get(key) {
+      try {
+        const bytes = await readFile(photoPath(key));
+        return {
+          body: bytes,
+          arrayBuffer: async () =>
+            bytes.buffer.slice(
+              bytes.byteOffset,
+              bytes.byteOffset + bytes.byteLength,
+            ),
+        };
+      } catch (error) {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      }
+    },
+    async delete(key) {
+      try {
+        await unlink(photoPath(key));
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    },
+  },
+};
 const server = http.createServer(async (incoming, outgoing) => {
   try {
     const protocol = "http";
@@ -25,7 +89,7 @@ const server = http.createServer(async (incoming, outgoing) => {
       `${protocol}://${incoming.headers.host || `127.0.0.1:${port}`}${incoming.url}`,
       init,
     );
-    const response = await handleRequest(request, { LOCAL_STORAGE: storage });
+    const response = await handleRequest(request, environment);
     outgoing.writeHead(response.status, Object.fromEntries(response.headers));
     if (response.body) Readable.fromWeb(response.body).pipe(outgoing);
     else outgoing.end();

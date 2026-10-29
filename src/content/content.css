@@ -1,0 +1,50 @@
+.cms-page-image {
+  margin-top: 12px;
+  margin-bottom: 28px;
+}
+.cms-page-image img {
+  display: block;
+  width: 100%;
+  height: clamp(180px, 28vw, 350px);
+  object-fit: cover;
+  border-radius: 18px;
+}
+.cms-brand-image {
+  width: auto;
+  max-width: 215px;
+  height: 62px;
+  object-fit: contain;
+}
+.cms-image-placeholder {
+  padding: 20px;
+  border: 2px dashed #94b371;
+  color: #436034;
+  text-align: center;
+  border-radius: 12px;
+  margin-block: 12px 20px;
+  cursor: pointer;
+  background: #eff5e5;
+}
+.cms-image-placeholder.cms-slot-has-image {
+  min-height: 240px;
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+}
+.cms-inspecting .cms-inspect-target {
+  outline: 2px dashed #87a957;
+  outline-offset: 3px;
+  cursor: crosshair;
+}
+#main h1,
+#main h2,
+#main h3,
+#main p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .cms-brand-image {
+    max-width: 145px;
+    height: 45px;
+  }
+}

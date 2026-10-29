@@ -1,6 +1,8 @@
 import { notices, getCollection, ljubljanaDate, addDays } from "./seed.js";
 import { BotError, verifyBot } from "./bot-protection.js";
 import { emailEnabled, outboxInsert, processEmail } from "./email.js";
+import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
+import { managedCollection } from "./managed-collection.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -122,15 +124,15 @@ function storage(env) {
         record.kind === "contact" ? "contact_submissions" : "submissions";
       const submission = env.DB.prepare(
         `INSERT INTO ${table} (id, kind, created_at, status, payload) VALUES (?, ?, ?, ?, ?)`,
-      )
-        .bind(
-          record.id,
-          record.kind,
-          record.createdAt,
-          record.status,
-          JSON.stringify(record.payload),
-        );
-      if (emailEnabled(env)) await env.DB.batch([submission, outboxInsert(env.DB, record, env)]);
+      ).bind(
+        record.id,
+        record.kind,
+        record.createdAt,
+        record.status,
+        JSON.stringify(record.payload),
+      );
+      if (emailEnabled(env))
+        await env.DB.batch([submission, outboxInsert(env.DB, record, env)]);
       else await submission.run();
     },
     async putPhoto(key, bytes, type) {
@@ -348,21 +350,33 @@ async function report(request) {
 export async function handleRequest(request, env = {}, ctx) {
   const url = new URL(request.url);
   const route = url.pathname;
-  if (!route.startsWith("/api/"))
-    return env.ASSETS
-      ? env.ASSETS.fetch(request)
-      : new Response(
-          "API KPV · za spletni vmesnik odprite razvojni strežnik.",
-          { status: 404 },
-        );
+  if (!route.startsWith("/api/")) {
+    if (env.ASSETS) {
+      const response = await env.ASSETS.fetch(request);
+      if (route !== "/admin" && route !== "/admin/") return response;
+      const headers = new Headers(response.headers);
+      headers.set("X-Robots-Tag", "noindex, nofollow");
+      headers.set("Cache-Control", "no-store");
+      headers.set("X-Frame-Options", "DENY");
+      return new Response(response.body, { status: response.status, headers });
+    }
+    return new Response(
+      "API KPV · za spletni vmesnik odprite razvojni strežnik.",
+      { status: 404 },
+    );
+  }
   try {
+    const adminResponse = await handleAdmin(request, env);
+    if (adminResponse) return adminResponse;
     if (request.method === "GET") {
       if (route === "/api/health")
         return json({
           ok: true,
           demo: true,
           storage: env.LOCAL_STORAGE
-            ? "local-file"
+            ? env.DB
+              ? "local-sqlite"
+              : "local-file"
             : env.DB
               ? "d1"
               : "unavailable",
@@ -383,7 +397,11 @@ export async function handleRequest(request, env = {}, ctx) {
             mode: env.LOCAL_STORAGE ? "local-demo" : "managed",
           },
         });
-      if (route === "/api/notices") return json({ notices, demo: true });
+      if (route === "/api/notices")
+        return json({
+          notices: await readPublished(env, "notices"),
+          demo: true,
+        });
       if (route === "/api/collection" || route === "/api/calendar") {
         const address = field(
           { address: url.searchParams.get("address") },
@@ -391,11 +409,16 @@ export async function handleRequest(request, env = {}, ctx) {
           3,
           250,
         );
-        const schedule = getCollection(address);
+        const configured = await readPublished(env, "collection");
+        const schedule = configured.routes.length
+          ? managedCollection(address, configured)
+          : getCollection(address);
         if (!schedule)
           throw new ApiError(
             422,
-            "Prikazni urnik je na voljo za Vrhniko, Borovnico in Log - Dragomer. Dodajte kraj v naslov.",
+            configured.routes.length
+              ? "Za ta naslov še ni objavljenega urnika. Preverite zapis naslova ali se obrnite na podjetje."
+              : "Prikazni urnik je na voljo za Vrhniko, Borovnico in Log - Dragomer. Dodajte kraj v naslov.",
           );
         if (route === "/api/calendar")
           return new Response(
@@ -499,10 +522,20 @@ export async function handleRequest(request, env = {}, ctx) {
           preferredDate: date(data, "preferredDate"),
         };
       } else {
+        const proposedDate = date(data, "date", true);
+        const market = await readPublished(env, "market");
+        if (
+          market.closedDates.includes(proposedDate) ||
+          (market.dates.length && !market.dates.includes(proposedDate))
+        )
+          throw new ApiError(
+            400,
+            "Izbrani termin ni na voljo. Izberite objavljen termin tržnice.",
+          );
         payload = {
           ...person,
           phone: optional(data, "phone", 40),
-          date: date(data, "date", true),
+          date: proposedDate,
           stallType: choice(data, "stallType", ["standard", "food", "craft"]),
           products: field(data, "products", 3, 2000),
           paymentStatus: "not-charged",
@@ -562,5 +595,7 @@ export async function handleRequest(request, env = {}, ctx) {
 
 export default {
   fetch: handleRequest,
-  async scheduled(_controller, env) { await processEmail(env); },
+  async scheduled(_controller, env) {
+    await Promise.all([processEmail(env), cleanupAdmin(env)]);
+  },
 };

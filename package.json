@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web \"node --watch server/local.mjs\" \"vite --host 127.0.0.1\"",
-    "dev:api": "node --watch server/local.mjs",
+    "dev": "concurrently -k -n api,web \"node --env-file-if-exists=.dev.vars --watch server/local.mjs\" \"vite --host 127.0.0.1\"",
+    "dev:api": "node --env-file-if-exists=.dev.vars --watch server/local.mjs",
     "dev:web": "vite --host 127.0.0.1",
     "build": "node scripts/build-email.mjs && tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test server/*.test.mjs",
-    "test:api": "node --test server/*.test.mjs",
+    "test": "node --test server/*.test.mjs shared/*.test.mjs",
+    "test:api": "node --test server/*.test.mjs shared/*.test.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "cf:dev": "wrangler dev",
     "deploy": "npm run build && wrangler deploy"

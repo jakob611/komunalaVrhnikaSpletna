@@ -49,6 +49,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import BotProtection, { resetProtection } from "../components/BotProtection";
 import AnimatedDisclosure from "../components/AnimatedDisclosure";
+import { useSiteContent, telephone } from "../content/SiteContent";
 import "./services.css";
 
 type Notice = {
@@ -163,7 +164,8 @@ function Result({
         <div>
           <strong>Vaš preizkusni obrazec je shranjen.</strong>
           <p>
-            Referenca: {receipt.id}. {receipt.message ||
+            Referenca: {receipt.id}.{" "}
+            {receipt.message ||
               "Podatki so shranjeni za preizkus. Storitev ni naročena in plačilo ni izvedeno."}
           </p>
         </div>
@@ -1331,6 +1333,12 @@ const serviceGuides: Record<
   },
 };
 export function ServicesPage() {
+  const cms = useSiteContent();
+  const icons = { bulky: Sofa, septic: Waves, water: Droplets, other: Wrench };
+  const serviceOptions = cms.services.map((item) => ({
+    ...item,
+    icon: icons[item.value as keyof typeof icons] || Wrench,
+  }));
   const [params] = useSearchParams();
   const [service, setService] = useState("bulky");
   useEffect(() => {
@@ -1345,7 +1353,7 @@ export function ServicesPage() {
   const selectedService = serviceOptions.find(
     (item) => item.value === service,
   )!;
-  const guide = serviceGuides[service];
+  const guide = selectedService;
   return (
     <>
       <Intro eyebrow="STORITVE ZA VAŠ DOM" title="Uredite kar od doma.">
@@ -1376,7 +1384,11 @@ export function ServicesPage() {
         <h2>Kaj želite urediti?</h2>
         <p>Izbira spodaj prilagodi navodila in povpraševanje.</p>
       </div>
-      <div className="svc-service-grid" role="group" aria-label="Izberite storitev">
+      <div
+        className="svc-service-grid"
+        role="group"
+        aria-label="Izberite storitev"
+      >
         {serviceOptions.map((item) => (
           <button
             key={item.value}
@@ -1573,11 +1585,21 @@ export function ServicesPage() {
 }
 
 export function MarketPage() {
+  const { rates, market } = useSiteContent();
   const [date, setDate] = useState("");
   const [stallType, setStallType] = useState("standard");
   const submission = useSubmission();
-  const rate = stallType === "food" ? 24 : stallType === "craft" ? 15 : 12;
+  const rate =
+    stallType === "food"
+      ? rates.marketFood
+      : stallType === "craft"
+        ? rates.marketCraft
+        : rates.marketStandard;
   const dateOptions = useMemo(() => {
+    if (market.dates.length)
+      return market.dates
+        .filter((date) => date >= today() && !market.closedDates.includes(date))
+        .sort();
     const start = new Date();
     const result = [];
     for (let i = 1; i < 35 && result.length < 4; i++) {
@@ -1588,8 +1610,8 @@ export function MarketPage() {
           `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
         );
     }
-    return result;
-  }, []);
+    return result.filter((date) => !market.closedDates.includes(date));
+  }, [market]);
   return (
     <>
       <Intro eyebrow="LOKALNO JE LEPŠE" title="Vaša ponudba. Naša tržnica.">
@@ -1685,11 +1707,13 @@ export function MarketPage() {
                   onChange={(event) => setStallType(event.target.value)}
                 >
                   <option value="standard">
-                    Standardno mesto · vzorec 12 €
+                    Standardno mesto · vzorec {euro(rates.marketStandard)}
                   </option>
-                  <option value="food">Živilska ponudba · vzorec 24 €</option>
+                  <option value="food">
+                    Živilska ponudba · vzorec {euro(rates.marketFood)}
+                  </option>
                   <option value="craft">
-                    Rokodelski izdelki · vzorec 15 €
+                    Rokodelski izdelki · vzorec {euro(rates.marketCraft)}
                   </option>
                 </select>
               </Field>
@@ -1755,6 +1779,7 @@ export function MarketPage() {
 }
 
 export function CalculatorPage() {
+  const { rates } = useSiteContent();
   const [people, setPeople] = useState(3);
   const [water, setWater] = useState(12);
   const [volume, setVolume] = useState(120);
@@ -1764,22 +1789,22 @@ export function CalculatorPage() {
     {
       name: `Odpadki · ${volume} l zabojnik`,
       description: "Vzorčni mesečni pavšal + dodatek na osebo",
-      value: (volume / 120) * 6.5 + people * 1.8,
+      value: (volume / 120) * rates.wasteBase + people * rates.wastePerson,
     },
     {
       name: "Biološki odpadki",
       description: "Vzorčni pavšal",
-      value: bio ? 4.2 : 0,
+      value: bio ? rates.bio : 0,
     },
     {
       name: `Oskrba s pitno vodo · ${water} m³`,
-      description: "Vzorčna omrežnina 5 € + 0,95 €/m³",
-      value: 5 + water * 0.95,
+      description: `Vzorčna omrežnina ${euro(rates.waterBase)} + ${euro(rates.waterPerM3)}/m³`,
+      value: rates.waterBase + water * rates.waterPerM3,
     },
     {
       name: "Odvajanje in čiščenje",
-      description: "Vzorčno 1,25 €/m³",
-      value: drainage ? water * 1.25 : 0,
+      description: `Vzorčno ${euro(rates.drainagePerM3)}/m³`,
+      value: drainage ? water * rates.drainagePerM3 : 0,
     },
   ];
   return (
@@ -1898,6 +1923,7 @@ export function CalculatorPage() {
 }
 
 export function DepoPage() {
+  const { settings } = useSiteContent();
   return (
     <>
       <Intro eyebrow="PONOVNA UPORABA" title="Staro za nekoga. Novo za vas.">
@@ -1918,7 +1944,7 @@ export function DepoPage() {
           </p>
           <a
             className="button"
-            href="https://www.kpv.si/depoVrhnika/trgovina.html"
+            href={settings.depoUrl}
             target="_blank"
             rel="noreferrer"
           >
@@ -2347,7 +2373,8 @@ function ContactForm() {
             <div>
               <strong>Preizkusno sporočilo je shranjeno.</strong>
               <p>
-                Referenca: {submission.receipt.id}. {submission.receipt.message ||
+                Referenca: {submission.receipt.id}.{" "}
+                {submission.receipt.message ||
                   "Sporočilo je shranjeno za preizkus. Za dejanski stik s podjetjem KPV uporabite uradne kontakte na tej strani."}
               </p>
             </div>
@@ -2402,52 +2429,93 @@ const contactHours = [
 ];
 
 function ContactHours() {
+  const { hours, _revisions } = useSiteContent();
+  const contactHours = hours.map((place) => ({
+    ...place,
+    icon:
+      place.tone === "collection"
+        ? Recycle
+        : place.tone === "depo"
+          ? ShoppingBag
+          : Phone,
+  }));
   return (
-    <section className="svc-contact-hours" id="delovni-cas" aria-labelledby="contact-hours-title">
+    <section
+      className="svc-contact-hours"
+      id="delovni-cas"
+      aria-labelledby="contact-hours-title"
+    >
       <div className="svc-contact-hours-heading">
         <div>
           <span className="eyebrow">PREDEN SE ODPRAVITE NA POT</span>
           <h2 id="contact-hours-title">Kdaj nas lahko obiščete?</h2>
         </div>
-        <span className="svc-hours-label"><Clock3 size={17} /> Redni delovni čas</span>
+        <span className="svc-hours-label">
+          <Clock3 size={17} /> Redni delovni čas
+        </span>
       </div>
       <div className="svc-hours-grid">
         {contactHours.map((place) => (
-          <article className={`svc-hours-card svc-hours-${place.tone}`} key={place.name}>
+          <article
+            className={`svc-hours-card svc-hours-${place.tone}`}
+            key={place.name}
+          >
             <div className="svc-hours-card-heading">
-              <span className="svc-hours-icon"><place.icon size={23} /></span>
+              <span className="svc-hours-icon">
+                <place.icon size={23} />
+              </span>
               <div>
                 <h3>{place.name}</h3>
                 <p>{place.description}</p>
               </div>
             </div>
             <table>
-              <caption className="sr-only">Redni delovni čas: {place.name}</caption>
+              <caption className="sr-only">
+                Redni delovni čas: {place.name}
+              </caption>
               <tbody>
                 {place.rows.map(([day, time]) => (
                   <tr key={day}>
                     <th scope="row">{day}</th>
-                    <td className={time === "Zaprto" ? "svc-hours-closed" : undefined}>{time}</td>
+                    <td
+                      className={
+                        time === "Zaprto" ? "svc-hours-closed" : undefined
+                      }
+                    >
+                      {time}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="svc-hours-contact">
-              <a href={`tel:${place.telephone}`}><Phone size={16} />{place.phone}</a>
-              <a href={`mailto:${place.email}`}><Mail size={16} />{place.email}</a>
+              <a href={`tel:${place.telephone}`}>
+                <Phone size={16} />
+                {place.phone}
+              </a>
+              <a href={`mailto:${place.email}`}>
+                <Mail size={16} />
+                {place.email}
+              </a>
             </div>
           </article>
         ))}
       </div>
       <p className="svc-hours-note">
-        Ob praznikih in izrednih spremembah pred obiskom preverite urnik pri izbrani službi.
+        Ob praznikih in izrednih spremembah pred obiskom preverite urnik pri
+        izbrani službi.
       </p>
-      <Source href="https://www.kpv.si/">Vir urnikov: uradna stran KPV · preverjeno 29. oktobra 2026</Source>
+      <Source href="https://www.kpv.si/">
+        {_revisions?.hours
+          ? "Urnik je uredil skrbnik portala. Uradni podatki so na strani KPV."
+          : "Vir urnikov: uradna stran KPV · preverjeno 29. oktobra 2026"}
+      </Source>
     </section>
   );
 }
 
 export function ContactPage() {
+  const { settings } = useSiteContent();
   return (
     <>
       <Intro
@@ -2481,8 +2549,8 @@ export function ContactPage() {
           <strong>Nujna komunalna težava?</strong> Za nujno pomoč uporabite
           dežurno službo, ne predstavitvenega obrazca.
         </span>
-        <a href="tel:+38641364681">
-          041 364 681
+        <a href={`tel:${telephone(settings.emergencyPhone)}`}>
+          {settings.emergencyPhone}
           <ArrowRight size={17} />
         </a>
       </div>
@@ -2495,24 +2563,23 @@ export function ContactPage() {
             </div>
             <h2>Komunalno podjetje Vrhnika</h2>
             <p>Javno podjetje Komunalno podjetje Vrhnika, d. o. o.</p>
-            <a href="tel:+38617502960" className="svc-contact-number">
-              01 750 29 60
+            <a
+              href={`tel:${telephone(settings.phone)}`}
+              className="svc-contact-number"
+            >
+              {settings.phone}
             </a>
-            <a href="mailto:info@kpv.si" className="svc-inline-link">
-              info@kpv.si
+            <a href={`mailto:${settings.email}`} className="svc-inline-link">
+              {settings.email}
               <Mail size={18} />
             </a>
             <div className="svc-address">
               <MapPin size={21} />
-              <span>
-                Pot na Tojnice 40
-                <br />
-                1360 Vrhnika
-              </span>
+              <span>{settings.address}</span>
             </div>
             <a
               className="button secondary"
-              href="https://www.google.com/maps/search/?api=1&query=Komunalno+podjetje+Vrhnika+Pot+na+Tojnice+40"
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.siteName + " " + settings.address)}`}
               target="_blank"
               rel="noreferrer"
             >
@@ -2554,15 +2621,18 @@ export function ContactPage() {
             <h3>Za dejanski odgovor</h3>
             <p>
               Pokličite uradno številko ali napišite e-pošto na{" "}
-              <a href="mailto:info@kpv.si">info@kpv.si</a>. Predstavitveni
-              obrazec še ni povezan z obravnavo sporočil pri podjetju.
+              <a href={`mailto:${settings.email}`}>info@kpv.si</a>.
+              Predstavitveni obrazec še ni povezan z obravnavo sporočil pri
+              podjetju.
             </p>
           </div>
         </aside>
       </div>
       <ContactHours />
       <div className="svc-contact-foot">
-        <Source href="https://www.kpv.si/mPodjetje/mPkont.html">Vir kontaktov: uradna spletna stran KPV</Source>
+        <Source href="https://www.kpv.si/mPodjetje/mPkont.html">
+          Vir kontaktov: uradna spletna stran KPV
+        </Source>
         <span>
           Preverjeno 29. oktobra 2026. Portal je predstavitveni projekt.
         </span>

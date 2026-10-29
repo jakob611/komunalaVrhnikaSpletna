@@ -39,6 +39,7 @@ import {
 import type { CollectionPoint, WasteCategory } from "../data/waste";
 import { CalendarDialog } from "../components/CalendarDialog";
 import AnimatedDisclosure from "../components/AnimatedDisclosure";
+import { useSiteContent } from "../content/SiteContent";
 import "./waste.css";
 
 function Intro({
@@ -93,6 +94,7 @@ const directions = (point: CollectionPoint) =>
   `https://www.google.com/maps/dir/?api=1&destination=${point.lat},${point.lng}`;
 
 export function WasteMapPage() {
+  const { wastePoints: collectionPoints } = useSiteContent();
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
@@ -339,12 +341,13 @@ export function WasteMapPage() {
 }
 
 export function WasteWizardPage() {
+  const { wasteCategories: categories, wasteItems } = useSiteContent();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<WasteCategory | "all">("all");
   const normalized = normalizeWaste(query);
   const results = useMemo(
-    () => findWasteItems(query, category),
-    [query, category],
+    () => findWasteItems(query, category, wasteItems),
+    [query, category, wasteItems],
   );
   return (
     <div className="waste-page">
@@ -530,6 +533,7 @@ function storedAddress() {
 }
 
 export function CollectionPage() {
+  const { wastePoints: collectionPoints } = useSiteContent();
   const [address, setAddress] = useState(storedAddress);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [loading, setLoading] = useState(false);

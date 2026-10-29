@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import PageMotion from "./components/PageMotion";
+import ContentBridge from "./content/ContentBridge";
+import { CmsPageImage, useSiteContent, telephone } from "./content/SiteContent";
 import {
   Link,
   NavLink,
@@ -72,6 +74,7 @@ const AboutPage = lazy(() =>
   services().then((m) => ({ default: m.AboutPage })),
 );
 const CemeteryPage = lazy(() => import("./pages/CemeteryPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 
 const links = [
   {
@@ -194,15 +197,32 @@ const searchable = [
 ];
 
 function Logo() {
+  const { settings } = useSiteContent();
   return (
-    <Link className="brand" to="/" aria-label="Komunala Vrhnika – domov">
-      <span className="brand-symbol">
-        <Leaf size={27} />
-        <Waves size={25} />
-      </span>
-      <span>
-        komunala<span>VRHNIKA</span>
-      </span>
+    <Link className="brand" to="/" aria-label={`${settings.siteName} – domov`}>
+      {settings.logoUrl ? (
+        <img
+          className="cms-brand-image"
+          src={settings.logoUrl}
+          alt={settings.logoAlt}
+        />
+      ) : (
+        <>
+          <span className="brand-symbol">
+            <Leaf size={27} />
+            <Waves size={25} />
+          </span>
+          <span>
+            {settings.siteName === "Komunala Vrhnika" ? (
+              <>
+                komunala<span>VRHNIKA</span>
+              </>
+            ) : (
+              settings.siteName
+            )}
+          </span>
+        </>
+      )}
     </Link>
   );
 }
@@ -271,12 +291,15 @@ function SiteSearch({ close }: { close: () => void }) {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
-  const results = searchable.filter((v) =>
-    normalize(query)
-      .trim()
-      .split(/\s+/)
-      .every((word) => normalize(v[0] + " " + v[1]).includes(word)),
-  );
+  const results =
+    query.trim().toLowerCase() === "/admin"
+      ? [["Upravljanje portala", "Prijava za skrbnika", "/admin"]]
+      : searchable.filter((v) =>
+          normalize(query)
+            .trim()
+            .split(/\s+/)
+            .every((word) => normalize(v[0] + " " + v[1]).includes(word)),
+        );
   return (
     <div className="search-overlay" onClick={close}>
       <section
@@ -329,6 +352,7 @@ function SiteSearch({ close }: { close: () => void }) {
 }
 
 function Header() {
+  const { settings } = useSiteContent();
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -356,9 +380,9 @@ function Header() {
         <div className="container utility-inner">
           <span>Vaša komunala. Vaš vsakdan.</span>
           <div>
-            <a href="tel:+38617502960">
+            <a href={`tel:${telephone(settings.phone)}`}>
               <Phone size={12} />
-              01 750 29 60
+              {settings.phone}
             </a>
             <Link to="/obvestila">
               <Bell size={12} />
@@ -1236,16 +1260,13 @@ function Privacy() {
 }
 
 function Footer() {
+  const { settings } = useSiteContent();
   return (
     <footer className="site-footer">
       <div className="container footer-main">
         <div className="footer-brand">
           <Logo />
-          <p>
-            Skrbimo za tisto, kar šteje.
-            <br />
-            Za vaš dom, naš kraj in jutri.
-          </p>
+          <p>{settings.footerText}</p>
           <span>
             <MapPin size={14} />
             Vrhnika · Borovnica · Log – Dragomer
@@ -1268,19 +1289,15 @@ function Footer() {
         </div>
         <div>
           <h3>Ostanimo povezani</h3>
-          <a href="tel:+38617502960">
-            01 750 29 60
+          <a href={`tel:${telephone(settings.phone)}`}>
+            {settings.phone}
             <ArrowUpRight size={13} />
           </a>
-          <a href="mailto:info@kpv.si">
-            info@kpv.si
+          <a href={`mailto:${settings.email}`}>
+            {settings.email}
             <ArrowUpRight size={13} />
           </a>
-          <p>
-            Pot na Tojnice 40
-            <br />
-            1360 Vrhnika
-          </p>
+          <p>{settings.address}</p>
           <Link to="/kontakt">
             Vsi kontakti
             <ArrowRight size={14} />
@@ -1356,12 +1373,15 @@ function ScrollManager() {
 
 export default function App() {
   const location = useLocation();
+  const admin = location.pathname.replace(/\/+$/, "") === "/admin";
   useEffect(() => {
     const match = searchable.find((v) => v[2] === location.pathname);
     document.title =
       (location.pathname === "/"
         ? "Skupaj za lepši vsakdan"
-        : match?.[0] || "Vaša komunala") + " · Komunala Vrhnika";
+        : location.pathname === "/admin"
+          ? "Upravljanje portala"
+          : match?.[0] || "Vaša komunala") + " · Komunala Vrhnika";
   }, [location.pathname]);
   return (
     <>
@@ -1369,10 +1389,11 @@ export default function App() {
         Preskoči na vsebino
       </a>
       <ScrollManager />
-      <Header />
-      <PageMotion />
+      {!admin && <Header />}
+      {!admin && <PageMotion />}
+      <ContentBridge />
       <main id="main" tabIndex={-1}>
-        {location.pathname !== "/" && (
+        {!admin && location.pathname !== "/" && (
           <div className="container breadcrumbs">
             <Link to="/">Domov</Link>
             <span>/</span>
@@ -1390,6 +1411,7 @@ export default function App() {
             </span>
           </div>
         )}
+        {!admin && <CmsPageImage page={location.pathname} />}
         <Suspense
           fallback={
             <div className="container loading-state" role="status">
@@ -1399,6 +1421,7 @@ export default function App() {
           }
         >
           <Routes>
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/" element={<Home />} />
             <Route path="/odpadki" element={<CategoryPage kind="waste" />} />
             <Route path="/voda" element={<CategoryPage kind="water" />} />
@@ -1528,7 +1551,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
-      <Footer />
+      {!admin && <Footer />}
     </>
   );
 }
