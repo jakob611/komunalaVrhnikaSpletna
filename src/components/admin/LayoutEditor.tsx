@@ -100,6 +100,18 @@ export default function LayoutEditor({
       .filter((p) => !pages.some(([url]) => url === p.path))
       .map((p) => [p.path, p.title]),
   ];
+  useEffect(() => {
+    // A history restore may remove the custom page currently open in the editor.
+    if (
+      path.startsWith("/strani/") &&
+      !value.pages.some((page) => page.path === path)
+    ) {
+      setPath("/");
+      setNative([]);
+      setSelected("");
+      setReady(false);
+    }
+  }, [path, value.pages]);
   const update = (
     next: CmsBlock[],
     title = current?.title ||
