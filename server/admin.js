@@ -8,6 +8,7 @@ import {
   cleanupAdminAuth,
 } from "./admin-auth.js";
 import { handleWork, getWorkItem, saveWorkItem } from "./work-queue.js";
+import { handleNotificationSettings } from "./notification-settings.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const headers = {
@@ -105,6 +106,7 @@ async function content(env, admin = false) {
         };
       }
   }
+  if (!admin) sections.notices = sections.notices.filter(item => item.published !== false);
   return { sections, revisions, ...(admin ? { metadata } : {}) };
 }
 
@@ -118,9 +120,10 @@ export async function readPublished(env, section) {
     )
       .bind(section)
       .first();
-    return row
+    const value = row
       ? validateSection(section, JSON.parse(row.value))
       : structuredClone(defaults[section]);
+    return section === "notices" ? value.filter(item => item.published !== false) : value;
   } catch {
     return structuredClone(defaults[section]);
   }
@@ -316,7 +319,9 @@ export async function handleAdmin(request, env = {}) {
     const session = await authenticateAdmin(request, env);
     const sessionResponse = await handleAdminAuth(request, env, session);
     if (sessionResponse) return sessionResponse;
-    const actor = { email: session.email };
+    const actor = { email: session.email, role: session.role };
+    const notificationResponse = await handleNotificationSettings(request, env, { json, body, fail, actor });
+    if (notificationResponse) return notificationResponse;
     const workResponse = await handleWork(request, env, {
       json,
       body,
@@ -451,6 +456,8 @@ export async function handleAdmin(request, env = {}) {
       const data = await body(request, 8192);
       if (!statuses.includes(data.status)) fail(400, "Status ni veljaven.");
       const item = await getWorkItem(env, update[1], fail);
+      if (!Number.isSafeInteger(data.version) || data.version !== item.version)
+        fail(409, "Nalog je bil spremenjen. Osvežite ga pred shranjevanjem.");
       const result = await saveWorkItem(
         env,
         item.id,

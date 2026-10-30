@@ -151,3 +151,12 @@ CREATE TABLE IF NOT EXISTS internal_tasks (
   payload TEXT NOT NULL CHECK (json_valid(payload))
 );
 CREATE INDEX IF NOT EXISTS internal_tasks_created ON internal_tasks(created_at);
+
+-- Private owner-managed delivery destination, separate from public CMS settings.
+CREATE TABLE IF NOT EXISTS notification_settings (
+  key TEXT PRIMARY KEY CHECK(key = 'recipient'),
+  recipient TEXT NOT NULL,
+  revision INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT NOT NULL
+);

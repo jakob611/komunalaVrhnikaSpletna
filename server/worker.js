@@ -1,4 +1,4 @@
-import { notices, getCollection, ljubljanaDate, addDays } from "./seed.js";
+import { ljubljanaDate, addDays } from "./seed.js";
 import { BotError, verifyBot } from "./bot-protection.js";
 import { emailEnabled, outboxInsert, processEmail } from "./email.js";
 import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
@@ -132,7 +132,7 @@ function storage(env) {
         JSON.stringify(record.payload),
       );
       if (emailEnabled(env))
-        await env.DB.batch([submission, outboxInsert(env.DB, record, env)]);
+        await env.DB.batch([submission, await outboxInsert(env.DB, record, env)]);
       else await submission.run();
     },
     async putPhoto(key, bytes, type) {
@@ -186,10 +186,10 @@ export function calendar(schedule, options = {}) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//KPV demo//Urnik odvoza//SL",
+    "PRODID:-//KPV//Urnik odvoza//SL",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:KPV – prikazni urnik",
+    "X-WR-CALNAME:KPV – urnik odvoza",
   ];
   const events = options.eventId
     ? schedule.events.filter((event) => event.id === options.eventId)
@@ -204,13 +204,13 @@ export function calendar(schedule, options = {}) {
       : "";
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${event.id}-${event.date}${uidSuffix}@kpv-demo.local`,
+      `UID:${event.id}${uidSuffix}@kpv.jakobtominc.com`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${event.date.replace(/-/g, "")}`,
       `DTEND;VALUE=DATE:${addDays(event.date, 1).replace(/-/g, "")}`,
-      `SUMMARY:${safeICS(`PRIMER – ${event.label}`)}`,
+      `SUMMARY:${safeICS(event.label)}`,
       `LOCATION:${safeICS(schedule.address)}`,
-      `DESCRIPTION:${safeICS("Prikazni urnik. Ne uporabljajte za dejanski odvoz. Uradne termine preverite na https://www.kpv.si/." + (recurrence ? " Ponavljanje ste izbrali sami; ne upošteva praznikov ali sprememb odvoza." : ""))}`,
+      `DESCRIPTION:${safeICS("Urnik odvoza KPV. Uvoženi koledar se ne posodablja samodejno; spremembe preverite na spletni strani." + (recurrence ? " Ponavljanje ste izbrali sami; ne upošteva praznikov ali sprememb odvoza." : ""))}`,
     );
     if (recurrence) lines.push(recurrence);
     lines.push("END:VEVENT");
@@ -372,7 +372,7 @@ export async function handleRequest(request, env = {}, ctx) {
       if (route === "/api/health")
         return json({
           ok: true,
-          demo: true,
+          demo: false,
           storage: env.LOCAL_STORAGE
             ? env.DB
               ? "local-sqlite"
@@ -381,7 +381,7 @@ export async function handleRequest(request, env = {}, ctx) {
               ? "d1"
               : "unavailable",
           email: emailEnabled(env) ? "resend" : "not-configured",
-          payments: "demo-only",
+          payments: "not-enabled",
           botProtection: env.LOCAL_STORAGE
             ? "local-demo"
             : env.TURNSTILE_SECRET && env.TURNSTILE_SITE_KEY
@@ -400,7 +400,7 @@ export async function handleRequest(request, env = {}, ctx) {
       if (route === "/api/notices")
         return json({
           notices: await readPublished(env, "notices"),
-          demo: true,
+          demo: false,
         });
       if (route === "/api/collection" || route === "/api/calendar") {
         const address = field(
@@ -410,15 +410,11 @@ export async function handleRequest(request, env = {}, ctx) {
           250,
         );
         const configured = await readPublished(env, "collection");
-        const schedule = configured.routes.length
-          ? managedCollection(address, configured)
-          : getCollection(address);
+        const schedule = managedCollection(address, configured);
         if (!schedule)
           throw new ApiError(
             422,
-            configured.routes.length
-              ? "Za ta naslov še ni objavljenega urnika. Preverite zapis naslova ali se obrnite na podjetje."
-              : "Prikazni urnik je na voljo za Vrhniko, Borovnico in Log - Dragomer. Dodajte kraj v naslov.",
+            "Za ta naslov ni mogoče zanesljivo določiti urnika. Vnesite ulico, hišno številko in kraj. Urnik preverite tudi na https://www.kpv.si/mDejavnosti/rzo/rzoUrnik.html.",
           );
         if (route === "/api/calendar")
           return new Response(
@@ -428,7 +424,7 @@ export async function handleRequest(request, env = {}, ctx) {
                 ...securityHeaders,
                 "Content-Type": "text/calendar; charset=utf-8",
                 "Content-Disposition":
-                  'attachment; filename="kpv-prikazni-urnik.ics"',
+                  'attachment; filename="kpv-urnik.ics"',
               },
             },
           );
@@ -564,17 +560,17 @@ export async function handleRequest(request, env = {}, ctx) {
       {
         id,
         status: "demo-saved",
-        demo: true,
+        demo: false,
         emailStatus: queued ? "queued" : "disabled",
         message: queued
-          ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za upravljavca predstavitvenega portala. To ni uradna oddaja podjetju KPV, rezervacija ali plačilo."
-          : "Prikazna oddaja je shranjena. E-pošta ni vključena. To ni uradna oddaja podjetju KPV, rezervacija ali plačilo.",
+          ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za skrbnika portala. Za povpraševanja in prijave na tržnico je potrebna ločena potrditev izvedbe oziroma termina."
+          : "Oddaja je shranjena za obravnavo. E-poštna obvestila trenutno niso vključena.",
       },
       201,
     );
   } catch (error) {
     if (error instanceof ApiError || error instanceof BotError)
-      return json({ error: error.message, demo: true }, error.status);
+      return json({ error: error.message, demo: false }, error.status);
     // Never log submitted personal data or request bodies.
     console.error(
       JSON.stringify({
@@ -586,7 +582,7 @@ export async function handleRequest(request, env = {}, ctx) {
     return json(
       {
         error: "Oddaje ni bilo mogoče shraniti. Poskusite znova pozneje.",
-        demo: true,
+        demo: false,
       },
       503,
     );

@@ -6,6 +6,7 @@ import path from "node:path";
 import { handleRequest, calendar } from "./worker.js";
 import { createFileStorage } from "./storage.mjs";
 import { getCollection, ljubljanaDate } from "./seed.js";
+import { managedCollection } from "./managed-collection.js";
 import { verifyBot } from "./bot-protection.js";
 
 test("contact stores categorized messages and rejects incompatible subcategories", async () => {
@@ -150,8 +151,15 @@ test("public bot configuration never exposes a secret", async () => {
   assert.ok(!body.includes("never-public"));
 });
 
+function calendarFixture(address = "Tržaška cesta 1, Vrhnika") {
+  const source = getCollection(address);
+  const configured = { routes: [{ id: "test-route", name: "Testna odvozna pot", addresses: [address, "Vrhnika"], events: source.events.map(({color,...event}) => event) }] };
+  const env = { DB: { prepare: () => ({ bind() { return this; }, first: async () => ({value: JSON.stringify(configured)}) }) } };
+  return { env, schedule: managedCollection(address, configured) };
+}
+
 test("selected calendar event exports one occurrence without recurrence", async () => {
-  const schedule = getCollection(person.address);
+  const { schedule, env } = calendarFixture(person.address);
   const event = schedule.events[0];
   const params = new URLSearchParams({
     address: person.address,
@@ -159,7 +167,7 @@ test("selected calendar event exports one occurrence without recurrence", async 
     repeat: "once",
   });
   const response = await handleRequest(
-    new Request(url(`/api/calendar?${params}`)),
+    new Request(url(`/api/calendar?${params}`)), env,
   );
   assert.equal(response.status, 200);
   const ics = (await response.text()).replace(/\r\n /g, "");
@@ -169,7 +177,7 @@ test("selected calendar event exports one occurrence without recurrence", async 
 });
 
 test("calendar repeat choices produce a bounded weekly series", async () => {
-  const schedule = getCollection(person.address);
+  const { schedule, env } = calendarFixture(person.address);
   const event = schedule.events.find((event) => event.type === "packaging");
   const params = new URLSearchParams({
     address: person.address,
@@ -179,18 +187,19 @@ test("calendar repeat choices produce a bounded weekly series", async () => {
     count: "7",
   });
   const response = await handleRequest(
-    new Request(url(`/api/calendar?${params}`)),
+    new Request(url(`/api/calendar?${params}`)), env,
   );
   const ics = (await response.text()).replace(/\r\n /g, "");
   assert.equal(response.status, 200);
   assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 1);
   assert.ok(ics.includes("RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=7\r\n"));
   assert.ok(ics.includes("Ponavljanje ste izbrali sami"));
-  assert.ok(ics.includes("SUMMARY:PRIMER"));
+  assert.ok(ics.includes("SUMMARY:") && !ics.includes("PRIMER"));
 });
 
 test("calendar rejects stale events and invalid or unbounded repeat rules", async () => {
-  const event = getCollection(person.address).events[0];
+  const { schedule, env } = calendarFixture(person.address);
+  const event = schedule.events[0];
   for (const extra of [
     { repeat: "daily" },
     { repeat: "weekly" },
@@ -211,11 +220,12 @@ test("calendar rejects stale events and invalid or unbounded repeat rules", asyn
           `/api/calendar?${new URLSearchParams({ address: person.address, ...extra })}`,
         ),
       ),
+      env,
     );
     assert.ok([400, 404].includes(response.status));
   }
   const all = await handleRequest(
-    new Request(url(`/api/calendar?address=Vrhnika`)),
+    new Request(url(`/api/calendar?address=${encodeURIComponent(person.address)}`)), env,
   );
   assert.equal((await all.text()).match(/BEGIN:VEVENT/g).length, 12);
 });
@@ -401,9 +411,10 @@ test("calendar is future-facing, valid UTF-8 folded ICS, and resists property in
       .split("\r\n")
       .every((line) => new TextEncoder().encode(line).length <= 75),
   );
-  assert.match(output, /SUMMARY:PRIMER/);
+  assert.match(output, /SUMMARY:/);
+  assert.ok(!output.includes("PRIMER"));
   const response = await handleRequest(
-    new Request(url("/api/calendar?address=Vrhnika")),
+    new Request(url("/api/calendar?address=Tr%C5%BEa%C5%A1ka%20cesta%201%2C%20Vrhnika")), calendarFixture().env,
   );
   assert.equal(response.status, 200);
   assert.match(response.headers.get("Content-Type"), /text\/calendar/);
@@ -490,4 +501,21 @@ test("report without cloud photo storage fails before database save", async () =
   );
   assert.equal(response.status, 503);
   assert.equal(saved, false);
+});
+
+test("empty configured routes never generate invented public collection dates", async () => {
+ const env={DB:{prepare:()=>({bind(){return this;},first:async()=>({value:'{"routes":[]}'})})}};
+ for(const route of ["collection","calendar"]) {
+ const response=await handleRequest(new Request(url('/api/'+route+'?address=Vrhnika')),env);
+ assert.equal(response.status,422);
+ assert.ok((await response.json()).error.includes('zanesljivo'));
+ }
+});
+
+test("calendar event UID stays stable when an editor reschedules an existing event", () => {
+ const original={address:"Verd 12, Vrhnika",events:[{id:"route-event-1",date:"2026-11-03",label:"Odvoz BIO"}]};
+ const shifted={...original,events:[{...original.events[0],date:"2026-11-04"}]};
+ const uid=value=>calendar(value).split("\r\n").find(line=>line.startsWith("UID:"));
+ assert.equal(uid(original),uid(shifted));
+ assert.notEqual(calendar(original).match(/DTSTART[^\r]+/)[0],calendar(shifted).match(/DTSTART[^\r]+/)[0]);
 });

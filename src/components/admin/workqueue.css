@@ -60,6 +60,51 @@
   border-color: #9db88b;
   background: #f5f8ef;
 }
+.work-stats button[aria-pressed="true"] {
+  border-color: #527340;
+  box-shadow: 0 0 0 1px #527340;
+}
+.work-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.work-actions > span {
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #eef3e7;
+  font-size: 12px;
+}
+.work-action-help {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #66725e;
+  margin: 10px 0 20px;
+}
+.work-result-count {
+  font-size: 12px;
+  color: #66725e;
+}
+.work-dialog-notice {
+  padding: 12px 28px;
+  margin: 0;
+  background: #edf5e7;
+}
+.work-dialog .work-fields label,
+.work-dialog .work-notes,
+.work-original dt {
+  font-size: 12px;
+}
+.work-original dd,
+.work-timeline li p {
+  font-size: 13px;
+}
+.work-original a {
+  color: #246247;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .work-stats strong {
   display: block;
   font-size: 27px;

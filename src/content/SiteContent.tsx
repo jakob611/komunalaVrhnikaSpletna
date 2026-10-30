@@ -62,8 +62,9 @@ export type SiteData = Omit<
     date: string;
     summary: string;
     status: string;
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
+    published?: boolean;
   }[];
 };
 const initial = defaults as unknown as SiteData;
@@ -84,6 +85,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       previewDraft.current = {
         ...previewDraft.current,
         ...(event.data.layout ? { layout: event.data.layout } : {}),
+        ...(event.data.settings ? { settings: event.data.settings } : {}),
         ...(Array.isArray(event.data.links) ? { links: event.data.links } : {}),
       };
       setData((current) => ({ ...current, ...previewDraft.current }));

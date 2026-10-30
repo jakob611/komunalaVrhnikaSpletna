@@ -1,5 +1,6 @@
 import template from './email-template.generated.js';
 import { Buffer } from 'node:buffer';
+import { notificationRecipient } from './notification-settings.js';
 
 export function emailEnabled(env) {
   // File-backed development and automated tests never send real email.
@@ -8,7 +9,7 @@ export function emailEnabled(env) {
 }
 
 const kinds = { contact: 'Kontaktno sporočilo', reports: 'Prijava poškodbe',
-  requests: 'Povpraševanje za storitev', market: 'Prijava na tržnico', subscriptions: 'Izbira obvestil (preizkus)' };
+  requests: 'Povpraševanje za storitev', market: 'Prijava na tržnico', subscriptions: 'Naročilo obvestil' };
 const labels = { name: 'Ime in priimek', email: 'E-pošta', phone: 'Telefon', address: 'Naslov / lokacija',
   category: 'Področje', subcategory: 'Podkategorija', subject: 'Zadeva', message: 'Sporočilo',
   service: 'Storitev', preferredDate: 'Želeni datum', date: 'Datum', stallType: 'Vrsta stojnice',
@@ -35,22 +36,23 @@ export function notification(record, env) {
     lines.push(`${label}: ${display}`);
   }
   if (record.payload.photoKey) lines.push('Fotografija: v priponki.');
-  if (record.kind === 'subscriptions') lines.push('', 'Izbira je prikazna. Samodejna obvestila o motnjah še niso vključena.');
+  if (record.kind === 'subscriptions') lines.push('', 'Preverite izbrane teme in zabeležite obravnavo naročila v konzoli.');
   const details = lines.join('\n');
   const adminUrl = `https://kpv.jakobtominc.com/admin?case=${encodeURIComponent(record.id)}`;
   return {
     from: env.EMAIL_FROM, to: [env.EMAIL_TO], reply_to: record.payload.email,
-    subject: `[KPV preizkus] ${title} · ${record.id.slice(0, 12)}`,
+    subject: `[KPV] ${title} · ${record.id.slice(0, 12)}`,
     html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => escapeHtml(details).replace(/\n/g, '<br/>')).replace('KPV_ADMIN_LINK_TOKEN', escapeHtml(adminUrl)),
-    text: `${title}\n\n${details}\n\nObravnava v skrbniški konzoli (potrebna je prijava): ${adminUrl}\n\nPreizkusni portal; oddaja ne pomeni uradnega naročila, rezervacije ali plačila pri KPV.`,
+    text: `${title}\n\n${details}\n\nObravnava v skrbniški konzoli (potrebna je prijava): ${adminUrl}\n\nOddaja je evidentirana. Termin storitve ali rezervacijo mora potrditi pristojna služba.`,
   };
 }
 
 // Keep the exact JSON stable across retries (Resend idempotency keys last 24h).
-export function outboxInsert(db, record, env) {
+export async function outboxInsert(db, record, env) {
+  const recipient = await notificationRecipient({ ...env, DB: db });
   return db.prepare(`INSERT INTO email_outbox (id, created_at, next_attempt, message, photo_key)
     VALUES (?, ?, ?, ?, ?)`).bind(record.id, Date.parse(record.createdAt), Date.parse(record.createdAt),
-      JSON.stringify(notification(record, env)), record.payload.photoKey || null);
+      JSON.stringify(notification(record, { ...env, EMAIL_TO: recipient })), record.payload.photoKey || null);
 }
 
 export async function deliverPending(env, { id = null, fetcher = fetch, now = Date.now() } = {}) {

@@ -41,9 +41,12 @@ import AdminSignIn, {
   type AdminSession,
 } from "../components/admin/AdminSignIn";
 import AdminUsers from "../components/admin/AdminUsers";
+import NotificationSettings from "../components/admin/NotificationSettings";
 import CollectionEditor from "../components/admin/CollectionEditor";
+import NoticesEditor, { type EditableNotice } from "../components/admin/NoticesEditor";
 import type { CollectionData } from "../../shared/collection-utils";
 import LayoutEditor from "../components/admin/LayoutEditor";
+import WebsiteEditor, { WEBSITE_SECTIONS, type WebsiteDraft } from "../components/admin/WebsiteEditor";
 import type { CmsLayoutData } from "../../shared/page-layout";
 
 type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
@@ -81,15 +84,16 @@ const sectionInfo: Record<
   string,
   { name: string; description: string; group: string }
 > = {
+  website: { name: "Urejevalnik spletne strani", description: "Besedila, slike, povezave, razporeditev in logotip na enem mestu.", group: "Portal" },
   layout: {
     name: "Razporeditev in nove strani",
     description: "Premikanje razdelkov, dodajanje gumbov, vsebin in strani.",
-    group: "Portal",
+    group: "Prejšnji urejevalniki",
   },
   links: {
     name: "Povezave in gumbi",
     description: "Spremenite cilj in besedilo javnih povezav.",
-    group: "Portal",
+    group: "Prejšnji urejevalniki",
   },
   settings: {
     name: "Nastavitve portala",
@@ -99,13 +103,13 @@ const sectionInfo: Record<
   copy: {
     name: "Besedila na straneh",
     description: "Odprite stran in kliknite besedilo, ki ga želite urediti.",
-    group: "Portal",
+    group: "Prejšnji urejevalniki",
   },
   images: {
     name: "Slike na straneh",
     description:
       "Izberite sliko v predogledu in jo zamenjajte z datoteko iz knjižnice.",
-    group: "Portal",
+    group: "Prejšnji urejevalniki",
   },
   hours: {
     name: "Delovni časi",
@@ -143,8 +147,8 @@ const sectionInfo: Record<
     group: "Vsebine",
   },
   rates: {
-    name: "Ceniki in kalkulator",
-    description: "Cene, enote in nastavitve informativnega izračuna.",
+    name: "Cene tržničnih stojnic",
+    description: "Sobotni najem zunanje stojnice na Sodnijskem trgu, z DDV. Občinski ceniki so povezani neposredno na veljavne dokumente KPV.",
     group: "Vsebine",
   },
   market: {
@@ -312,9 +316,9 @@ const labels: Record<string, string> = {
   waterBase: "Osnovni znesek za vodo (€)",
   waterPerM3: "Voda na m³ (€)",
   drainagePerM3: "Odvajanje na m³ (€)",
-  marketStandard: "Običajna stojnica (€)",
-  marketFood: "Stojnica za živila (€)",
-  marketCraft: "Rokodelska stojnica (€)",
+  marketStandard: "Sobota · ostali izdelki (€ z DDV)",
+  marketFood: "Sobota · prehrambeni izdelki (€ z DDV)",
+  marketCraft: "Sobota · rokodelski izdelki (€ z DDV)",
   embalaza: "Odpadna embalaža",
   papir: "Papir in karton",
   steklo: "Steklena embalaža",
@@ -766,6 +770,8 @@ function Editor({
     return (
       <div className={`admin-field-grid admin-depth-${Math.min(depth, 3)}`}>
         {Object.entries(value).map(([name, field]) => {
+          if (section === "settings" && !path.length && ["logoUrl", "logoAlt"].includes(name)) return null;
+          if (section === "rates" && !path.length && !["marketStandard", "marketFood", "marketCraft"].includes(name)) return null;
           const nested = field !== null && typeof field === "object";
           return (
             <div
@@ -920,6 +926,7 @@ export default function AdminPage() {
   );
   const [history, setHistory] = useState<Version[] | null>(null);
   const [advanced, setAdvanced] = useState(false);
+  const [websiteHistorySection, setWebsiteHistorySection] = useState<string>("copy");
   const [jsonText, setJsonText] = useState("");
   const [media, setMedia] = useState<Media[]>([]);
   const [mediaLoaded, setMediaLoaded] = useState(false);
@@ -988,11 +995,13 @@ export default function AdminPage() {
       previous?.focus();
     };
   }, [mobileMenu, compactMenu]);
+  const websiteDraft = (source: Sections): Json => Object.fromEntries(WEBSITE_SECTIONS.map(key => [key, clone(source[key] ?? (siteDefaults as unknown as Sections)[key])])) as Json;
+  const draftFor = (key: string, source = sections) => key === "website" ? websiteDraft(source) : clone(source[key] ?? null);
   const contentLoaded = Object.keys(sections).length > 0;
   const editing = Object.hasOwn(sectionInfo, active);
   const contentDirty =
     editing &&
-    JSON.stringify(draft) !== JSON.stringify(sections[active] ?? null);
+    JSON.stringify(draft) !== JSON.stringify(active === "website" ? websiteDraft(sections) : sections[active] ?? null);
   const dirty = contentDirty || workDirty;
   const visual = active === "copy" || active === "images" || active === "links";
 
@@ -1058,7 +1067,7 @@ export default function AdminPage() {
       setSections(data.sections);
       setRevisions(data.revisions);
       if (Object.hasOwn(sectionInfo, active))
-        setDraft(clone(data.sections[active] ?? null));
+        setDraft(draftFor(active, data.sections));
     } catch (cause) {
       failure(cause);
     } finally {
@@ -1147,9 +1156,11 @@ export default function AdminPage() {
     );
   }
   function navigate(next: string) {
+    if (["copy", "images", "links", "layout"].includes(next)) next = "website";
+    if (next === active) { setMobileMenu(false); return; }
     if (busy || workBusy || (next !== active && !mayLeave())) return;
     if (next !== active) {
-      setDraft(clone(sections[next] ?? null));
+      setDraft(draftFor(next));
       setSelection(null);
     }
     setActive(next);
@@ -1157,7 +1168,7 @@ export default function AdminPage() {
     setMobileMenu(false);
     setError("");
     setNotice("");
-    if (next === "media" || next === "images") void loadMedia();
+    if (next === "media" || next === "images" || next === "website") void loadMedia();
   }
   async function logout() {
     if (!mayLeave()) return;
@@ -1188,6 +1199,25 @@ export default function AdminPage() {
     setError("");
     setNotice("");
     try {
+      if (active === "website" && isObject(draft)) {
+        const changed = WEBSITE_SECTIONS.filter(key => JSON.stringify(draft[key]) !== JSON.stringify(sections[key]));
+        let completed = 0;
+        try {
+          for (const key of changed) {
+            const result = await request<{revision: number; value?: Json}>(`/api/admin/content/${key}`, {method: "PUT", body: JSON.stringify({value: draft[key], revision: revisions[key] ?? 0})});
+            const saved = result.value === undefined ? clone(draft[key]) : result.value;
+            setSections(old => ({...old, [key]: saved}));
+            setDraft(old => isObject(old) ? {...old, [key]: clone(saved)} : old);
+            setRevisions(old => ({...old, [key]: result.revision}));
+            completed++;
+          }
+          setNotice("Vse spremembe spletne strani so shranjene in objavljene.");
+        } catch (cause) {
+          if (completed) setNotice(`Objavljeno je ${completed} od ${changed.length} področij. Preostale spremembe so ohranjene; odpravite napako in znova shranite.`);
+          throw cause;
+        }
+        return;
+      }
       const result = await request<{ revision: number; value?: Json }>(
         `/api/admin/content/${active}`,
         {
@@ -1202,7 +1232,7 @@ export default function AdminPage() {
       setSections((old) => ({ ...old, [active]: saved }));
       setDraft(clone(saved));
       setRevisions((old) => ({ ...old, [active]: result.revision }));
-      setNotice("Spremembe so shranjene in objavljene na spletni strani.");
+      setNotice(active === "notices" ? "Obvestila so shranjena. Na spletni strani so vidni samo vnosi z vključenim prikazom." : "Spremembe so shranjene in objavljene na spletni strani.");
     } catch (cause) {
       failure(cause);
     } finally {
@@ -1214,7 +1244,7 @@ export default function AdminPage() {
     setError("");
     try {
       const data = await request<{ items: Version[] }>(
-        `/api/admin/history/${active}`,
+        `/api/admin/history/${active === "website" ? websiteHistorySection : active}`,
       );
       setHistory(data.items);
     } catch (cause) {
@@ -1234,20 +1264,21 @@ export default function AdminPage() {
     setError("");
     try {
       const data = await request<{ revision: number; value?: Json }>(
-        `/api/admin/restore/${active}`,
+        `/api/admin/restore/${active === "website" ? websiteHistorySection : active}`,
         {
           method: "POST",
           body: JSON.stringify({
             revision,
-            currentRevision: revisions[active] ?? 0,
+            currentRevision: revisions[active === "website" ? websiteHistorySection : active] ?? 0,
           }),
         },
       );
       setHistory(null);
       if (data.value !== undefined) {
-        setSections((old) => ({ ...old, [active]: data.value! }));
-        setDraft(clone(data.value));
-        setRevisions((old) => ({ ...old, [active]: data.revision }));
+        const key = active === "website" ? websiteHistorySection : active;
+        setSections((old) => ({ ...old, [key]: data.value! }));
+        setDraft(old => active === "website" && isObject(old) ? {...old, [key]: clone(data.value!)} : clone(data.value!));
+        setRevisions((old) => ({ ...old, [key]: data.revision }));
       } else await loadContent();
       setNotice(
         `Različica ${revision} je obnovljena in objavljena kot nova različica.`,
@@ -1283,8 +1314,9 @@ export default function AdminPage() {
       ]);
       setMediaLoaded(true);
       setNotice(
-        "Slika je naložena. Za objavo jo izberite v urejevalniku slik.",
+        "Slika je naložena. Spremembe objavite z gumbom »Shrani in objavi«.",
       );
+      return item;
     } catch (cause) {
       failure(cause);
     } finally {
@@ -1459,6 +1491,7 @@ export default function AdminPage() {
       media: "Knjižnica datotek",
       submissions: "Delovni nalogi",
       users: "Dostop in skrbniki",
+      notifications: "E-poštna obvestila",
     }[active] ??
       "Upravljanje");
 
@@ -1538,6 +1571,7 @@ export default function AdminPage() {
               Dostop in skrbniki
             </button>
           )}
+          {session.user.role === "owner" && <button type="button" className={active === "notifications" ? "is-current" : ""} onClick={() => navigate("notifications")}><Inbox size={18}/> E-poštna obvestila</button>}
           {["Portal", "Vsebine"].map((group) => (
             <div key={group} className="admin-nav-group">
               <span>{group}</span>
@@ -1704,17 +1738,16 @@ export default function AdminPage() {
                       </span>
                     </button>
                     <button
-                      onClick={() => navigate("images")}
+                      onClick={() => navigate("collection")}
                       className="admin-dashboard-card"
                     >
                       <ImagePlus size={25} />
-                      <h3>Osvežite podobo</h3>
+                      <h3>Urniki odvoza</h3>
                       <p>
-                        Pripravite slike v knjižnici in jih postavite na pravo
-                        mesto.
+                        Uredite območja in termine ter preverite urnik po naslovu.
                       </p>
                       <span>
-                        Uredi slike
+                        Odpri urnike
                         <ArrowUp size={17} />
                       </span>
                     </button>
@@ -1722,16 +1755,16 @@ export default function AdminPage() {
                   <section className="admin-panel">
                     <div className="admin-panel-heading">
                       <h2>Hiter dostop do vsebin</h2>
-                      <span>{Object.keys(sectionInfo).length} področij</span>
+                      <span>{Object.values(sectionInfo).filter(item => item.group !== "Prejšnji urejevalniki").length} področij</span>
                     </div>
                     <div className="admin-quick-grid">
                       {Object.entries(sectionInfo)
-                        .filter(([key]) => !["copy", "images"].includes(key))
+                        .filter(([, item]) => item.group !== "Prejšnji urejevalniki")
                         .map(([key, item]) => (
                           <button key={key} onClick={() => navigate(key)}>
                             <span>
                               {item.name}
-                              <small>Različica {revisions[key] ?? 0}</small>
+                              <small>{key === "website" ? "Besedila, slike, razporeditev in logotip" : `Različica ${revisions[key] ?? 0}`}</small>
                             </span>
                             <ChevronRight size={17} />
                           </button>
@@ -1750,6 +1783,7 @@ export default function AdminPage() {
                   <div className="admin-editor-intro">
                     <p>{sectionInfo[active].description}</p>
                     <div>
+                      {active === "website" && <label className="admin-field"><span>Zgodovina področja</span><select value={websiteHistorySection} onChange={e => setWebsiteHistorySection(e.target.value)}>{WEBSITE_SECTIONS.map(key => <option value={key} key={key}>{sectionInfo[key]?.name || key}</option>)}</select></label>}
                       <button
                         className="admin-button admin-small"
                         type="button"
@@ -1766,7 +1800,7 @@ export default function AdminPage() {
                           setJsonText(JSON.stringify(draft, null, 2));
                           setAdvanced(true);
                         }}
-                        disabled={busy}
+                        disabled={busy || active === "website"}
                       >
                         <Code2 size={16} />
                         Napredno
@@ -1786,7 +1820,7 @@ export default function AdminPage() {
                           Vsebina je shranjena
                         </>
                       )}
-                      <small>Različica {revisions[active] ?? 0}</small>
+                      <small>{active === "website" ? "Skupni osnutek spletne strani" : `Različica ${revisions[active] ?? 0}`}</small>
                     </span>
                     <div>
                       <button
@@ -1799,7 +1833,7 @@ export default function AdminPage() {
                               "Zavržete vse neshranjene spremembe tega področja?",
                             )
                           ) {
-                            setDraft(clone(sections[active] ?? null));
+                            setDraft(draftFor(active));
                             setError("");
                           }
                         }}
@@ -1822,7 +1856,11 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-                  {active === "layout" ? (
+                  {active === "website" ? (
+                    <fieldset className="admin-complex-editor" disabled={busy}>
+                      <WebsiteEditor value={draft as unknown as WebsiteDraft} onChange={next => setDraft(next as unknown as Json)} pages={pages} media={media} onUpload={upload} disabled={busy} />
+                    </fieldset>
+                  ) : active === "layout" ? (
                     <fieldset className="admin-complex-editor" disabled={busy}>
                       <LayoutEditor
                         value={draft as unknown as CmsLayoutData}
@@ -1831,6 +1869,8 @@ export default function AdminPage() {
                         disabled={busy}
                       />
                     </fieldset>
+                  ) : active === "notices" ? (
+                    <NoticesEditor value={draft as unknown as EditableNotice[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy} />
                   ) : active === "collection" ? (
                     <fieldset className="admin-complex-editor" disabled={busy}>
                       <CollectionEditor
@@ -2218,6 +2258,7 @@ export default function AdminPage() {
                   </div>
                 </>
               )}
+              {active === "notifications" && session.user.role === "owner" && <NotificationSettings csrfToken={session.csrfToken} onSessionExpired={() => setSession(null)} onDirtyChange={setWorkDirty} onBusyChange={setWorkBusy} />}
               {active === "users" && session.user.role === "owner" && (
                 <AdminUsers
                   csrfToken={session.csrfToken}
@@ -2280,10 +2321,10 @@ export default function AdminPage() {
                   <button
                     type="button"
                     className="admin-button admin-small"
-                    disabled={busy || item.revision === revisions[active]}
+                    disabled={busy || item.revision === revisions[active === "website" ? websiteHistorySection : active]}
                     onClick={() => restore(item.revision)}
                   >
-                    {item.revision === revisions[active]
+                    {item.revision === revisions[active === "website" ? websiteHistorySection : active]
                       ? "Trenutna"
                       : "Obnovi"}
                   </button>

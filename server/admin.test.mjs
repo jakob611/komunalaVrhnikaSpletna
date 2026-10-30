@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { cleanupAdmin, handleAdmin, readPublished } from "./admin.js";
 import defaults from "../shared/site-defaults.json" with { type: "json" };
+import { handleRequest } from "./worker.js";
 import {
   createTestSession,
   installTestMail,
@@ -696,6 +697,10 @@ test("submissions are paginated/admin-only and report originals require authenti
     {},
   );
   assert.equal(
+    (await handleAdmin(request("/api/admin/submissions/KPV-0", mutation(session, { status: "in-progress" }, "PATCH")), env)).status,
+    409,
+  );
+  assert.equal(
     (
       await handleAdmin(
         request("/api/admin/submissions/KPV-0/photo", {
@@ -711,7 +716,7 @@ test("submissions are paginated/admin-only and report originals require authenti
       await handleAdmin(
         request(
           "/api/admin/submissions/KPV-0",
-          mutation(session, { status: "in-progress" }, "PATCH"),
+          mutation(session, { status: "in-progress", version: 0 }, "PATCH"),
         ),
         env,
       )
@@ -724,12 +729,14 @@ test("submissions are paginated/admin-only and report originals require authenti
       .get("KPV-0").status,
     "in-progress",
   );
+  assert.equal((await handleAdmin(request("/api/admin/submissions/KPV-0", mutation(session, { status: "spam", version: 0 }, "PATCH")), env)).status, 409);
+  assert.equal(env.DB.sql.prepare("SELECT status FROM submissions WHERE id = ?").get("KPV-0").status, "in-progress");
   assert.equal(
     (
       await handleAdmin(
         request(
           "/api/admin/submissions/KPV-contact",
-          mutation(session, { status: "spam" }, "PATCH"),
+          mutation(session, { status: "spam", version: 0 }, "PATCH"),
         ),
         env,
       )
@@ -748,6 +755,51 @@ test("submissions are paginated/admin-only and report originals require authenti
     ).status,
     400,
   );
+});
+
+test("notice drafts remain private in public content and notice feeds while editors retain them", async () => {
+  const env = environment();
+  const session = await login(env);
+  const published = { id: "published-notice", title: "Javno obvestilo", category: "water", area: "Testno območje", date: "2026-10-30", summary: "Objavljena informacija za občane.", status: "info", latitude: null, longitude: null, published: true };
+  const draft = { ...published, id: "private-draft", title: "PRIVATE_NOTICE_DRAFT", summary: "PRIVATE_NOTICE_CONTENT", published: false };
+  const saved = await handleAdmin(request("/api/admin/content/notices", mutation(session, { value: [published, draft], revision: 0 })), env);
+  assert.equal(saved.status, 200);
+  const editor = await (await handleAdmin(request("/api/admin/content", { cookie: session.cookie }), env)).json();
+  assert.equal(editor.sections.notices.length, 2);
+  assert.equal(editor.sections.notices[1].summary, draft.summary);
+  for (const path of ["/api/content", "/api/notices"]) {
+    const response = await handleRequest(request(path), env);
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.ok(text.includes(published.title), path);
+    assert.ok(!text.includes(draft.id), path);
+    assert.ok(!text.includes(draft.summary), path);
+  }
+  assert.deepEqual(await readPublished(env, "notices"), [published]);
+});
+
+test("notification recipient route enforces sessions, owner access and CSRF without exposing private settings publicly", async () => {
+  const env = { ...environment(), EMAIL_TO: "current-private@example.com", EMAIL_ENABLED: "true" };
+  assert.equal((await handleAdmin(request("/api/admin/notifications"), env)).status, 401);
+  const session = await login(env);
+  const initial = await (await handleAdmin(request("/api/admin/notifications", { cookie: session.cookie }), env)).json();
+  assert.equal(initial.recipient, env.EMAIL_TO);
+  assert.equal((await handleAdmin(request("/api/admin/notifications", { method: "PUT", cookie: session.cookie, body: { recipient: "office-private@example.com", revision: 0 } }), env)).status, 403);
+  assert.equal((await handleAdmin(request("/api/admin/notifications", { ...mutation(session, { recipient: "office-private@example.com", revision: 0 }), origin: "https://foreign.example" }), env)).status, 403);
+  const saved = await handleAdmin(request("/api/admin/notifications", mutation(session, { recipient: "office-private@example.com", revision: 0 })), env);
+  assert.equal(saved.status, 200);
+  assert.equal((await saved.json()).recipient, "office-private@example.com");
+  assert.equal((await handleAdmin(request("/api/admin/notifications", mutation(session, { recipient: "other@example.com", revision: 0 })), env)).status, 409);
+  const publicContent = await (await handleRequest(request("/api/content"), env)).text();
+  const publicConfig = await (await handleRequest(request("/api/config"), env)).text();
+  for (const text of [publicContent, publicConfig]) {
+    assert.ok(!text.includes("current-private@example.com"));
+    assert.ok(!text.includes("office-private@example.com"));
+    assert.ok(!text.includes("test-only-key"));
+  }
+  env.DB.sql.prepare("UPDATE admin_users SET role='editor', password_hash=? WHERE email=?").run(passwordHash, "owner@example.com");
+  assert.equal((await handleAdmin(request("/api/admin/notifications", { cookie: session.cookie }), env)).status, 403);
+  assert.equal((await handleAdmin(request("/api/admin/notifications", mutation(session, { recipient: "editor@example.com", revision: 1 })), env)).status, 403);
 });
 
 test("body limits, methods, logout CSRF and revocation fail safely", async () => {

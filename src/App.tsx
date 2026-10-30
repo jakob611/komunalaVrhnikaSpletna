@@ -117,7 +117,7 @@ const links = [
     items: [
       ["Naročilo storitve", "/storitve"],
       ["Tržnica Vrhnika", "/trznica"],
-      ["Informativni izračun", "/kalkulator"],
+      ["Ceniki in obračun", "/kalkulator"],
       ["DEPO – ponovna uporaba", "/depo"],
     ],
   },
@@ -165,8 +165,8 @@ const searchable = [
     "/trznica",
   ],
   [
-    "Informativni izračun",
-    "Ocenite mesečne stroške gospodinjstva",
+    "Ceniki in obračun",
+    "Preverite veljavne cene za svojo občino",
     "/kalkulator",
   ],
   ["DEPO", "Predmeti z zgodbo in ponovna uporaba", "/depo"],
@@ -195,7 +195,7 @@ const searchable = [
   ],
   [
     "Zasebnost in dostopnost",
-    "Osebni podatki in delovanje predstavitve",
+    "Osebni podatki in delovanje portala",
     "/zasebnost",
   ],
   ["Začetna stran", "Domov in najpogostejša opravila", "/"],
@@ -718,7 +718,7 @@ function Home() {
             <span className="eyebrow">DOBRO JE VEDETI</span>
             <h2>
               Aktualno v vašem kraju
-              <span className="tiny-demo">Vzorčna obvestila</span>
+
             </h2>
           </div>
           <Link className="text-link" to="/obvestila">
@@ -771,7 +771,7 @@ function Home() {
             <div className="panel notice-unavailable">
               <Bell size={24} />
               <h3>Obvestila za vaš kraj</h3>
-              <p>Preverite vzorčne objave in nastavite obveščanje.</p>
+              <p>Preverite objavljena obvestila.</p>
               <Link className="text-link" to="/obvestila">
                 Odpri obvestila
                 <ArrowRight size={16} />
@@ -887,7 +887,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
       cards: [
         [
           "Urnik odvoza",
-          "Vnesite naslov in si shranite vzorčne termine v koledar.",
+          "Preverite objavljene termine za svoj naslov.",
           "/odpadki/urnik",
           CalendarDays,
         ],
@@ -905,7 +905,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
         ],
         [
           "Naročite kosovni odvoz",
-          "Oddajte predstavitveno povpraševanje za večje predmete.",
+          "Oddajte povpraševanje za odvoz večjih predmetov.",
           "/storitve?service=bulky",
           Truck,
         ],
@@ -920,7 +920,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
       cards: [
         [
           "Obvestila o oskrbi",
-          "Vzorčne napovedi del in motenj na vodovodnem omrežju.",
+          "Objavljena dela in motnje na vodovodnem omrežju.",
           "/obvestila?category=water",
           Bell,
         ],
@@ -953,7 +953,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
       cards: [
         [
           "Ceste in zapore",
-          "Zemljevid vzorčnih del, zapor in poškodb vozišča.",
+          "Objavljena dela, zapore in prijave poškodb vozišča.",
           "/ceste",
           MapPin,
         ],
@@ -977,7 +977,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
         ],
         [
           "Pokopališče",
-          "Poiščite grob in odprite interaktivni prikazni načrt.",
+          "Informacije in kontakti za pokopališko dejavnost.",
           "/pokopalisce",
           Flower2,
         ],
@@ -1035,7 +1035,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
                 Za nujne težave z vodovodom ali kanalizacijo pokličite dežurno
                 službo{" "}
                 <CmsAnchor href="tel:+38641364681">041 364 681</CmsAnchor>.
-                Predstavitveni obrazci se ne pošljejo podjetju.
+                Za nujne primere ne uporabljajte obrazca.
               </p>
             </div>
           </div>
@@ -1052,11 +1052,13 @@ function MyHome() {
     { date: string; label: string; color: string }[]
   >([]);
   const [error, setError] = useState("");
+  const [scheduleWarning, setScheduleWarning] = useState("");
   const [loading, setLoading] = useState(!!saved);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     setEvents([]);
     setError("");
+    setScheduleWarning("");
     if (!saved) {
       setLoading(false);
       return;
@@ -1078,6 +1080,7 @@ function MyHome() {
       .then((d) => {
         if (active) {
           setEvents(d.events.slice(0, 3));
+          setScheduleWarning(d.complete === false ? d.message || "Urnik je delno določen. Preverite vse vrste odpadkov v celotnem urniku." : "");
           setError("");
         }
       })
@@ -1163,13 +1166,14 @@ function MyHome() {
             <div className="section-heading">
               <h2>
                 Naslednji odvozi{" "}
-                <span className="tiny-demo">Vzorčni podatki</span>
+
               </h2>
               <Link className="text-link" to="/odpadki/urnik">
                 Celoten urnik
                 <ArrowRight size={17} />
               </Link>
             </div>
+            {scheduleWarning && !loading && !error && <div className="notice" role="status"><span>{scheduleWarning}</span><Link to="/odpadki/urnik">Preveri celoten urnik</Link></div>}
             {loading ? (
               <div className="notice" role="status">
                 <span className="loading-spinner" />
@@ -1198,7 +1202,7 @@ function MyHome() {
                       })}
                     </span>
                     <h3>{ev.label}</h3>
-                    <small>Predstavitveni termin, ne uradni odvoz.</small>
+                    <small>Objavljeni datum odvoza</small>
                   </div>
                 ))}
               </div>
@@ -1215,7 +1219,7 @@ function MyHome() {
             <Bell />
             <h2>Obvestila za moj dom</h2>
             <p>
-              Nastavite e-naslov, teme in območje za predstavitveno naročnino.
+              Oddajte željo za obveščanje glede na območje in teme.
             </p>
             <ArrowUpRight className="category-arrow" />
           </Link>
@@ -1236,9 +1240,9 @@ function Privacy() {
     <div className="container inner-page prose-page">
       <CmsLayout>
         <div className="page-intro">
-          <span className="eyebrow">PREDSTAVITVENI PORTAL</span>
+          <span className="eyebrow">PODATKI IN ZASEBNOST</span>
           <h1>Zasebnost in dostopnost.</h1>
-          <p>Jasno o tem, kako deluje ta preizkusna različica.</p>
+          <p>Kako obdelujemo podatke in uporabljamo zunanje storitve.</p>
         </div>
         <section className="panel">
           <h2>Vaši podatki</h2>
@@ -1247,17 +1251,7 @@ function Privacy() {
             brskalnika. Izbrišete ga z gumbom »Pozabi naslov«. Analitičnih in
             oglaševalskih piškotkov ne uporabljamo.
           </p>
-          <h2>Predstavitveni obrazci</h2>
-          <p>
-            Oddane podatke in fotografije shranimo v zaledje tega prototipa.
-            Obrazci niso povezani s Komunalnim podjetjem Vrhnika. Uporabite
-            izmišljene testne podatke. Javna predstavitev pošlje podatke obrazca
-            skrbniku portala prek storitve Resend. Samodejnih odgovorov ali
-            obvestil o motnjah uporabnikom še ne pošiljamo. Storitev ne naročamo
-            in plačil ne izvajamo. Za izbris testnega zapisa in pripadajoče
-            e-pošte se obrnite na skrbnika predstavitve ter navedite referenčno
-            številko.
-          </p>
+          <h2>Obrazci in obravnava oddaj</h2><p>Vnesene podatke in fotografije shranimo za obravnavo vaše oddaje. Dostop imajo prijavljeni skrbniki portala. E-poštno obvestilo s podatki oddaje pošljemo nastavljenemu skrbniku prek Resend. Oddaja povpraševanja ali prijave na tržnico še ne potrjuje izvedbe ali termina in ne izvede plačila. Za vprašanja o podatkih in zahtevo za izbris pišite skrbniku portala na tomincjakob@gmail.com ter navedite referenco oddaje. Zahteve glede portala trenutno obravnava njegov skrbnik.</p>
           <h2>Zunanji ponudniki</h2>
           <p>
             Interaktivni zemljevidi nalagajo kartografske ploščice
@@ -1268,11 +1262,11 @@ function Privacy() {
           <p>
             Oddaje obrazcev varuje Cloudflare Turnstile. Za varnostno
             preverjanje Cloudflare obdeluje tehnične podatke o brskalniku in
-            naslov IP. Podjetju KPV iz te predstavitve ne pošiljamo sporočil.
+            naslov IP.
             Vnesena vsebina in varnostni žeton se ne zapisujeta v javne
             dnevnike; žetona ne hranimo med oddanimi sporočili. Podatke iz
             javnih obrazcev za dostavo e-poštnega obvestila obdeluje Resend,
-            prejemnik pa je skrbnik predstavitve. Fotografije hranimo zasebno v
+            prejemnik pa je nastavljeni skrbnik portala. Fotografije hranimo zasebno v
             Cloudflare R2 ter jih prek Resend pošljemo skrbniku portala kot
             priponke k prijavi.
           </p>
@@ -1280,8 +1274,7 @@ function Privacy() {
           <p>
             Portal podpira upravljanje s tipkovnico, preskok na vsebino,
             označena polja in zmanjšano gibanje. Zemljevid dopolnjujejo
-            besedilni seznami lokacij. Pred objavo uradne strani je potreben
-            celovit pregled dostopnosti.
+            besedilni seznami lokacij. Za težave pri dostopu do vsebine uporabite kontaktni obrazec.
           </p>
           <Link className="text-link" to="/kontakt">
             Kontakti podjetja
@@ -1340,8 +1333,7 @@ function Footer() {
       </div>
       <div className="container footer-bottom">
         <span>
-          © {new Date().getFullYear()} · Predstavitveni koncept Komunale
-          Vrhnika
+          © {new Date().getFullYear()} · Komunala Vrhnika
         </span>
         <div>
           <Link to="/zasebnost">Zasebnost in dostopnost</Link>
@@ -1350,11 +1342,6 @@ function Footer() {
             <ArrowUpRight size={12} />
           </CmsAnchor>
         </div>
-      </div>
-      <div className="container demo-footer">
-        <span className="status-dot" />
-        Neuradna predstavitev. Urniki, obvestila, lokacije zbirnih mest in cene
-        so vzorčni. Obrazci shranijo testni zapis.
       </div>
     </footer>
   );

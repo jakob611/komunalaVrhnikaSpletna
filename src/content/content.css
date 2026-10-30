@@ -48,3 +48,8 @@
     height: 45px;
   }
 }
+
+.cms-inspecting .cms-block-selected { outline: 4px solid #719747; outline-offset: -4px; position: relative; }
+.cms-inspecting .cms-native-component.cms-block-selected { display: block; }
+.cms-inspecting .cms-block-selected::before { content: "IZBRANI RAZDELEK"; display: block; position: sticky; top: 0; z-index: 20; width: max-content; max-width: 100%; padding: 5px 10px; background: #315c28; color: #fff; font: 700 11px system-ui; }
+.cms-inspecting .cms-spacer { min-height: 28px; background: repeating-linear-gradient(45deg,#edf3e4,#edf3e4 10px,#fff 10px,#fff 20px); border: 1px dashed #8eaa75; }

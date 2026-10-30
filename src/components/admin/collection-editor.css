@@ -5,6 +5,18 @@
   min-width: 0;
   color: var(--ink, #1b3b2d);
 }
+.collection-editor [hidden] { display: none !important; }
+.collection-steps { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; }
+.collection-steps button { display:flex; align-items:center; gap:9px; background:#f2f5ed; border:1px solid #d8e0d0; color:#3d563a; border-radius:10px; padding:12px 15px; font:inherit; font-size:.85rem; cursor:pointer; }
+.collection-steps button span { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:white; }
+.collection-steps button.selected { background:#28573d; color:white; border-color:#28573d; }
+.collection-steps button.selected span { background:#ffffff28; }
+.collection-area-search { margin-top:16px; }
+.collection-step-next { display:flex; justify-content:flex-end; margin-top:22px; padding-top:18px; border-top:1px solid #e0e6da; }
+.collection-test-results { display:grid; gap:12px; margin:16px 0; }
+.collection-test-results > div { background:white; border:1px solid #dbe3d2; border-radius:10px; padding:15px; }
+.collection-test-results p { margin:7px 0 0; }
+.collection-editor details > summary { cursor:pointer; font-weight:650; line-height:1.5; }
 .collection-intro {
   display: flex;
   gap: 16px;
@@ -64,6 +76,8 @@
   display: grid;
   gap: 7px;
   margin-top: 15px;
+  max-height: 58vh;
+  overflow-y: auto;
 }
 .collection-area-list > button {
   border: 1px solid transparent;

@@ -24,9 +24,9 @@
   "routes": [{ "pattern": "kpv.jakobtominc.com", "custom_domain": true }],
   "vars": {
     "ADMIN_OWNER_EMAIL": "tomincjakob@gmail.com",
-    "DEMO_MODE": "true",
+    "DEMO_MODE": "false",
     "EMAIL_ENABLED": "true",
-    "EMAIL_FROM": "KPV predstavitev <obvestila@kpv.jakobtominc.com>",
+    "EMAIL_FROM": "Komunala Vrhnika <obvestila@kpv.jakobtominc.com>",
     "EMAIL_TO": "tomincjakob@gmail.com",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFqL1NMuXraOCXUy",
     "TURNSTILE_HOSTNAMES": "kpv.jakobtominc.com",

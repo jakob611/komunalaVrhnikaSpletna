@@ -66,6 +66,7 @@ test("work items require authentication and preserve reporter data privately", a
   const response = await handleAdmin(call("/api/admin/work", session), env);
   const data = await response.json();
   assert.equal(data.items.length, 1);
+  assert.equal(data.total, 1);
   assert.equal(data.stats.new, 1);
   assert.equal(data.items[0].checklist.length, 3);
   assert.equal(data.items[0].version, 0);
@@ -75,25 +76,13 @@ test("work items require authentication and preserve reporter data privately", a
   assert.ok(!publicData.includes("person@example.com"));
   env.DB.close();
 });
-test("checklists, status, notes and history update atomically, reject stale edits and require completion", async () => {
+test("checklists, status, notes and history update atomically and reject stale edits", async () => {
   const { env, session } = await setup();
   const item = (
     await (
       await handleAdmin(call("/api/admin/work/KPV-test", session), env)
     ).json()
   ).item;
-  assert.equal(
-    (
-      await handleAdmin(
-        call("/api/admin/work/KPV-test", session, {
-          ...item,
-          status: "resolved",
-        }),
-        env,
-      )
-    ).status,
-    400,
-  );
   const draft = {
     ...item,
     status: "in-progress",
@@ -127,20 +116,6 @@ test("checklists, status, notes and history update atomically, reject stale edit
     ).status,
     409,
   );
-  assert.equal(
-    (
-      await handleAdmin(
-        call(
-          "/api/admin/submissions/KPV-test",
-          session,
-          { status: "resolved" },
-          "PATCH",
-        ),
-        env,
-      )
-    ).status,
-    400,
-  );
   const overdue = await (
     await handleAdmin(
       call("/api/admin/work?overdue=true&priority=high", session),
@@ -164,6 +139,7 @@ test("checklists, status, notes and history update atomically, reject stale edit
     await handleAdmin(call("/api/admin/work", session), env)
   ).json();
   assert.equal(queue.items.length, 0);
+  assert.equal(queue.total, 0);
   assert.equal(queue.stats.resolved, 1);
   assert.equal(
     (
@@ -331,5 +307,41 @@ test("case mutations enforce CSRF and search treats SQL wildcards as literal tex
       .status,
     400,
   );
+  env.DB.close();
+});
+
+test("staff can close a case without a mandatory checklist and unfinished steps remain truthful", async () => {
+  const { env, session } = await setup();
+  let item = (await (await handleAdmin(call("/api/admin/work/KPV-test", session), env)).json()).item;
+  const closed = await handleAdmin(call("/api/admin/work/KPV-test", session, { ...item, status: "resolved" }), env);
+  assert.equal(closed.status, 200);
+  item = (await closed.json()).item;
+  assert.equal(item.status, "resolved");
+  assert.ok(item.checklist.every((step) => !step.done));
+  const reopened = await handleAdmin(call("/api/admin/work/KPV-test", session, { ...item, status: "in-progress", checklist: [] }), env);
+  assert.equal(reopened.status, 200);
+  item = (await reopened.json()).item;
+  const noSteps = await handleAdmin(call("/api/admin/work/KPV-test", session, { ...item, status: "resolved" }), env);
+  assert.equal(noSteps.status, 200);
+  assert.deepEqual((await noSteps.json()).item.checklist, []);
+  const queue = await (await handleAdmin(call("/api/admin/work?status=resolved", session), env)).json();
+  assert.equal(queue.items.length, 1);
+  assert.equal(queue.stats.open, 0);
+  env.DB.close();
+});
+
+test("work search includes responsible teams and private notes while preserving literal wildcards", async () => {
+  const { env, session } = await setup();
+  const item = (await (await handleAdmin(call("/api/admin/work/KPV-test", session), env)).json()).item;
+  const response = await handleAdmin(call("/api/admin/work/KPV-test", session, { ...item, assignee: "Ekipa 100%", notes: "Zamenjava priklopa" }), env);
+  assert.equal(response.status, 200);
+  for (const query of ["Ekipa", "100%", "Zamenjava"]) {
+    const result = await (await handleAdmin(call(`/api/admin/work?q=${encodeURIComponent(query)}`, session), env)).json();
+    assert.equal(result.items.length, 1, query);
+  }
+  const missing = await (await handleAdmin(call("/api/admin/work?q=100_", session), env)).json();
+  assert.equal(missing.items.length, 0);
+  const invalid = await handleAdmin(call("/api/admin/work/KPV-test", session, []), env);
+  assert.equal(invalid.status, 400);
   env.DB.close();
 });

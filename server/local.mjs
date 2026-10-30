@@ -9,14 +9,16 @@ import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.API_PORT || 8787);
-const storage = createFileStorage(path.join(root, ".data"));
-const cmsDB = localD1(path.join(root, ".data", "cms.sqlite"));
-const photoDirectory = path.join(root, ".data", "cms-media");
+const dataDirectory = process.env.KPV_DATA_DIR ? path.resolve(process.env.KPV_DATA_DIR) : path.join(root, ".data");
+await mkdir(dataDirectory, { recursive: true });
+const storage = createFileStorage(dataDirectory);
+const cmsDB = localD1(path.join(dataDirectory, "cms.sqlite"));
+const photoDirectory = path.join(dataDirectory, "cms-media");
 const photoPath = (key) =>
   path.join(
     key.startsWith("cms/")
       ? photoDirectory
-      : path.join(root, ".data", "photos"),
+      : path.join(dataDirectory, "photos"),
     path.basename(key),
   );
 const localStorage = {
@@ -47,7 +49,7 @@ const environment = {
   async ADMIN_AUTH_SEND(message) {
     // Development-only private mailbox: no codes in an API response or console log.
     await writeFile(
-      path.join(root, ".data", "admin-auth-mail.json"),
+      path.join(dataDirectory, "admin-auth-mail.json"),
       JSON.stringify(
         { ...message, createdAt: new Date().toISOString() },
         null,

@@ -4,7 +4,7 @@ const statuses = ["demo-saved", "in-progress", "resolved", "spam"];
 const priorities = ["low", "normal", "high", "urgent"];
 const allSubmissions =
   "(SELECT * FROM submissions UNION ALL SELECT * FROM contact_submissions UNION ALL SELECT * FROM internal_tasks)";
-const joined = `SELECT s.*, c.priority, c.assignee, c.due_date, c.notes, c.checklist, c.version, c.updated_at, e.status AS email_status
+const joined = `SELECT s.*, COUNT(*) OVER() AS filtered_total, c.priority, c.assignee, c.due_date, c.notes, c.checklist, c.version, c.updated_at, e.status AS email_status
   FROM ${allSubmissions} s LEFT JOIN admin_cases c ON c.submission_id = s.id LEFT JOIN email_outbox e ON e.id = s.id`;
 const steps = {
   internal: [
@@ -79,6 +79,8 @@ async function timeline(env, id) {
   return results;
 }
 function validate(data, fail) {
+  if (!data || typeof data !== "object" || Array.isArray(data))
+    fail(400, "Preverite podatke obravnave.");
   const text = (key, max) => {
     if (
       typeof data[key] !== "string" ||
@@ -121,14 +123,8 @@ function validate(data, fail) {
     ids.add(step.id);
     return { id: step.id, text: step.text.trim(), done: step.done };
   });
-  if (
-    data.status === "resolved" &&
-    (!checklist.length || checklist.some((step) => !step.done))
-  )
-    fail(
-      400,
-      "Pred zaključkom označite vse korake kot opravljene. Neuporabne korake lahko odstranite.",
-    );
+  // A checklist is an optional aid, not a condition for handling a message or
+  // closing a case. Keep unfinished steps as written so the audit remains honest.
   return { ...data, assignee, notes, dueDate, checklist };
 }
 function actorLabel(actor) {
@@ -392,7 +388,7 @@ export async function handleWork(
       fail(400, "Preverite filtre nalogov.");
     const where = `WHERE (?='' OR s.kind=?) AND (?='all' OR (?='open' AND s.status IN ('demo-saved','in-progress')) OR s.status=?)
       AND (?='' OR COALESCE(c.priority,'normal')=?) AND (?=0 OR (c.due_date<>'' AND c.due_date<? AND s.status IN ('demo-saved','in-progress')))
-      AND (?='' OR (s.payload LIKE ? ESCAPE '\\' OR s.id LIKE ? ESCAPE '\\'))`;
+      AND (?='' OR (s.payload LIKE ? ESCAPE '\\' OR s.id LIKE ? ESCAPE '\\' OR c.assignee LIKE ? ESCAPE '\\' OR c.notes LIKE ? ESCAPE '\\'))`;
     const { results } = await env.DB.prepare(
       `${joined} ${where}
       ORDER BY CASE COALESCE(c.priority,'normal') WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,s.created_at DESC,s.id DESC LIMIT 21 OFFSET ?`,
@@ -408,6 +404,8 @@ export async function handleWork(
         url.searchParams.get("overdue") === "true" ? 1 : 0,
         ljubljanaDate(),
         query,
+        `%${query}%`,
+        `%${query}%`,
         `%${query}%`,
         `%${query}%`,
         (page - 1) * 20,
@@ -428,6 +426,7 @@ export async function handleWork(
     return json({
       items: results.slice(0, 20).map(workItem),
       hasMore: results.length > 20,
+      total: results[0]?.filtered_total || 0,
       stats,
     });
   }

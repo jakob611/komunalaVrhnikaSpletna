@@ -27,7 +27,7 @@ const record = { id: 'KPV-test', kind: 'contact', createdAt: new Date(now).toISO
   payload: { name: '<script>unsafe</script>', email: 'person@example.com', category: 'other',
     subject: 'Vprašanje', message: 'Besedilo z znakom & in $& brez sprememb.' } };
 const row = e => e.DB.sql.prepare('SELECT * FROM email_outbox').get();
-async function enqueue(e, value = record) { await outboxInsert(e.DB, value, e).run(); }
+async function enqueue(e, value = record) { await (await outboxInsert(e.DB, value, e)).run(); }
 
 test('notification fixes recipient, sets reply-to, escapes HTML and preserves plain text', () => {
   const email = notification(record, env());

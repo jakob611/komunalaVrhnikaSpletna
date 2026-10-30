@@ -26,7 +26,6 @@ import {
   Popup,
   TileLayer,
   useMap,
-  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -128,7 +127,7 @@ export function WasteMapPage() {
         setPosition(coordinates);
         setUserPosition(coordinates);
         setGpsMessage(
-          "Vaša lokacija je označena z modro točko. Prikazane zbiralnice so vzorčne.",
+          "Vaša lokacija je označena z modro točko.",
         );
       },
       () =>
@@ -151,9 +150,7 @@ export function WasteMapPage() {
         <div className="notice waste-demo">
           <Info size={18} />
           <span>
-            <strong>Demonstracijski zemljevid.</strong> Tojnice so prikazane
-            približno, druge točke so primeri. Koordinate in vrste zbiralnikov
-            še niso potrjen uradni register. Pred odhodom preverite podatke pri{" "}
+            <strong>Zbirni center Tojnice.</strong> Pred oddajo preverite delovni čas in pogoje za vrsto odpadka pri{" "}
             <CmsAnchor
               href="https://www.kpv.si/"
               target="_blank"
@@ -201,7 +198,7 @@ export function WasteMapPage() {
               <strong>
                 {points.length} {points.length === 1 ? "lokacija" : "lokacij"}
               </strong>
-              <span>Prikazni podatki</span>
+              <span>Zbirna mesta</span>
             </div>
             {points.length === 0 ? (
               <div className="empty-state">
@@ -280,7 +277,7 @@ export function WasteMapPage() {
           <div
             className="waste-map"
             role="region"
-            aria-label="Prikazni zemljevid zbirnih mest. Lokacije lahko izberete tudi v besedilnem seznamu."
+            aria-label="Zemljevid zbirnih mest. Lokacije lahko izberete tudi v besedilnem seznamu."
           >
             <MapContainer
               center={[45.969, 14.326]}
@@ -306,7 +303,7 @@ export function WasteMapPage() {
                   <Popup>
                     <strong>{point.name}</strong>
                     <p>{point.address}</p>
-                    <p>Prikazna, nepotrjena lokacija.</p>
+                    <p>Točka na zemljevidu je orientacijska. Za prihod sledite naslovu.</p>
                     <CmsAnchor
                       href={directions(point)}
                       target="_blank"
@@ -526,21 +523,17 @@ type CollectionEvent = {
   label: string;
   color: string;
 };
-type Schedule = { address: string; demo: boolean; events: CollectionEvent[] };
+type Schedule = {
+  address: string; events: CollectionEvent[]; complete?: boolean;
+  incompleteTypes?: string[]; ambiguousTypes?: string[]; expiredTypes?: string[];
+  routes?: Record<string, { name: string; lastDate: string }>;
+};
+const collectionLabels: Record<string, string> = {
+  packaging: "Mešana embalaža", bio: "Biološki odpadki", residual: "Mešani komunalni odpadki",
+};
+const officialScheduleUrl = "https://www.kpv.si/mDejavnosti/rzo/rzoUrnik.html";
 const displayDate = (date: string, options: Intl.DateTimeFormatOptions) =>
   new Date(`${date}T12:00:00`).toLocaleDateString("sl-SI", options);
-function LocationPicker({
-  onPick,
-}: {
-  onPick: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
 function storedAddress() {
   try {
     return localStorage.getItem("kpv-address") || "";
@@ -550,13 +543,10 @@ function storedAddress() {
 }
 
 export function CollectionPage() {
-  const { wastePoints: collectionPoints } = useSiteContent();
   const [address, setAddress] = useState(storedAddress);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showMap, setShowMap] = useState(false);
-  const [picked, setPicked] = useState<[number, number] | null>(null);
   const [saved, setSaved] = useState(false);
   const [storageMessage, setStorageMessage] = useState("");
   const [calendarEvent, setCalendarEvent] = useState<CollectionEvent | null>(
@@ -627,30 +617,6 @@ export function CollectionPage() {
       if (request.current === controller) setLoading(false);
     }
   }
-  function pickLocation(lat: number, lng: number) {
-    if (lat < 45.88 || lat > 46.08 || lng < 14.2 || lng > 14.48) {
-      setError(
-        "Izberite prikazno lokacijo na območju Vrhnike, Borovnice ali Loga - Dragomerja.",
-      );
-      return;
-    }
-    request.current?.abort();
-    request.current = null;
-    setLoading(false);
-    setError("");
-    setStorageMessage("");
-    setPicked([lat, lng]);
-    const closest = [...collectionPoints].sort(
-      (a, b) =>
-        Math.hypot(a.lat - lat, a.lng - lng) -
-        Math.hypot(b.lat - lat, b.lng - lng),
-    )[0];
-    setAddress(
-      `${closest.area} · prikazna lokacija ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-    );
-    setSchedule(null);
-    setSaved(false);
-  }
   return (
     <div className="waste-page">
       <CmsLayout>
@@ -661,20 +627,12 @@ export function CollectionPage() {
           Vpišite domači naslov, poglejte prihajajoče termine in jih dodajte v
           svoj koledar.
         </Intro>
-        <div className="notice waste-demo">
+        <div className="notice">
           <Info size={18} />
-          <span>
-            <strong>Preizkus z vzorčnimi termini.</strong> Naslov ustvari prikaz
-            delovanja, ne preverjenega urnika za vaš dom. Za dejanske odvoze
-            uporabite{" "}
-            <CmsAnchor
-              href="https://www.kpv.si/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              uradni urnik KPV
-            </CmsAnchor>
-            . Steklo in papir se praviloma zbirata na ekoloških otokih.
+          <span>Odvozna območja so lahko različna za embalažo, BIO in mešane odpadke.
+            Če naslov ne določa enega območja, to jasno označimo. Preverite tudi{" "}
+            <CmsAnchor href={officialScheduleUrl} target="_blank" rel="noreferrer">izvirne urnike KPV</CmsAnchor>
+            {" "}ali pokličite <a href="tel:+38617502970">01 750 29 70</a>.
           </span>
         </div>
         <section className="panel waste-address-panel">
@@ -717,22 +675,11 @@ export function CollectionPage() {
               {schedule
                 ? "Urnik je prikazan spodaj. Pri posameznem odvozu lahko izberete Dodaj v koledar."
                 : address
-                  ? "Preverite vneseni naslov in pritisnite Prikaži urnik. Prikazali se bodo vzorčni termini za ta naslov."
+                  ? "Preverite vneseni naslov in pritisnite Prikaži urnik."
                   : "Vnesite tudi kraj: Vrhnika, Borovnica ali Log – Dragomer. Nato pritisnite Prikaži urnik."}
             </p>
           </form>
           <div className="waste-address-meta">
-            <button
-              className="waste-text-button"
-              aria-expanded={showMap}
-              aria-controls="collection-location-picker"
-              onClick={() => setShowMap(!showMap)}
-            >
-              <MapPin size={15} />
-              {showMap
-                ? "Skrij zemljevid"
-                : "Izberite prikazno lokacijo na zemljevidu"}
-            </button>
             {saved && (
               <span role="status">
                 <Check size={15} />
@@ -750,59 +697,50 @@ export function CollectionPage() {
               {storageMessage}
             </p>
           )}
-          <AnimatedDisclosure open={showMap}>
-            <div className="waste-picker" id="collection-location-picker">
-              <p>
-                Izberite točko na zemljevidu, nato pritisnite Prikaži urnik.
-                Izbira služi preizkusu in ne določi uradnega odvoznega območja.
-              </p>
-              <MapContainer
-                center={[45.969, 14.326]}
-                zoom={11}
-                style={{ height: 260 }}
-                scrollWheelZoom={false}
-              >
-                <TileBase />
-                <LocationPicker onPick={pickLocation} />
-                {picked && (
-                  <CircleMarker
-                    center={picked}
-                    radius={8}
-                    pathOptions={{ fillColor: "#22765d", fillOpacity: 1 }}
-                  />
-                )}
-              </MapContainer>
-              {picked && (
-                <p className="waste-picker-confirmation" role="status">
-                  <Check size={16} />
-                  Lokacija je izbrana. Za vzorčne termine pritisnite Prikaži
-                  urnik nad zemljevidom.
-                </p>
-              )}
-            </div>
-          </AnimatedDisclosure>
         </section>
         {schedule ? (
           <section className="waste-schedule">
             <div className="section-heading waste-results-heading">
               <div>
-                <span className="eyebrow">VAŠ PRIKAZNI URNIK</span>
+                <span className="eyebrow">OBJAVLJENI TERMINI ZA NASLOV</span>
                 <h2>{schedule.address}</h2>
               </div>
-              <CmsAnchor
+              {schedule.events.length > 0 && <CmsAnchor
                 href={`/api/calendar?${new URLSearchParams({ address: schedule.address })}`}
                 className="button secondary"
               >
                 <Download size={17} />
                 Vsi prikazani termini (.ics)
-              </CmsAnchor>
+              </CmsAnchor>}
             </div>
             <p className="waste-calendar-note">
               Pri posameznem odvozu izberite »Dodaj v koledar«: določite lahko
-              en termin ali ponavljanje ter izberete koledar svoje naprave.
-              Povezava zgoraj prenese vse prikazane termine brez dodatnega
-              ponavljanja.
+              koledar svoje naprave in shranite izbrani datum.
+              Povezava zgoraj prenese vse prikazane potrjene datume.
+              Uvoženi koledar se ne posodablja samodejno.
             </p>
+            {(schedule.incompleteTypes?.length || schedule.expiredTypes?.length) ? (
+              <div className="notice" role="alert" style={{borderColor:"#d3a24a", background:"#fff7e7", marginBottom:20}}>
+                <Info size={22} />
+                <div><strong>To je delni urnik. Za vse vrste odpadkov še ni potrjenih prihajajočih datumov.</strong>
+                  <p>Preverite: {[...new Set([...(schedule.incompleteTypes || []), ...(schedule.expiredTypes || [])])].map((type) => collectionLabels[type] || type).join(", ")}.
+                    {" "}Za območja, razdeljena med običajno in malo vozilo, naslov brez hišnih razmejitev ne zadošča.
+                    {" "}<CmsAnchor href={officialScheduleUrl} target="_blank" rel="noreferrer">Preverite izvirni urnik</CmsAnchor>
+                    {" "}ali pokličite <a href="tel:+38617502970">01 750 29 70</a>.</p>
+                </div>
+              </div>
+            ) : null}
+            {schedule.routes && <div className="panel" style={{marginBottom:20}}>
+              <h3>Preverjanje po vrstah odpadkov</h3>
+              {Object.entries(collectionLabels).map(([type,label]) => <p key={type}>
+                <strong>{label}:</strong>{" "}{schedule.routes?.[type]
+                  ? `${schedule.routes[type].name} · objavljeno do ${displayDate(schedule.routes[type].lastDate,{day:"numeric",month:"long",year:"numeric"})}`
+                  : "Območje ni enoznačno določeno – potrebna je potrditev pri KPV."}
+              </p>)}
+            </div>}
+            <p className="waste-calendar-note">Zimski odvoz BIO je od 14. decembra 2026 do 26. februarja 2027 na 14 dni.
+              V tednu 14.–18. decembra odvoza ni. Datum prazničnega petkovega odvoza okoli 25. decembra preverite pri KPV;
+              brez izrecne potrditve nadomestni datum ni dodan v koledar.</p>
             <div className="waste-timeline">
               {schedule.events.map((event, index) => (
                 <article key={event.id} className="waste-event">
@@ -832,10 +770,9 @@ export function CollectionPage() {
                     <div>
                       {index === 0 && (
                         <span className="waste-next-label">
-                          Naslednji prikazni odvoz
+                          Naslednji objavljeni odvoz
                         </span>
                       )}
-                      <span className="waste-demo-label">PRIMER</span>
                     </div>
                     <h3>{event.label}</h3>
                     <p>
@@ -851,7 +788,7 @@ export function CollectionPage() {
                     type="button"
                     onClick={() => setCalendarEvent(event)}
                     className="waste-calendar-link"
-                    aria-label={`Dodaj prikazni odvoz ${event.label}, ${displayDate(event.date, { day: "numeric", month: "long" })} v koledar in izberi ponavljanje`}
+                    aria-label={`Dodaj odvoz ${event.label}, ${displayDate(event.date, { day: "numeric", month: "long" })} v koledar`}
                     aria-haspopup="dialog"
                   >
                     <CalendarDays size={17} />
@@ -875,7 +812,7 @@ export function CollectionPage() {
             </span>
             <h2>Urnik po meri vašega doma.</h2>
             <p>
-              Po vnosu naslova se bodo tu prikazali vzorčni odvozi
+              Po vnosu naslova se bodo tu prikazali objavljeni odvozi
               <br />
               mešanih, bioloških odpadkov in embalaže.
             </p>

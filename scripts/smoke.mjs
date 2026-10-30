@@ -4,7 +4,7 @@ const base = (process.argv[2] || "http://127.0.0.1:5173").replace(/\/$/, "");
 const person = {
   name: "Test portala",
   email: "portal-test@example.com",
-  address: "Tržaška cesta 1, Vrhnika",
+  address: "Verd 12, Vrhnika",
   phone: "040000000",
   consent: true,
 };
@@ -16,12 +16,13 @@ assert.notEqual(health.storage, "unavailable");
 const schedule = await fetch(
   `${base}/api/collection?address=${encodeURIComponent(person.address)}`,
 ).then((r) => r.json());
-assert.equal(schedule.demo, true);
+assert.equal(schedule.demo, false);
+assert.equal(schedule.complete, true);
 assert.ok(schedule.events.length > 0);
-const calendar = await fetch(`${base}/api/calendar?address=Vrhnika`).then((r) =>
+const calendar = await fetch(`${base}/api/calendar?address=${encodeURIComponent(person.address)}`).then((r) =>
   r.text(),
 );
-assert.ok(calendar.includes("BEGIN:VCALENDAR") && calendar.includes("PRIMER"));
+assert.ok(calendar.includes("BEGIN:VCALENDAR") && calendar.includes("BEGIN:VEVENT") && !calendar.includes("PRIMER"));
 const checks = [
   ["/api/subscriptions", { ...person, topics: ["water", "roads"] }],
   [

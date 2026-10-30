@@ -73,6 +73,21 @@ const categories: Record<string, string> = {
   market: "Tržnica",
   depo: "DEPO",
   other: "Drugo",
+  general: "Splošna obvestila",
+};
+const values: Record<string, string> = {
+  supply: "Oskrba s pitno vodo", septic: "Greznice in male čistilne naprave",
+  connection: "Priključki", collection: "Odvoz odpadkov in urnik",
+  sorting: "Ločevanje in zbirna mesta", bulky: "Kosovni odpadki",
+  road: "Vzdrževanje cest", lighting: "Javna razsvetljava", public: "Javne površine",
+  invoice: "Računi", meter: "Odčitki števcev", payment: "Plačila",
+  booking: "Prijava na tržnico", conditions: "Pogoji tržnice",
+  donation: "Oddaja predmetov", purchase: "Nakup v DEPO",
+  standard: "Standardno prodajno mesto", food: "Živilska ponudba", craft: "Rokodelski izdelki",
+};
+const displayValue = (value: unknown) => {
+  const translate = (entry: unknown) => categories[String(entry)] || values[String(entry)] || String(entry);
+  return Array.isArray(value) ? value.map(translate).join(", ") : translate(value);
 };
 const date = (value: string) =>
   new Intl.DateTimeFormat("sl-SI", {
@@ -81,6 +96,7 @@ const date = (value: string) =>
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Ljubljana",
   }).format(new Date(value.length === 10 ? `${value}T12:00:00` : value));
 const today = () =>
   new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Ljubljana" });
@@ -153,6 +169,7 @@ export default function WorkQueue({
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -163,6 +180,7 @@ export default function WorkQueue({
   const [draft, setDraft] = useState<Item | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [caseError, setCaseError] = useState("");
+  const [caseNotice, setCaseNotice] = useState("");
   const [caseLoading, setCaseLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTask, setNewTask] = useState(emptyTask);
@@ -237,7 +255,7 @@ export default function WorkQueue({
       page: String(page),
       q: debounced,
     });
-    void api<{ items: Item[]; hasMore: boolean; stats: Stats }>(
+    void api<{ items: Item[]; hasMore: boolean; total: number; stats: Stats }>(
       `/api/admin/work?${search}`,
       { signal: controller.signal },
     )
@@ -245,7 +263,9 @@ export default function WorkQueue({
         if (!controller.signal.aborted) {
           setItems(data.items);
           setHasMore(data.hasMore);
+          setTotal(data.total);
           setStats(data.stats);
+          if (!data.items.length && page > 1) setPage(page - 1);
         }
       })
       .catch((cause) => {
@@ -263,6 +283,7 @@ export default function WorkQueue({
     caseRequest.current = controller;
     setCaseLoading(true);
     setCaseError("");
+    setCaseNotice("");
     setConflict(false);
     setItem(null);
     setDraft(null);
@@ -381,20 +402,26 @@ export default function WorkQueue({
       { replace: true },
     );
   }
-  async function save() {
-    if (!draft) return;
+  async function save(status = draft?.status) {
+    if (!draft || busy || !status) return;
+    if (status === "resolved" && item?.status !== "resolved" &&
+      draft.checklist.some((step) => !step.done) &&
+      !window.confirm("Nekateri predlagani koraki niso označeni kot opravljeni. Želite nalog vseeno zaključiti? Koraki bodo ostali nespremenjeni.")) return;
     setBusy(true);
     setCaseError("");
+    setCaseNotice("");
     setConflict(false);
     try {
       const data = await api<{ item: Item; timeline: Event[] }>(
         `/api/admin/work/${draft.id}`,
-        { method: "PUT", body: JSON.stringify(draft) },
+        { method: "PUT", body: JSON.stringify({ ...draft, status }) },
       );
       setItem(data.item);
       setDraft(structuredClone(data.item));
       setEvents(data.timeline);
-      setNotice("Obravnava je shranjena.");
+      const message = status === "resolved" ? "Nalog je zaključen. Najdete ga med zaključenimi nalogi." : "Spremembe naloga so shranjene.";
+      setNotice(message);
+      setCaseNotice(message);
       setRefresh((value) => value + 1);
     } catch (cause) {
       setCaseError(
@@ -407,23 +434,34 @@ export default function WorkQueue({
     }
   }
   const completed = draft?.checklist.filter((step) => step.done).length || 0;
-  const canComplete =
-    !!draft?.checklist.length && completed === draft.checklist.length;
-  const patch = (value: Partial<Item>) =>
+  const checklistValid = !!draft && draft.checklist.every((step) => step.text.trim());
+  const patch = (value: Partial<Item>) => {
+    setCaseNotice("");
     setDraft((current) => (current ? { ...current, ...value } : current));
+  };
   const filter = (key: keyof typeof filters, value: string | boolean) => {
     setPage(1);
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => ({
+      ...current, [key]: value,
+      ...(key === "status" ? { overdue: false } : {}),
+      ...(key === "overdue" && value ? { status: "open" } : {}),
+    }));
   };
+  function showSummary(status: string) {
+    setPage(1);
+    setQuery("");
+    setDebounced("");
+    setFilters({ kind: "", priority: "", status: status === "overdue" ? "open" : status, overdue: status === "overdue" });
+  }
   return (
     <section className="work-queue" aria-label="Delovni nalogi">
       <div className="work-intro">
         <div>
           <span className="eyebrow">OD PRIJAVE DO REŠITVE</span>
-          <h2>Vsaka težava ima naslednji korak.</h2>
+          <h2>Delovni nalogi in prejeta sporočila</h2>
           <p>
-            Prijave občanov in interna opravila so na enem mestu. Določite
-            prioriteto, odgovorno osebo in korake do zaključka.
+            Odprite nalog, preberite podatke in ga prevzemite v obravnavo.
+            Določite odgovorno osebo in rok, zapišite dogovor ter po opravljeni obravnavi zaključite nalog.
           </p>
         </div>
         <div className="work-intro-actions">
@@ -502,7 +540,7 @@ export default function WorkQueue({
                       }))
                     }
                   >
-                    {Object.entries(categories).map(([value, label]) => (
+              {Object.entries(categories).filter(([value]) => value !== "general").map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
@@ -619,14 +657,8 @@ export default function WorkQueue({
         ].map((stat) => (
           <button
             key={stat.key}
-            onClick={() => {
-              setPage(1);
-              setFilters((current) => ({
-                ...current,
-                status: stat.key === "overdue" ? "open" : stat.key,
-                overdue: stat.key === "overdue",
-              }));
-            }}
+            onClick={() => showSummary(stat.key)}
+            aria-pressed={!filters.kind && !filters.priority && !query && (stat.key === "overdue" ? filters.overdue : !filters.overdue && filters.status === stat.key)}
             className={
               stat.key === "overdue" && stat.value ? "work-stat-overdue" : ""
             }
@@ -648,7 +680,7 @@ export default function WorkQueue({
           <Search size={18} />
           <input
             aria-label="Iskanje po nalogih"
-            placeholder="Ime, lokacija, opis ali referenca …"
+            placeholder="Ime, lokacija, referenca, odgovorna oseba ali opomba …"
             value={query}
             maxLength={150}
             onChange={(event) => setQuery(event.target.value)}
@@ -656,7 +688,7 @@ export default function WorkQueue({
         </label>
         <div className="work-filter-selects">
           <label>
-            Vrsta oddaje
+            Vrsta naloga
             <select
               value={filters.kind}
               onChange={(event) => filter("kind", event.target.value)}
@@ -706,6 +738,9 @@ export default function WorkQueue({
             />
             Samo čez rok
           </label>
+          <button className="admin-button" onClick={() => showSummary("all")}>
+            Počisti filtre
+          </button>
         </div>
       </div>
       {error && (
@@ -719,6 +754,7 @@ export default function WorkQueue({
           {notice}
         </p>
       )}
+      {!loading && !error && <p className="work-result-count" role="status">{total ? `Prikaz ${((page - 1) * 20) + 1}–${Math.min(page * 20, total)} od ${total} nalogov` : "Ni najdenih nalogov"} · seznam je razvrščen po prioriteti, nato po datumu prejema.</p>}
       <div className="admin-panel work-list" aria-busy={loading}>
         {loading ? (
           <p className="work-loading">Pridobivamo naloge …</p>
@@ -759,7 +795,7 @@ export default function WorkQueue({
                               : ""
                           }
                         >
-                          Rok: {entry.dueDate}
+                          Rok: {new Intl.DateTimeFormat("sl-SI").format(new Date(`${entry.dueDate}T12:00:00`))}
                         </i>
                       )}
                       {entry.notificationStatus === "failed" && (
@@ -783,9 +819,9 @@ export default function WorkQueue({
             <ListChecks size={34} />
             <h3>Ni nalogov za te filtre.</h3>
             <p>
-              Nove oddaje se pojavijo samodejno. Za starejše zaključene naloge
-              izberite »Vsa stanja«.
+              Nove oddaje se pokažejo po osvežitvi seznama. Za pregled vseh nalogov počistite filtre.
             </p>
+            <button className="admin-button" onClick={() => showSummary("all")}>Prikaži vse naloge</button>
           </div>
         )}
       </div>
@@ -810,8 +846,8 @@ export default function WorkQueue({
       </div>
       <p className="work-privacy">
         <Clock3 size={15} />
-        Nalogi so interni. E-poštna obvestila prejema skrbnik predstavitve;
-        obiskovalci nimajo dostopa do konzole. Nujne nevarnosti obravnavajte
+        Nalogi so interni. Sprememba stanja, opombe in zaključek ne pošljejo odgovora obiskovalcu.
+        Obiskovalci nimajo dostopa do konzole. Nujne nevarnosti obravnavajte
         prek ustrezne dežurne službe.
       </p>
       <dialog
@@ -846,6 +882,7 @@ export default function WorkQueue({
             <X size={22} />
           </button>
         </div>
+        {caseNotice && <p className="work-saved work-dialog-notice" role="status"><CheckCheck size={17} />{caseNotice}</p>}
         {caseError && (
           <div className="admin-message admin-message-error" role="alert">
             {caseError}
@@ -896,11 +933,10 @@ export default function WorkQueue({
                             : labels[key]}
                         </dt>
                         <dd>
-                          {key === "category"
-                            ? categories[String(value)] || String(value)
-                            : Array.isArray(value)
-                              ? value.join(", ")
-                              : String(value)}
+                          {key === "email" ? <a href={`mailto:${String(value)}`}>{String(value)}</a>
+                            : key === "phone" ? <a href={`tel:${String(value).replace(/[^+\d]/g, "")}`}>{String(value)}</a>
+                            : ["category", "subcategory", "service", "topics", "stallType"].includes(key) ? displayValue(value)
+                            : String(value)}
                         </dd>
                       </div>
                     ))}
@@ -943,7 +979,14 @@ export default function WorkQueue({
                 </p>
               </section>
               <section className="work-treatment">
-                <h3>Obravnava</h3>
+                <h3>Obravnava naloga</h3>
+                <div className="work-actions" aria-label="Sprememba stanja naloga">
+                  <span className={`work-status status-${item.status}`}>{states[item.status]}</span>
+                  {item.status === "demo-saved" && <button className="admin-button" disabled={busy || !checklistValid} onClick={() => void save("in-progress")}>Začni obravnavo</button>}
+                  {closed(item) ? <button className="admin-button" disabled={busy || !checklistValid} onClick={() => void save("in-progress")}>Ponovno odpri nalog</button>
+                    : <button className="admin-button admin-primary" disabled={busy || !checklistValid} onClick={() => void save("resolved")}><CheckCheck size={16} />Zaključi nalog</button>}
+                </div>
+                <p className="work-action-help">Gumbi za stanje shranijo tudi spodnje spremembe. Za odgovor pošiljatelju uporabite njegov e-poštni naslov.</p>
                 <div className="work-fields">
                   <label>
                     Stanje obravnave
@@ -958,12 +1001,8 @@ export default function WorkQueue({
                         <option
                           key={value}
                           value={value}
-                          disabled={value === "resolved" && !canComplete}
                         >
                           {label}
-                          {value === "resolved" && !canComplete
-                            ? " · opravite korake"
-                            : ""}
                         </option>
                       ))}
                     </select>
@@ -1009,11 +1048,12 @@ export default function WorkQueue({
                   </label>
                 </div>
                 <div className="work-checklist-heading">
-                  <h3>Koraki do rešitve</h3>
+                  <h3>Kontrolni seznam · neobvezno</h3>
                   <span>
                     {completed}/{draft.checklist.length}
                   </span>
                 </div>
+                <p className="work-action-help">Predlagane korake lahko prilagodite ali odstranite. Označite samo dejansko opravljena opravila.</p>
                 <div className="work-progress-bar">
                   <span
                     style={{
@@ -1105,11 +1145,9 @@ export default function WorkQueue({
                     skrbniku.
                   </small>
                 </label>
-                {!canComplete && draft.status !== "spam" && (
+                {!checklistValid && (
                   <p className="work-complete-hint">
-                    Pred zaključkom opravite vse korake. Če korak ni potreben,
-                    ga odstranite. Zaključek ne pošlje samodejnega sporočila
-                    obiskovalcu.
+                    Prazen korak dopolnite ali odstranite, preden shranite nalog.
                   </p>
                 )}
                 <div className="work-save">
@@ -1123,7 +1161,7 @@ export default function WorkQueue({
                     disabled={
                       !dirty ||
                       busy ||
-                      (draft.status === "resolved" && !canComplete)
+                      !checklistValid
                     }
                     onClick={() => void save()}
                   >

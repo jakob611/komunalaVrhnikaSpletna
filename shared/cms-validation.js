@@ -320,7 +320,7 @@ const validators = {
     return unique(
       array(value, "obvestila", 200).map((item, index) => {
         const label = `obvestilo ${index + 1}`;
-        object(item, label, [
+        const noticeFields = [
           "id",
           "title",
           "category",
@@ -330,27 +330,33 @@ const validators = {
           "status",
           "latitude",
           "longitude",
-        ]);
+        ];
+        object(item, label, [...noticeFields, "published"], noticeFields);
+        if (item.published !== undefined && typeof item.published !== "boolean")
+          invalid(label, "objava mora biti vključena ali izključena");
+        if ((item.latitude === null) !== (item.longitude === null))
+          invalid(label, "vnesite obe koordinati ali obe pustite prazni");
         return {
           id: id(item.id, label),
-          title: text(item.title, label, 250),
+          title: text(item.title, `${label} – naslov`, 250, item.published === false ? 0 : 1),
           category: choice(item.category, label, [
             "water",
             "roads",
             "waste",
             "general",
           ]),
-          area: text(item.area, label, 300),
+          area: text(item.area, `${label} – območje`, 300, item.published === false ? 0 : 1),
           date: date(item.date, label),
-          summary: text(item.summary, label, 5000),
+          summary: text(item.summary, `${label} – vsebina`, 5000, item.published === false ? 0 : 1),
           status: choice(item.status, label, [
             "planned",
             "info",
             "active",
             "resolved",
           ]),
-          latitude: number(item.latitude, label, -90, 90),
-          longitude: number(item.longitude, label, -180, 180),
+          latitude: item.latitude === null ? null : number(item.latitude, label, -90, 90),
+          longitude: item.longitude === null ? null : number(item.longitude, label, -180, 180),
+          ...(item.published === undefined ? {} : { published: item.published }),
         };
       }),
       (item) => item.id,
@@ -411,22 +417,15 @@ const validators = {
       (item) => item.id,
       "odvozne poti",
     );
-    const addressOwners = new Map();
     for (const route of routes) {
       unique(
         route.events,
         (event) => `${event.type}|${event.date}`,
         `${route.name} – datum in vrsta odpadkov`,
       );
-      for (const rule of route.addresses) {
-        const key = normalizedAddress(rule);
-        if (addressOwners.has(key))
-          invalid(
-            "odvozne poti",
-            `pravilo »${rule}« že uporablja območje »${addressOwners.get(key)}«`,
-          );
-        addressOwners.set(key, route.name);
-      }
+      // Fractions have independent geographic routes. Overlapping same-fraction
+      // rules are retained for vehicle splits whose house boundaries are unknown;
+      // public lookup reports these as unconfirmed instead of guessing a route.
     }
     return { routes };
   },

@@ -24,7 +24,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { cemeteryPlan, findGraves, graves, type Grave } from "../data/cemetery";
+import { findGraves, type Grave } from "../data/cemetery";
 import { useSiteContent } from "../content/SiteContent";
 import "./cemetery.css";
 
@@ -200,7 +200,7 @@ function GraveMap({
           <h2 id="cemetery-map-title">Vsak spomin ima svoje mesto.</h2>
         </div>
         <span className="cemetery-plan-tag">
-          <Layers3 size={15} /> Ilustrativni načrt
+          <Layers3 size={15} /> Načrt pokopališča
         </span>
       </div>
       <div className="cemetery-map" data-motion-managed="true">
@@ -236,7 +236,7 @@ function GraveMap({
           ref={svg}
           viewBox={`${left + pan.x} ${top + pan.y} ${width} ${height}`}
           role="group"
-          aria-label={`Interaktivni prikazni načrt s ${graves.length} grobovi. S tipko Tab vstopite, s puščicami izberete sosednji grob.`}
+          aria-label={`Interaktivni načrt s ${graves.length} grobovi. S tipko Tab vstopite, s puščicami izberete sosednji grob.`}
           style={{
             touchAction: zoom > 1 ? "none" : "pan-y",
             aspectRatio: `${cemeteryPlan.width}/${cemeteryPlan.height}`,
@@ -256,7 +256,7 @@ function GraveMap({
             moved.current = false;
           }}
         >
-          <title>Prikazni načrt pokopališča – izmišljena razporeditev</title>
+          <title>Načrt pokopališča in lokacije grobov</title>
           <defs>
             <pattern
               id="cemetery-lawn"
@@ -285,152 +285,7 @@ function GraveMap({
               height={cemeteryPlan.height}
               preserveAspectRatio="none"
             />
-          ) : (
-            <g
-              aria-hidden="true"
-              transform={`scale(${cemeteryPlan.width / 1000} ${cemeteryPlan.height / 760})`}
-            >
-              <rect width="1000" height="760" fill="#eef1e7" />
-              <rect
-                x="70"
-                y="45"
-                width="860"
-                height="625"
-                rx="48"
-                fill="url(#cemetery-lawn)"
-                stroke="#b8c6ae"
-                strokeWidth="3"
-              />
-              <rect
-                x="95"
-                y="70"
-                width="810"
-                height="575"
-                rx="30"
-                fill="none"
-                stroke="#f9f8f0"
-                strokeWidth="27"
-              />
-              <path
-                d="M500 68V700M109 350H891"
-                stroke="#fbf9f0"
-                strokeWidth="46"
-              />
-              <path
-                d="M110 350H890M500 70V690"
-                stroke="#d9d7c9"
-                strokeWidth="1.5"
-                strokeDasharray="2 9"
-              />
-              <circle
-                cx="500"
-                cy="350"
-                r="47"
-                fill="#f9f8ef"
-                stroke="#d5d7c8"
-                strokeWidth="2"
-              />
-              <circle cx="500" cy="350" r="20" fill="#bccfa8" />
-              <circle cx="500" cy="350" r="9" fill="#7a9f71" />
-              {[
-                { x: 144, y: 99, label: "A" },
-                { x: 574, y: 99, label: "B" },
-                { x: 144, y: 381, label: "C" },
-                { x: 574, y: 381, label: "D" },
-              ].map((block) => (
-                <g key={block.label}>
-                  <text
-                    x={block.x}
-                    y={block.y}
-                    fill="#566d51"
-                    fontSize="15"
-                    fontWeight="700"
-                    letterSpacing="2"
-                  >
-                    ODDELEK {block.label}
-                  </text>
-                  {[0, 1, 2, 3].map((row) => (
-                    <path
-                      key={row}
-                      d={`M${block.x - 13} ${block.y + 64 + row * 49}h298`}
-                      stroke="#f7f7ed"
-                      strokeWidth="9"
-                    />
-                  ))}
-                </g>
-              ))}
-              {[110, 260, 400, 600, 740, 890].flatMap((x, index) =>
-                [48, 663].map((y) => (
-                  <g key={`${x}-${y}`}>
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={index % 2 ? 19 : 23}
-                      fill="#9fb791"
-                      opacity=".8"
-                    />
-                    <circle cx={x - 5} cy={y - 5} r="12" fill="#adc49d" />
-                    <circle
-                      cx={x + 7}
-                      cy={y + 4}
-                      r="10"
-                      fill="#8ca77d"
-                      opacity=".75"
-                    />
-                  </g>
-                )),
-              )}
-              <rect
-                x="365"
-                y="685"
-                width="270"
-                height="50"
-                rx="10"
-                fill="#e1e5da"
-              />
-              <path
-                d="M474 670V650M526 670V650"
-                stroke="#7a8e72"
-                strokeWidth="4"
-              />
-              <text
-                x="500"
-                y="716"
-                textAnchor="middle"
-                fill="#59704e"
-                fontSize="16"
-                fontWeight="600"
-              >
-                GLAVNI VHOD
-              </text>
-              <path
-                d="M881 137V102l-7 12m7-12 7 12"
-                fill="none"
-                stroke="#667c59"
-                strokeWidth="2"
-              />
-              <text
-                x="881"
-                y="92"
-                textAnchor="middle"
-                fill="#667c59"
-                fontSize="12"
-              >
-                S
-              </text>
-            </g>
-          )}
-          {selected && !cemeteryPlan.imageUrl && (
-            <path
-              className="cemetery-route"
-              d={`M500 675V350H${selected.section === "A" || selected.section === "C" ? 420 : 850}V${selected.y + 37}H${selected.x + 18}V${selected.y + 20}`}
-              fill="none"
-              stroke="#ad7d35"
-              strokeWidth="4"
-              strokeDasharray="7 7"
-              aria-hidden="true"
-            />
-          )}
+          ) : <rect width={cemeteryPlan.width} height={cemeteryPlan.height} fill="#eef1e7" />}
           {graves.map((grave) => {
             const isSelected = grave.id === selected?.id;
             const isMatch = activeFilter && ids.has(grave.id);
@@ -441,7 +296,7 @@ function GraveMap({
                 tabIndex={focused === grave.id ? 0 : -1}
                 data-grave={grave.id}
                 aria-pressed={isSelected}
-                aria-label={`Grob ${grave.id}: ${grave.people.map((person) => `${person.name}, ${shortDate(person.born)}–${shortDate(person.died)}`).join("; ")}. Izmišljeni podatki.`}
+                aria-label={`Grob ${grave.id}: ${grave.people.map((person) => `${person.name}, ${shortDate(person.born)}–${shortDate(person.died)}`).join("; ")}.`}
                 className={`cemetery-grave${isSelected ? " is-selected" : ""}${isMatch ? " is-match" : ""}${activeFilter && !ids.has(grave.id) ? " is-dimmed" : ""}`}
                 onClick={() => choose(grave)}
                 onFocus={() => setFocused(grave.id)}
@@ -503,7 +358,6 @@ function GraveMap({
             );
           })}
         </svg>
-        <span className="cemetery-map-watermark">PRIKAZNA RAZPOREDITEV</span>
         {zoom > 1 && (
           <span className="cemetery-pan-tip">
             <Move size={14} /> Za premik povlecite načrt
@@ -533,8 +387,7 @@ function GraveMap({
         )}
       </div>
       <p className="cemetery-map-note">
-        Kliknite grob za podatke. Črtkana pot je prikaz poti od vhoda, ne
-        dejansko navodilo za hojo.
+        Kliknite grob za podatke. Načrt lahko povečate in premikate.
       </p>
     </section>
   );
@@ -613,6 +466,31 @@ export default function CemeteryPage() {
     (total, grave) => total + grave.people.length,
     0,
   );
+  if (!graves.length) return (
+    <div className="cemetery-page">
+      <CmsLayout>
+        <header className="cemetery-intro" data-motion-section>
+          <div><span className="eyebrow"><Flower2 size={16} /> POKOPALIŠČE VRHNIKA</span>
+            <h1>Informacije za svojce<br /><em>in obiskovalce.</em></h1>
+            <p>Za informacije o grobnem mestu, najemu in vzdrževanju centralnega pokopališča Vrhnika se obrnite na upravljavca.</p>
+          </div>
+          <div className="cemetery-intro-art" aria-hidden="true"><div className="cemetery-flower-circle"><Flower2 strokeWidth={1} size={76} /></div><span>Prostor spomina.</span></div>
+        </header>
+        <section className="cemetery-help" data-motion-section>
+          <div><span className="eyebrow">CENTRALNO POKOPALIŠČE VRHNIKA</span><h2>Upravljanje in grobna mesta</h2>
+            <p>Upravljavec centralnega pokopališča je Javno podjetje Komunalno podjetje Vrhnika, d.o.o. Za poizvedbo o grobnem mestu pripravite ime in priimek pokojnika ter približno leto smrti, če ga poznate.</p>
+            <Link to="/kontakt" className="button secondary">Kontakti in uradne ure <ArrowRight size={17} /></Link>
+            <CmsAnchor className="text-link" href="https://www.google.com/maps/search/?api=1&query=Centralno+pokopali%C5%A1%C4%8De+Vrhnika" target="_blank" rel="noreferrer"><MapPin size={17} /> Pot do pokopališča <ArrowRight size={16} /></CmsAnchor>
+          </div>
+          <div><span className="eyebrow">POKOPALIŠKE STORITVE</span><h2>Pomoč ob izgubi svojca</h2>
+            <p>Pokopališke storitve na centralnem pokopališču Vrhnika izvaja podjetje Pogrebne storitve Vrhovec, Suzana Vrhovec s.p.</p>
+            <CmsAnchor className="button secondary" href="tel:+38631716176">Pokličite 031 716 176 <ArrowRight size={17} /></CmsAnchor>
+            <CmsAnchor className="cemetery-source" href="https://www.kpv.si/mDejavnosti/pok/pokOstalo.html" target="_blank" rel="noreferrer">KPV · upravljanje in pokopališke storitve</CmsAnchor>
+          </div>
+        </section>
+      </CmsLayout>
+    </div>
+  );
   return (
     <div className="cemetery-page">
       <CmsLayout>
@@ -642,15 +520,6 @@ export default function CemeteryPage() {
             </span>
           </div>
         </header>
-        <div className="cemetery-demo">
-          <Info size={19} />
-          <p>
-            <strong>Predogled prihodnjega iskalnika.</strong> Vseh{" "}
-            {graves.length} grobov, imena in datumi ter razporeditev so
-            izmišljeni. Za preizkus vpišite »Novak« ali »Kovač«. Za resnični
-            grob uporabite uradne informacije KPV.
-          </p>
-        </div>
         <section
           className="cemetery-panel"
           aria-labelledby="cemetery-search-title"
@@ -662,7 +531,7 @@ export default function CemeteryPage() {
               <h2 id="cemetery-search-title">Ime je dovolj za prvi korak.</h2>
             </div>
             <span className="cemetery-search-hint">
-              <Compass size={17} /> Prikazni načrt · {sections.length} oddelkov
+              <Compass size={17} /> Načrt · {sections.length} oddelkov
             </span>
           </div>
           <label className="cemetery-search-label" htmlFor="cemetery-search">
@@ -801,9 +670,6 @@ export default function CemeteryPage() {
                       </div>
                     ))}
                   </div>
-                  <span className="cemetery-fiction-tag">
-                    Izmišljeni podatki za predstavitev
-                  </span>
                   <button
                     type="button"
                     className="button secondary cemetery-share"
@@ -826,8 +692,7 @@ export default function CemeteryPage() {
                     </label>
                   )}
                   <p className="cemetery-detail-note">
-                    Povezavo lahko pošljete svojcem. Ta primer prikazuje
-                    funkcijo; ni evidenca resničnega groba.
+                    Povezavo do izbranega groba lahko kopirate in pošljete svojcem.
                   </p>
                 </div>
               ) : (
@@ -847,7 +712,7 @@ export default function CemeteryPage() {
             >
               <div className="cemetery-list-heading">
                 <h2 id="cemetery-results-title">
-                  {query.trim() ? "Rezultati iskanja" : "Prikazni grobovi"}
+                  {query.trim() ? "Rezultati iskanja" : "Grobna mesta"}
                 </h2>
                 <span>{results.length}</span>
               </div>
@@ -886,7 +751,7 @@ export default function CemeteryPage() {
                                     `${shortDate(person.born)}–${shortDate(person.died)}`,
                                 )
                                 .join(" · ")}
-                              {grave.people.length > 1 ? " · 2 osebi" : ""}
+                              {grave.people.length > 1 ? ` · ${grave.people.length} oseb` : ""}
                             </small>
                           </span>
                           <span className="cemetery-result-location">
@@ -969,11 +834,6 @@ export default function CemeteryPage() {
             </CmsAnchor>
           </div>
         </section>
-        <p className="cemetery-future-note">
-          <Layers3 size={17} /> Ilustrativni načrt bo mogoče nadomestiti s
-          posnetkom iz zraka in potrjeno evidenco grobov. Imena, datumi in
-          položaji v tem predogledu niso dejanski.
-        </p>
       </CmsLayout>
     </div>
   );

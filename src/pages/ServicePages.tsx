@@ -61,8 +61,8 @@ type Notice = {
   date: string;
   summary: string;
   status: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
 };
 type Receipt = {
   id: string;
@@ -119,25 +119,18 @@ function Intro({
   );
 }
 function Demo({ children }: { children?: ReactNode }) {
-  return (
-    <div className="svc-demo">
-      <CircleAlert size={18} />
-      <span>
-        {children ||
-          "Predstavitvena različica. Prikazani primeri niso uradna obvestila Komunalnega podjetja Vrhnika."}
-      </span>
-    </div>
-  );
+  if (!children) return null;
+  return <div className="svc-demo"><CircleAlert size={18}/><span>{children}</span></div>;
 }
 function Consent({
-  text = "Strinjam se s shranjevanjem podatkov in posredovanjem skrbniku predstavitve za preizkus obrazca.",
+  text = "Strinjam se z obdelavo vnesenih podatkov za obravnavo te oddaje.",
 }: {
   text?: string;
 }) {
   return (
     <label className="svc-consent">
       <input type="checkbox" name="consent" required />
-      <span>{text} Uporabite izmišljene osebne podatke.</span>
+      <span>{text}</span>
     </label>
   );
 }
@@ -163,11 +156,11 @@ function Result({
       <div className="svc-success" role="status" ref={result}>
         <CheckCircle2 size={23} />
         <div>
-          <strong>Vaš preizkusni obrazec je shranjen.</strong>
+          <strong>Vaša oddaja je shranjena.</strong>
           <p>
             Referenca: {receipt.id}.{" "}
             {receipt.message ||
-              "Podatki so shranjeni za preizkus. Storitev ni naročena in plačilo ni izvedeno."}
+              "Podatki so shranjeni. Izvedba oziroma termin se potrdita po obravnavi."}
           </p>
         </div>
       </div>
@@ -317,9 +310,7 @@ function SubscriptionForm() {
         <div className="eyebrow">OBVESTILA ZA MOJ DOM</div>
         <h2>Naj vas spremembe ne presenetijo.</h2>
         <p>
-          Izberite območje in teme, ki vas zanimajo. Shranimo preizkusne
-          nastavitve in o oddaji obvestimo skrbnika javne predstavitve.
-          Samodejnih obvestil o motnjah na vaš naslov še ne pošiljamo.
+          Izberite območje in teme, ki vas zanimajo. Vašo željo za obveščanje bomo obravnavali. Oddaja še ne vključi samodejnega pošiljanja obvestil.
         </p>
       </div>
       <form
@@ -397,7 +388,7 @@ function SubscriptionForm() {
         <Consent />
         <BotProtection action="subscriptions" />
         <button className="button" disabled={submission.busy || !topics.length}>
-          {submission.busy ? "Shranjujemo …" : "Shrani preizkusno naročilo"}
+          {submission.busy ? "Shranjujemo …" : "Oddaj željo za obveščanje"}
           <ArrowRight size={17} />
         </button>
         <Result receipt={submission.receipt} error={submission.error} />
@@ -608,7 +599,7 @@ export function RoadsPage() {
             zoom={12}
             scrollWheelZoom={false}
             className="svc-map"
-            aria-label="Zemljevid vzorčnih cestnih del"
+            aria-label="Zemljevid cestnih del"
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -622,7 +613,7 @@ export function RoadsPage() {
               .map((n) => (
                 <CircleMarker
                   key={n.id}
-                  center={[n.latitude, n.longitude]}
+                  center={[n.latitude!, n.longitude!]}
                   radius={11}
                   pathOptions={{
                     color: "#ffffff",
@@ -634,14 +625,14 @@ export function RoadsPage() {
                   <Popup>
                     <strong>{n.title}</strong>
                     <p>{n.area}</p>
-                    <p>Vzorčni prikaz</p>
+                    <p>Lokacija del</p>
                   </Popup>
                 </CircleMarker>
               ))}
           </MapContainer>
           <span className="svc-map-caption">
             <span />
-            Vzorčne lokacije del · premikajte in povečajte zemljevid
+            Lokacije objavljenih del · premikajte in povečajte zemljevid
           </span>
         </div>
         <aside className="svc-road-aside">
@@ -662,8 +653,7 @@ export function RoadsPage() {
             <ArrowRight size={17} />
           </Link>
           <p className="svc-small">
-            V nujnih primerih uporabite uradne kontakte. Ta obrazec je
-            predstavitveni.
+            V nujnih primerih pokličite dežurno službo.
           </p>
         </aside>
       </section>
@@ -684,7 +674,7 @@ export function RoadsPage() {
       ) : roads.length ? (
         <NoticeCards notices={roads} />
       ) : (
-        <p className="empty-state">Ni vzorčnih cestnih del.</p>
+        <p className="empty-state">Ni objavljenih cestnih del.</p>
       )}
       <SubscriptionForm />
     </CmsLayout>
@@ -857,11 +847,7 @@ export function ReportPage() {
         Izberite težavo, opišite lokacijo in po želji dodajte fotografijo. Za
         prijavo zadošča tudi opis lokacije brez GPS.
       </Intro>
-      <Demo>
-        Preizkusni obrazec. Prijava se shrani v predstavitveno zbirko in ni
-        poslana dežurni službi. Za nujno pomoč pokličite{" "}
-        <CmsAnchor href="tel:+38641364681">041 364 681</CmsAnchor>.
-      </Demo>
+      <Demo>Prijavo obravnava skrbnik portala. Za nujne okvare pokličite dežurno službo.</Demo>
       <nav className="svc-report-steps" aria-label="Koraki prijave">
         {[
           ["1", "Težava", "tezava"],
@@ -1188,9 +1174,7 @@ export function ReportPage() {
               <h2>Vaš kontakt</h2>
             </div>
             <p className="svc-step-explanation">
-              V preizkusu uporabite izmišljene podatke. Kontakt bo vključen v
-              obvestilo skrbniku javne predstavitve; samodejnega odgovora ne
-              pošiljamo.
+              Kontakt uporabimo za obravnavo vaše prijave. Samodejnega odgovora po e-pošti ne pošiljamo.
             </p>
             <div className="form-grid">
               <Field label="Ime in priimek · obvezno">
@@ -1225,7 +1209,7 @@ export function ReportPage() {
               className="button svc-report-submit"
               disabled={submission.busy || !!photoError}
             >
-              {submission.busy ? "Shranjujemo …" : "Shrani preizkusno prijavo"}
+              {submission.busy ? "Shranjujemo …" : "Oddaj prijavo"}
               <ArrowRight size={17} />
             </button>
             <Result receipt={submission.receipt} error={submission.error} />
@@ -1247,7 +1231,7 @@ export function ReportPage() {
             <strong>Potrebujete nujno pomoč?</strong>
             <p>
               Za nujne težave z javno infrastrukturo uporabite uradno dežurno
-              številko. Predstavitvena prijava se podjetju ne pošlje.
+              številko. Spletna prijava ni primerna za nujne primere.
             </p>
             <CmsAnchor href="tel:+38641364681">
               041 364 681
@@ -1309,7 +1293,7 @@ const serviceGuides: Record<
       "Približna prostornina, če jo poznate; če ne, to zapišite.",
       "Kje je pokrov in ali je do njega mogoč dostop za vozilo.",
     ],
-    note: "Pred izvedbo je treba preveriti pogoje in uskladiti termin. V predstavitvi se shrani samo povpraševanje.",
+    note: "Pred izvedbo je treba preveriti pogoje in uskladiti termin. Oddaja še ne potrjuje izvedbe.",
     placeholder:
       "Npr. greznica približno 6 m³, pokrov na dvorišču, od ceste oddaljen okoli 10 m. Dostop za vozilo je mogoč …",
   },
@@ -1319,7 +1303,7 @@ const serviceGuides: Record<
     prepare: [
       "Naslov objekta in kratek opis, kaj želite urediti.",
       "Ali gre za nov priključek, obstoječi priključek, vodomer ali drugo vprašanje.",
-      "Številka odjemnega mesta, če jo poznate; za preizkus uporabite izmišljene podatke.",
+      "Številka odjemnega mesta, če jo poznate.",
     ],
     note: "Povpraševanje ni prijava nujne okvare. Za trenutno motnjo oskrbe najprej preverite obvestila ali pokličite dežurno službo.",
     placeholder:
@@ -1333,7 +1317,7 @@ const serviceGuides: Record<
       "Obseg dela ali druge okoliščine, ki jih poznate.",
       "Želeni termin, če je pomemben; vnos datuma ni obvezen.",
     ],
-    note: "Najprej je treba preveriti, ali storitev sodi v dejavnost podjetja. Ta preizkus ne potrdi naročila.",
+    note: "Najprej je treba preveriti, ali storitev sodi v dejavnost podjetja. Oddaja še ne potrjuje naročila.",
     placeholder:
       "Npr. potrebujem informacije o … Lokacija je … Urediti želim …",
   },
@@ -1467,10 +1451,7 @@ export function ServicesPage() {
           <p className="svc-small">
             Vsa polja razen telefona in želenega datuma so obvezna.
           </p>
-          <Demo>
-            Povpraševanje se shrani kot primer. Dejansko naročilo in potrditev
-            termina v tej različici še nista omogočena.
-          </Demo>
+          <Demo>Oddaja povpraševanja še ne potrjuje naročila ali termina. Po obravnavi se dogovorimo o izvedbi.</Demo>
           <form
             onSubmit={async (event) => {
               const values = Values(event);
@@ -1547,7 +1528,7 @@ export function ServicesPage() {
             <button className="button" disabled={submission.busy}>
               {submission.busy
                 ? "Shranjujemo …"
-                : "Oddaj preizkusno povpraševanje"}
+                : "Oddaj povpraševanje"}
               <ArrowRight size={17} />
             </button>
             <Result receipt={submission.receipt} error={submission.error} />
@@ -1567,8 +1548,7 @@ export function ServicesPage() {
             </div>
           ))}
           <p className="svc-small">
-            Prikazan je predvideni potek prihodnje storitve. Za dejansko
-            naročilo se obrnite na KPV.
+            Za izvedbo je potreben dogovor o terminu, obsegu in ceni storitve.
           </p>
           <Link to="/kontakt" className="svc-inline-link">
             Potrebujem pomoč
@@ -1621,18 +1601,16 @@ export function MarketPage() {
   return (
     <CmsLayout>
       <Intro eyebrow="LOKALNO JE LEPŠE" title="Vaša ponudba. Naša tržnica.">
-        Predstavite svoje pridelke, izdelke in zgodbe. Preizkusite preprosto
-        prijavo za prodajno mesto.
+        Predstavite svoje pridelke in izdelke. Oddajte povpraševanje za prodajno mesto.
       </Intro>
       <Demo>
-        Termini, razpoložljivost in zneski so vzorčni. Prijava ni dejanska
-        rezervacija, spletna plačila pa še niso vključena.
+        Izberite želeni datum. Razpoložljivost in končno ceno potrdi upravljavec tržnice po prejemu prijave. Plačilo na spletu ni omogočeno.
       </Demo>
       <div className="svc-two-column">
         <section className="panel">
           <div className="svc-step">
             <span>01</span>
-            <h2>Izberite termin</h2>
+            <h2>Izberite želeni datum</h2>
           </div>
           <div className="svc-date-options">
             {dateOptions.map((day) => (
@@ -1643,14 +1621,14 @@ export function MarketPage() {
                 aria-pressed={date === day}
                 onClick={() => setDate(day)}
               >
-                <span>sobota</span>
+                <span>{new Intl.DateTimeFormat("sl-SI", { weekday: "long" }).format(new Date(day + "T12:00:00"))}</span>
                 <strong>{new Date(day + "T12:00:00").getDate()}.</strong>
                 <span>
                   {new Intl.DateTimeFormat("sl-SI", { month: "long" }).format(
                     new Date(day + "T12:00:00"),
                   )}
                 </span>
-                <small>Vzorčni termin</small>
+                <small>Želeni datum</small>
               </button>
             ))}
           </div>
@@ -1713,13 +1691,13 @@ export function MarketPage() {
                   onChange={(event) => setStallType(event.target.value)}
                 >
                   <option value="standard">
-                    Standardno mesto · vzorec {euro(rates.marketStandard)}
+                    Ostali izdelki
                   </option>
                   <option value="food">
-                    Živilska ponudba · vzorec {euro(rates.marketFood)}
+                    Prehrambeni izdelki
                   </option>
                   <option value="craft">
-                    Rokodelski izdelki · vzorec {euro(rates.marketCraft)}
+                    Rokodelski izdelki
                   </option>
                 </select>
               </Field>
@@ -1737,7 +1715,7 @@ export function MarketPage() {
             <Consent />
             <BotProtection action="market" />
             <button className="button" disabled={submission.busy}>
-              {submission.busy ? "Shranjujemo …" : "Oddaj preizkusno prijavo"}
+              {submission.busy ? "Shranjujemo …" : "Oddaj prijavo"}
               <ArrowRight size={17} />
             </button>
             <Result receipt={submission.receipt} error={submission.error} />
@@ -1747,7 +1725,7 @@ export function MarketPage() {
           <div className="svc-market-summary">
             <Store size={34} />
             <div className="eyebrow">POVZETEK PRIJAVE</div>
-            <h2>Vaša preizkusna prijava.</h2>
+            <h2>Vaša prijava.</h2>
             <div>
               <span>Datum</span>
               <strong>{date ? dateLabel(date) : "Izberite datum"}</strong>
@@ -1757,13 +1735,12 @@ export function MarketPage() {
               <strong>1</strong>
             </div>
             <div>
-              <span>Vzorčni znesek</span>
-              <strong>{euro(rate)}</strong>
+              <span>Najem zunanje stojnice</span>
+              <strong>{date && new Date(date + "T12:00:00").getDay() === 6 ? euro(rate) : "Po dogovoru"}</strong>
             </div>
             <p>
               <CreditCard size={18} />
-              Plačilo v tej različici ni omogočeno. Znesek je namenjen prikazu
-              postopka in ni uradna cena.
+              Cena za sobotno zunanjo stojnico na Sodnijskem trgu, z DDV. Druge lokacije in dodatne storitve imajo ločen cenik. Plačilo uredite po dogovoru.
             </p>
           </div>
           <div className="svc-help">
@@ -1785,147 +1762,7 @@ export function MarketPage() {
 }
 
 export function CalculatorPage() {
-  const { rates } = useSiteContent();
-  const [people, setPeople] = useState(3);
-  const [water, setWater] = useState(12);
-  const [volume, setVolume] = useState(120);
-  const [bio, setBio] = useState(true);
-  const [drainage, setDrainage] = useState(true);
-  const lines = [
-    {
-      name: `Odpadki · ${volume} l zabojnik`,
-      description: "Vzorčni mesečni pavšal + dodatek na osebo",
-      value: (volume / 120) * rates.wasteBase + people * rates.wastePerson,
-    },
-    {
-      name: "Biološki odpadki",
-      description: "Vzorčni pavšal",
-      value: bio ? rates.bio : 0,
-    },
-    {
-      name: `Oskrba s pitno vodo · ${water} m³`,
-      description: `Vzorčna omrežnina ${euro(rates.waterBase)} + ${euro(rates.waterPerM3)}/m³`,
-      value: rates.waterBase + water * rates.waterPerM3,
-    },
-    {
-      name: "Odvajanje in čiščenje",
-      description: `Vzorčno ${euro(rates.drainagePerM3)}/m³`,
-      value: drainage ? water * rates.drainagePerM3 : 0,
-    },
-  ];
-  return (
-    <CmsLayout>
-      <Intro
-        eyebrow="PREGLEDNO DO ZADNJEGA EVRA"
-        title="Koliko približno nanese?"
-      >
-        Spreminjajte podatke in preverite, kako posamezne storitve vplivajo na
-        okvirni mesečni znesek.
-      </Intro>
-      <Demo>
-        Izračun uporablja izmišljene predstavitvene tarife. Ni uradni cenik,
-        ponudba ali izračun položnice. Vsi prikazani zneski so zgolj primer.
-      </Demo>
-      <div className="svc-two-column">
-        <section className="panel svc-calculator">
-          <div className="eyebrow">VAŠE GOSPODINJSTVO</div>
-          <h2>Vnesite svoje podatke</h2>
-          <Field label={`Člani gospodinjstva: ${people}`}>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={people}
-              onChange={(e) => setPeople(Number(e.target.value))}
-            />
-            <span className="svc-range-labels">
-              <span>1 oseba</span>
-              <span>10 oseb</span>
-            </span>
-          </Field>
-          <Field label="Velikost zabojnika za mešane odpadke">
-            <select
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-            >
-              <option value={80}>80 litrov</option>
-              <option value={120}>120 litrov</option>
-              <option value={240}>240 litrov</option>
-              <option value={1100}>1.100 litrov</option>
-            </select>
-          </Field>
-          <Field label={`Mesečna poraba vode: ${water} m³`}>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              value={water}
-              onChange={(e) => setWater(Number(e.target.value))}
-            />
-            <span className="svc-range-labels">
-              <span>0 m³</span>
-              <span>50 m³</span>
-            </span>
-          </Field>
-          <label className="svc-toggle">
-            <span>
-              <strong>Odvoz bioloških odpadkov</strong>
-              <small>Vključite vzorčni mesečni pavšal.</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={bio}
-              onChange={(e) => setBio(e.target.checked)}
-            />
-          </label>
-          <label className="svc-toggle">
-            <span>
-              <strong>Odvajanje in čiščenje</strong>
-              <small>Vključite obračun glede na porabo vode.</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={drainage}
-              onChange={(e) => setDrainage(e.target.checked)}
-            />
-          </label>
-          <p className="svc-small">
-            Za uradni obračun so potrebni veljaven cenik, velikost priključka,
-            območje izvajanja in drugi podatki. Uporabljene formule so izpisane
-            ob postavkah.
-          </p>
-        </section>
-        <section className="svc-total" aria-live="polite">
-          <div className="eyebrow">VZORČNI MESEČNI IZRAČUN</div>
-          <div className="svc-total-value">
-            {euro(lines.reduce((sum, line) => sum + line.value, 0))}
-            <span>/ mesec</span>
-          </div>
-          <p>Informativni primer za vaše nastavitve</p>
-          <div className="svc-cost-lines">
-            {lines.map((line) => (
-              <div key={line.name}>
-                <span>
-                  <strong>{line.name}</strong>
-                  <small>{line.description}</small>
-                </span>
-                <strong>{euro(line.value)}</strong>
-              </div>
-            ))}
-          </div>
-          <p className="svc-small">
-            Model ne vključuje vseh možnih postavk, davkov ali dejanskih pogojev
-            obračuna.
-          </p>
-          <Source>Preverite veljavne cenike na kpv.si</Source>
-          <Link to="/kontakt" className="button secondary">
-            Vprašanje o obračunu
-            <ArrowRight size={17} />
-          </Link>
-        </section>
-      </div>
-    </CmsLayout>
-  );
+  return <CmsLayout><Intro eyebrow="CENIKI IN OBRAČUN" title="Preverite cene za svojo občino.">Znesek komunalnih storitev je odvisen od občine, odjemnega mesta, porabe in vrste storitve. Za preverjanje uporabite veljavne cenike ali pošljite vprašanje o svojem računu.</Intro><div className="svc-service-grid">{[["Vrhnika","mCvrh.html"],["Borovnica","mCbor.html"],["Log - Dragomer","mClod.html"]].map(([name,path])=><section className="panel" key={name}><h2>{name}</h2><p>Veljavne cene gospodarskih javnih služb.</p><Source href={"https://www.kpv.si/mCeniki/"+path}>Odpri cenik</Source></section>)}</div><section className="panel"><h2>Potrebujete razlago računa?</h2><p>Pri vprašanju navedite občino, številko odjemnega mesta in obračunsko obdobje. Podatkov ne objavljajte javno.</p><Link className="button" to="/kontakt?category=billing">Vprašanje o obračunu <ArrowRight size={17}/></Link></section></CmsLayout>;
 }
 
 export function DepoPage() {
@@ -2132,7 +1969,7 @@ const contactSuggestions: Record<
     to: "/prijavi?category=other",
   },
   "market:booking": {
-    text: "Za preizkus prijave izberite termin in vrsto prodajnega mesta.",
+    text: "Izberite želeni datum in vrsto prodajnega mesta.",
     label: "Prijava na tržnico",
     to: "/trznica",
   },
@@ -2142,7 +1979,7 @@ const contactSuggestions: Record<
     to: "/depo",
   },
   "depo:purchase": {
-    text: "Aktualna ponudba je povezana na predstavitveni strani DEPO.",
+    text: "Aktualna ponudba je povezana na spletni strani DEPO.",
     label: "Odprite DEPO",
     to: "/depo",
   },
@@ -2200,11 +2037,7 @@ function ContactForm() {
         Izberite področje in opišite vprašanje. Predlagano zadevo lahko uredite
         po svoje.
       </p>
-      <Demo>
-        Ta obrazec je preizkusni. Sporočilo shranimo in v javni predstavitvi
-        pošljemo skrbniku tega portala. Uradno podjetje KPV ga ne prejme.
-        Uporabite izmišljene osebne podatke.
-      </Demo>
+      <Demo>Sporočilo se shrani in posreduje skrbniku portala. Za nujne zadeve uporabite dežurni telefon.</Demo>
       <form
         onSubmit={async (event) => {
           const values = Values(event);
@@ -2314,7 +2147,7 @@ function ContactForm() {
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             aria-describedby="contact-message-help"
-            placeholder="Opišite vprašanje in dodajte podatke, ki pomagajo razumeti primer. V preizkusu uporabite izmišljene podatke …"
+            placeholder="Opišite vprašanje in dodajte podatke, ki pomagajo razumeti primer. …"
           />
         </Field>
         <div className="svc-contact-message-help">
@@ -2370,18 +2203,18 @@ function ContactForm() {
         >
           {submission.busy
             ? "Shranjujemo sporočilo …"
-            : "Oddaj preizkusno sporočilo"}
+            : "Pošlji sporočilo"}
           <ArrowRight size={18} />
         </button>
         {submission.receipt ? (
           <div className="svc-success" role="status" ref={receiptElement}>
             <CheckCircle2 size={23} />
             <div>
-              <strong>Preizkusno sporočilo je shranjeno.</strong>
+              <strong>Sporočilo je shranjeno.</strong>
               <p>
                 Referenca: {submission.receipt.id}.{" "}
                 {submission.receipt.message ||
-                  "Sporočilo je shranjeno za preizkus. Za dejanski stik s podjetjem KPV uporabite uradne kontakte na tej strani."}
+                  "Sporočilo je shranjeno za obravnavo. Za nujne zadeve uporabite telefonske kontakte na tej strani."}
               </p>
             </div>
           </div>
@@ -2529,8 +2362,7 @@ export function ContactPage() {
         title="Pravi odgovor se začne s stikom."
       >
         Za vprašanje izberite področje v obrazcu ali uporabite uradne kontakte
-        podjetja. Predstavitveni obrazec omogoča preizkus shranjevanja
-        sporočila.
+        podjetja. Sporočilo oddate v spodnjem obrazcu.
       </Intro>
       <div className="svc-contact-quick-paths">
         <CmsAnchor href="#kontakt-obrazec">
@@ -2553,7 +2385,7 @@ export function ContactPage() {
         <Phone size={20} />
         <span>
           <strong>Nujna komunalna težava?</strong> Za nujno pomoč uporabite
-          dežurno službo, ne predstavitvenega obrazca.
+          dežurno službo, in ne obrazca.
         </span>
         <CmsAnchor href={`tel:${telephone(settings.emergencyPhone)}`}>
           {settings.emergencyPhone}
@@ -2620,21 +2452,20 @@ export function ContactPage() {
               <Bell size={20} />
               <span>
                 Obvestila za moj dom
-                <small>Preizkus naročila na lokalne informacije</small>
+                <small>Želja za obveščanje o lokalnih informacijah</small>
               </span>
               <ChevronRight size={18} />
             </Link>
           </section>
           <div className="svc-contact-real-help">
             <CheckCircle2 size={20} />
-            <h3>Za dejanski odgovor</h3>
+            <h3>Potrebujete hiter odgovor?</h3>
             <p>
               Pokličite uradno številko ali napišite e-pošto na{" "}
               <CmsAnchor href={`mailto:${settings.email}`}>
                 info@kpv.si
               </CmsAnchor>
-              . Predstavitveni obrazec še ni povezan z obravnavo sporočil pri
-              podjetju.
+              . Za nujne zadeve ne čakajte na odgovor prek obrazca.
             </p>
           </div>
         </aside>
@@ -2645,7 +2476,7 @@ export function ContactPage() {
           Vir kontaktov: uradna spletna stran KPV
         </Source>
         <span>
-          Preverjeno 29. oktobra 2026. Portal je predstavitveni projekt.
+          Preverjeno 29. oktobra 2026.
         </span>
       </div>
     </CmsLayout>
@@ -2715,15 +2546,7 @@ export function AboutPage() {
         ))}
       </div>
       <section className="panel svc-about-note">
-        <h2>O tej predstavitvi</h2>
-        <p>
-          To je neodvisna oblikovna in funkcionalna predstavitev bodočega
-          portala, ne uradna spletna stran podjetja. Uradni kontakti so povzeti
-          iz javnih virov. Urniki, obvestila, točke na zemljevidu, tarife in
-          tržnični termini so vzorčni. Oddani obrazci se uporabljajo za preizkus
-          delovanja in v javni predstavitvi pošljejo obvestilo skrbniku portala.
-          Uradna naročila, potrjeni termini in plačila niso vključeni.
-        </p>
+        <h2>Storitve na enem mestu</h2><p>Na portalu najdete informacije o dejavnostih, urnike odvoza, objavljena obvestila in obrazce za vprašanja ter prijave. Povpraševanja in želene termine obravnava skrbnik; izvedba zahteva potrditev.</p>
         <p>
           Naslov se lahko shrani v vaš brskalnik za hitrejši ponovni obisk.
           Odstranite ga lahko z izbrisom podatkov te spletne strani v
