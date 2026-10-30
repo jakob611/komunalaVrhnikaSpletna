@@ -47,6 +47,45 @@ test('campaigns snapshot only confirmed audience, deduplicate repeated dispatch 
  let sends=0;const live={...env,LOCAL_STORAGE:undefined};const fetcher=async(_url,init)=>{sends++;const message=JSON.parse(init.body);assert.deepEqual(message.to,[prefs.email]);assert.ok(message.headers['List-Unsubscribe']);assert.ok(message.text.includes('Nastavitve in odjava'));return Response.json({id:'provider-id'});};
  await deliverPending(live,{id:results[0].id,fetcher});await deliverPending(live,{id:results[0].id,fetcher});assert.equal(sends,1);
 });
+
+test('realistic address variants reach only the intended confirmed households through the complete campaign pipeline',async()=>{
+ const env=environment(),expected=[];
+ const rows=[
+  {address:'Trzaska cesta 48 Vrhnika',match:true},
+  {address:'Tržaška c. 48, 1360 Vrhnika',match:true},
+  {address:'Tržaška 48 Vrhnika',match:true},
+  {address:'Tržaška cesta 48a, Vrhnika'},
+  {address:'Tržaška cesta 480, Vrhnika'},
+  {address:'Tržaška cesta 48 Borovnica'},
+  {address:'Tržaška cesta 48, Vrhnika',districtId:'borovnica'},
+  {address:'Tržaška cesta 48, Vrhnika',topics:['roads']},
+  {address:'Tržaška cesta 48, Vrhnika',pending:true},
+ ];
+ for(const [index,row] of rows.entries()) {
+  const email=`household-${index}@example.com`;
+  await signup(env,{...prefs,...row,email});
+  const subscriber=await env.DB.prepare('SELECT * FROM email_subscribers WHERE email=?').bind(email).first();
+  if(!row.pending) {
+   const token=await subscriptionToken(env,subscriber.id,'confirm',subscriber.pending_version);
+   const response=await handleRequest(req('/api/subscriptions/confirm',{token}),env);
+   assert.equal(response.status,200,await response.text());
+  }
+  if(row.match)expected.push(email);
+ }
+ const targeted={...notice,addressRules:['Tržaška cesta 48, Vrhnika']};
+ await saveNotice(env,targeted);
+ assert.equal((await createCampaign(env,targeted,1,1,{email:'editor@example.com'},defaults.districts,true)).recipients,expected.length);
+ await createCampaign(env,targeted,1,1,{email:'editor@example.com'},defaults.districts);
+ await processCampaigns(env);
+ const {results}=await env.DB.prepare("SELECT id FROM email_outbox WHERE id LIKE 'subscriber-notice-%'").all();
+ const sent=[];
+ for(const row of results)await deliverPending({...env,LOCAL_STORAGE:undefined},{id:row.id,fetcher:async(_url,init)=>{
+  const message=JSON.parse(init.body);sent.push(...message.to);
+  assert.match(message.text,/Voda in kanalizacija/);
+  return Response.json({id:crypto.randomUUID()});
+ }});
+ assert.deepEqual(sent.sort(),expected.sort());env.DB.close();
+});
 test('unsubscribe is idempotent, GET safe, and immediately blocks queued notices and pending confirmations',async()=>{
  const env=environment();await signup(env);const row=await confirm(env);await saveNotice(env);await createCampaign(env,notice,1,1,{email:'editor'},defaults.districts);await processCampaigns(env);
  const token=await subscriptionToken(env,row.id,'manage'),url='/api/subscriptions/unsubscribe?token='+token;

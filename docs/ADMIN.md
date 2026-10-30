@@ -122,9 +122,11 @@ Lokalni razvoj uporablja `.data/cms.sqlite` in skrivnost v prezrti `.dev.vars`. 
 
 ## Ciljana e-obvestila naročnikom
 
-1. **Območja e-obveščanja**: upravljajte občine, naselja ali predele. Naročnik ob prijavi izbere območje; ne preimenujte obstoječega območja v drug kraj. Umaknjeno območje ne sprejema novih prijav in novih sporočil.
+1. **Območja e-obveščanja**: upravljajte občine, naselja ali predele. Naročnik ob prijavi izbere območje; ne preimenujte obstoječega območja v drug kraj. Opis območja je viden pri prijavi in pojasni, kateri naslovi sodijo sem; ni samodejno pravilo za razvrščanje naslovov. Umaknjeno območje ne sprejema novih prijav in novih sporočil.
 2. **Obvestila in motnje**: izberite temo, napišite vsebino in pod »Koga zadeva to obvestilo?« označite območja. Neobvezna naslovna pravila dodatno omejijo prejemnike na ulico ali posamezno hišo. Eno pravilo na vrstico, vedno dodajte kraj; za razpon hiš vpišite vsako hišo posebej. Hiša 1 ne vključuje 12 ali 1a.
 3. Shranite in objavite. Nato **Preveri prejemnike in dostavo**, preverite število in potrdite pošiljanje. Tema, območje in neobvezni naslovni pogoj se morajo ujemati hkrati. Brez izbranih območij pošiljanje ni dovoljeno.
 4. Isti gumb pokaže napredek, število čakajočih, sporočil sprejetih pri ponudniku in neuspešnih/preklicanih dostav. Ponovni klik ne podvoji iste različice. Spremenjeno obvestilo zahteva novo preverjanje in izrecno pošiljanje.
 
 Naročnik mora potrditi e-pošto v 24 urah. Odprtje povezave še ne aktivira naročnine; pritisniti mora **Potrdi naročnino**. Stari zapisi obrazca ostanejo med nalogi in se ne aktivirajo samodejno. Osebna povezava v vsakem sporočilu omogoča spremembo območja, naslova in tem ali takojšnjo odjavo. Umik/sprememba obvestila in odjava ustavita še neposlana sporočila. Dostavljeno sporočilo ostane v prejemnikovem predalu.
+
+En e-poštni naslov ima eno naročnino za en naslov. Ponovna prijava po potrditvi nadomesti prejšnji naslov in teme. Ujemanje upošteva šumnike, poštno številko, običajni okrajšavi »c.« in »ul.« ter popoln naslov brez vejice. Izrecno različni vrsti ulic, različni kraji in hišne pripone ostanejo ločeni. Razponi hiš se ob shranjevanju zavrnejo; sistem ne ugiba manjkajočih hiš ali prostih opisov območij.

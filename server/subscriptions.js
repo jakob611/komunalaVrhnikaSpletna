@@ -1,4 +1,4 @@
-import { validatePreferences, matchesNotice } from '../shared/notification-rules.js';
+import { validatePreferences, matchesNotice, NOTIFICATION_TOPICS } from '../shared/notification-rules.js';
 
 const ORIGIN = 'https://kpv.jakobtominc.com';
 const encoder = new TextEncoder();
@@ -49,7 +49,7 @@ export async function requestSubscription(env, data, districts, ip = 'unknown', 
   const manage=await subscriptionToken(env,id,'manage');
   const confirmUrl=link(token,'confirm'), manageUrl=link(manage,'manage');
   const district=districts.find(d=>d.id===prefs.districtId);
-  const text=`Potrdite e-obvestila KPV\n\nObmočje: ${district.name}\nNaslov: ${prefs.address}\n\nZa potrditev odprite povezavo in pritisnite Potrdi naročnino:\n${confirmUrl}\n\nPovezava velja 24 ur. Če tega niste zahtevali, je ne potrdite.\nOdjava obstoječe naročnine: ${manageUrl}`;
+  const text=`Potrdite e-obvestila KPV\n\nObmočje: ${district.name}\nNaslov: ${prefs.address}\nTeme: ${prefs.topics.map(key=>NOTIFICATION_TOPICS[key]).join(', ')}\n\nZa potrditev odprite povezavo in pritisnite Potrdi naročnino:\n${confirmUrl}\n\nPo potrditvi te nastavitve nadomestijo morebitno prejšnjo naročnino na tem e-poštnem naslovu. Povezava velja 24 ur. Če tega niste zahtevali, je ne potrdite.\nOdjava obstoječe naročnine: ${manageUrl}`;
   const outboxId=`subscriber-confirm-${id}-${version}`;
   const statements=[env.DB.prepare(`INSERT INTO email_subscribers(id,email,status,name,address,district_id,topics,created_at,updated_at,pending_payload,pending_version,confirm_until,last_request)
     VALUES(?,?,'pending',?,?,?, ?,?,?,?, ?,?,?) ON CONFLICT(email) DO UPDATE SET pending_payload=excluded.pending_payload,pending_version=email_subscribers.pending_version+1,confirm_until=excluded.confirm_until,last_request=excluded.last_request,updated_at=excluded.updated_at
@@ -153,7 +153,7 @@ export async function processCampaigns(env,{now=Date.now()}={}) {
       const token=await subscriptionToken(env,row.id,'manage');
       const manageUrl=link(token,'manage'), unsubscribe=`${ORIGIN}/api/subscriptions/unsubscribe?token=${encodeURIComponent(token)}`;
       const publicUrl=`${ORIGIN}/obvestila#${encodeURIComponent(notice.id)}`;
-      const message=mail(env,row.email,`[KPV] ${notice.title}`,`${notice.title}\n${notice.area} · ${notice.date}\n\n${notice.summary}\n\nObvestilo: ${publicUrl}\n\nPrejemate temo ${notice.category} za izbrano območje in naslov.\nNastavitve in odjava: ${manageUrl}\n\nKomunala Vrhnika, Pot na Tojnice 40, 1360 Vrhnika`);
+      const message=mail(env,row.email,`[KPV] ${notice.title}`,`${notice.title}\n${notice.area} · ${notice.date}\n\n${notice.summary}\n\nObvestilo: ${publicUrl}\n\nPrejemate temo »${NOTIFICATION_TOPICS[notice.category]}« za izbrano območje in naslov.\nNastavitve in odjava: ${manageUrl}\n\nKomunala Vrhnika, Pot na Tojnice 40, 1360 Vrhnika`);
       message.headers={'List-Unsubscribe':`<${unsubscribe}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'};
       const id=`subscriber-notice-${campaign.id}-${row.id}`;
       statements.push(queueStatement(env.DB,id,message,now),env.DB.prepare("INSERT OR IGNORE INTO subscription_deliveries(outbox_id,subscriber_id,generation,kind,campaign_id) VALUES(?,?,?,'notice',?)").bind(id,row.id,row.generation,campaign.id));
