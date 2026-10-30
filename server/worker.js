@@ -3,6 +3,7 @@ import { BotError, verifyBot } from "./bot-protection.js";
 import { emailEnabled, outboxInsert, processEmail } from "./email.js";
 import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
 import { managedCollection } from "./managed-collection.js";
+import { requestSubscription, subscriptionAction, processCampaigns } from "./subscriptions.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -353,11 +354,12 @@ export async function handleRequest(request, env = {}, ctx) {
   if (!route.startsWith("/api/")) {
     if (env.ASSETS) {
       const response = await env.ASSETS.fetch(request);
-      if (route !== "/admin" && route !== "/admin/") return response;
+      if (route !== "/admin" && route !== "/admin/" && route !== "/obvestila/narocnina") return response;
       const headers = new Headers(response.headers);
       headers.set("X-Robots-Tag", "noindex, nofollow");
       headers.set("Cache-Control", "no-store");
       headers.set("X-Frame-Options", "DENY");
+      headers.set("Referrer-Policy", "no-referrer");
       return new Response(response.body, { status: response.status, headers });
     }
     return new Response(
@@ -366,8 +368,14 @@ export async function handleRequest(request, env = {}, ctx) {
     );
   }
   try {
+    const subscriptionResponse = await subscriptionAction(request, env, { json, readJson, readDistricts: () => readPublished(env, "districts") });
+    if (subscriptionResponse) return subscriptionResponse;
     const adminResponse = await handleAdmin(request, env);
-    if (adminResponse) return adminResponse;
+    if (adminResponse) {
+      if (route === '/api/admin/notice-delivery' && adminResponse.ok && ctx?.waitUntil)
+        ctx.waitUntil(processCampaigns(env).then(()=>processEmail(env,{limit:1})).catch(()=>console.error(JSON.stringify({event:'campaign_queue_unavailable'}))));
+      return adminResponse;
+    }
     if (request.method === "GET") {
       if (route === "/api/health")
         return json({
@@ -502,6 +510,7 @@ export async function handleRequest(request, env = {}, ctx) {
           ...person,
           address: field(data, "address", 3, 250),
           topics: [...new Set(data.topics)],
+          districtId: field(data, "districtId", 1, 80),
         };
       } else if (route === "/api/requests") {
         payload = {
@@ -539,6 +548,11 @@ export async function handleRequest(request, env = {}, ctx) {
       }
     }
     await verifyBot(request, env, token, route.slice(5), honeypot);
+    if (route === "/api/subscriptions") {
+      const data = await requestSubscription(env, { ...payload, districtId: payload.districtId, consent: true }, await readPublished(env, "districts"), request.headers.get("cf-connecting-ip") || "local");
+      if (ctx?.waitUntil) ctx.waitUntil(processEmail(env,{limit:1}));
+      return json(data, 201);
+    }
     const id = `KPV-${crypto.randomUUID()}`;
     const record = {
       id,
@@ -569,7 +583,7 @@ export async function handleRequest(request, env = {}, ctx) {
       201,
     );
   } catch (error) {
-    if (error instanceof ApiError || error instanceof BotError)
+    if (error instanceof ApiError || error instanceof BotError || Number.isInteger(error?.status))
       return json({ error: error.message, demo: false }, error.status);
     // Never log submitted personal data or request bodies.
     console.error(
@@ -592,6 +606,8 @@ export async function handleRequest(request, env = {}, ctx) {
 export default {
   fetch: handleRequest,
   async scheduled(_controller, env) {
+    try { await processCampaigns(env); } catch { console.error(JSON.stringify({event:'campaign_queue_unavailable'})); }
     await Promise.all([processEmail(env), cleanupAdmin(env)]);
+    await env.DB?.prepare('DELETE FROM subscription_limits WHERE window<?').bind(Math.floor(Date.now()/3600000)-48).run();
   },
 };

@@ -119,3 +119,12 @@ Prijavo varujejo Turnstile in omejitve poskusov. Produkcijski piškotek je `Secu
 Ob selitvi prenesite shemo in podatke D1, datoteke R2, skrivnosti, `ADMIN_OWNER_EMAIL`, Resend in omejitve gostiteljev Turnstile. Obstoječih produkcijskih virov ne ustvarjajte znova. E-poštna koda ne ponastavi lastnikovega gesla; pozabljeno geslo ali sprememba začetnega lastnika zahtevata nadzorovan poseg.
 
 Lokalni razvoj uporablja `.data/cms.sqlite` in skrivnost v prezrti `.dev.vars`. Ne pošilja dejanske pošte. Zadnje prijavno sporočilo je v zasebni `.data/admin-auth-mail.json`, ki ni dosegljiva prek Vite HTTP. Produkcijska prijava in obvestila uporabljajo obstoječi račun Resend.
+
+## Ciljana e-obvestila naročnikom
+
+1. **Območja e-obveščanja**: upravljajte občine, naselja ali predele. Naročnik ob prijavi izbere območje; ne preimenujte obstoječega območja v drug kraj. Umaknjeno območje ne sprejema novih prijav in novih sporočil.
+2. **Obvestila in motnje**: izberite temo, napišite vsebino in pod »Koga zadeva to obvestilo?« označite območja. Neobvezna naslovna pravila dodatno omejijo prejemnike na ulico ali posamezno hišo. Eno pravilo na vrstico, vedno dodajte kraj; za razpon hiš vpišite vsako hišo posebej. Hiša 1 ne vključuje 12 ali 1a.
+3. Shranite in objavite. Nato **Preveri prejemnike in dostavo**, preverite število in potrdite pošiljanje. Tema, območje in neobvezni naslovni pogoj se morajo ujemati hkrati. Brez izbranih območij pošiljanje ni dovoljeno.
+4. Isti gumb pokaže napredek, število čakajočih, sporočil sprejetih pri ponudniku in neuspešnih/preklicanih dostav. Ponovni klik ne podvoji iste različice. Spremenjeno obvestilo zahteva novo preverjanje in izrecno pošiljanje.
+
+Naročnik mora potrditi e-pošto v 24 urah. Odprtje povezave še ne aktivira naročnine; pritisniti mora **Potrdi naročnino**. Stari zapisi obrazca ostanejo med nalogi in se ne aktivirajo samodejno. Osebna povezava v vsakem sporočilu omogoča spremembo območja, naslova in tem ali takojšnjo odjavo. Umik/sprememba obvestila in odjava ustavita še neposlana sporočila. Dostavljeno sporočilo ostane v prejemnikovem predalu.

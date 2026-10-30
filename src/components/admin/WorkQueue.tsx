@@ -226,7 +226,9 @@ export default function WorkQueue({
         "X-CSRF-Token": csrfToken,
         ...init.headers,
       },
-      signal: init.signal || AbortSignal.timeout(20000),
+      signal: init.signal
+        ? AbortSignal.any([init.signal, AbortSignal.timeout(20000)])
+        : AbortSignal.timeout(20000),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -269,8 +271,12 @@ export default function WorkQueue({
         }
       })
       .catch((cause) => {
-        if (!controller.signal.aborted)
-          setError(cause.message || "Povezava ni uspela.");
+        if (!controller.signal.aborted) {
+          setItems([]);
+          setTotal(0);
+          setHasMore(false);
+          setError(cause.name === "TimeoutError" ? "Nalaganje nalogov traja predolgo. Poskusite znova." : cause.message || "Povezava ni uspela.");
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -452,6 +458,7 @@ export default function WorkQueue({
     setQuery("");
     setDebounced("");
     setFilters({ kind: "", priority: "", status: status === "overdue" ? "open" : status, overdue: status === "overdue" });
+    setNotice("");
   }
   return (
     <section className="work-queue" aria-label="Delovni nalogi">
@@ -756,7 +763,13 @@ export default function WorkQueue({
       )}
       {!loading && !error && <p className="work-result-count" role="status">{total ? `Prikaz ${((page - 1) * 20) + 1}–${Math.min(page * 20, total)} od ${total} nalogov` : "Ni najdenih nalogov"} · seznam je razvrščen po prioriteti, nato po datumu prejema.</p>}
       <div className="admin-panel work-list" aria-busy={loading}>
-        {loading ? (
+        {error ? (
+          <div className="admin-empty">
+            <AlertCircle size={30} />
+            <h3>Seznama nalogov ni bilo mogoče naložiti.</h3>
+            <button className="admin-button" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16} />Poskusi znova</button>
+          </div>
+        ) : loading ? (
           <p className="work-loading">Pridobivamo naloge …</p>
         ) : items.length ? (
           <ul>

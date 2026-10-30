@@ -80,6 +80,7 @@ const AboutPage = lazy(() =>
 );
 const CemeteryPage = lazy(() => import("./pages/CemeteryPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 
 const links = [
   {
@@ -1219,7 +1220,7 @@ function MyHome() {
             <Bell />
             <h2>Obvestila za moj dom</h2>
             <p>
-              Oddajte željo za obveščanje glede na območje in teme.
+              Prijavite se na e-obvestila za svoje območje in naslov.
             </p>
             <ArrowUpRight className="category-arrow" />
           </Link>
@@ -1252,7 +1253,7 @@ function Privacy() {
             oglaševalskih piškotkov ne uporabljamo.
           </p>
           <h2>Obrazci in obravnava oddaj</h2><p>Vnesene podatke in fotografije shranimo za obravnavo vaše oddaje. Dostop imajo prijavljeni skrbniki portala. E-poštno obvestilo s podatki oddaje pošljemo nastavljenemu skrbniku prek Resend. Oddaja povpraševanja ali prijave na tržnico še ne potrjuje izvedbe ali termina in ne izvede plačila. Za vprašanja o podatkih in zahtevo za izbris pišite skrbniku portala na tomincjakob@gmail.com ter navedite referenco oddaje. Zahteve glede portala trenutno obravnava njegov skrbnik.</p>
-          <h2>Zunanji ponudniki</h2>
+          <h2>Naročnina na e-obvestila</h2><p>Po prijavi pošljemo potrditveno povezavo. Šele po potrditvi uporabimo izbrano območje, naslov in teme za ciljno dostavo obvestil prek Resend. Osebna povezava v sporočilu omogoča spremembo nastavitev in odjavo. Po odjavi nove dostave ustavimo; že dostavljenih sporočil iz vašega predala ne moremo odstraniti. Za izbris evidenc pišite skrbniku portala.</p><h2>Zunanji ponudniki</h2>
           <p>
             Interaktivni zemljevidi nalagajo kartografske ploščice
             OpenStreetMap, pri čemer ponudnik prejme vaš IP-naslov. Povezave do
@@ -1560,6 +1561,7 @@ export default function App() {
             />
             <Route path="/moj-dom" element={<MyHome />} />
             <Route path="/zasebnost" element={<Privacy />} />
+            <Route path="/obvestila/narocnina" element={<SubscriptionPage />} />
             <Route path="*" element={<CustomCmsPage />} />
           </Routes>
         </Suspense>

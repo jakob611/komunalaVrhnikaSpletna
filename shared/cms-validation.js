@@ -1,6 +1,7 @@
 // CMS content is plain data. Shared helpers have no runtime dependencies.
 import { normalizedAddress } from "./collection-utils.js";
 import { validateLayout, validateLinks, CUSTOM_PAGE } from "./page-layout.js";
+import { validateDistricts, validateDeliveryFields } from "./notification-rules.js";
 export const CMS_SECTIONS = Object.freeze([
   "settings",
   "hours",
@@ -17,6 +18,7 @@ export const CMS_SECTIONS = Object.freeze([
   "images",
   "layout",
   "links",
+  "districts",
 ]);
 export const PUBLIC_PAGES = Object.freeze([
   "/",
@@ -260,6 +262,7 @@ function texts(value, label, maxItems = 30, maxText = 500) {
 }
 
 const validators = {
+  districts: value => validateDistricts(value),
   layout: (value) => validateLayout(value, PUBLIC_PAGES),
   links: (value) => validateLinks(value, PUBLIC_PAGES),
   settings(value) {
@@ -331,12 +334,13 @@ const validators = {
           "latitude",
           "longitude",
         ];
-        object(item, label, [...noticeFields, "published"], noticeFields);
+        object(item, label, [...noticeFields, "published", "districtIds", "allDistricts", "addressRules"], noticeFields);
         if (item.published !== undefined && typeof item.published !== "boolean")
           invalid(label, "objava mora biti vključena ali izključena");
         if ((item.latitude === null) !== (item.longitude === null))
           invalid(label, "vnesite obe koordinati ali obe pustite prazni");
         return {
+          ...validateDeliveryFields(item),
           id: id(item.id, label),
           title: text(item.title, `${label} – naslov`, 250, item.published === false ? 0 : 1),
           category: choice(item.category, label, [

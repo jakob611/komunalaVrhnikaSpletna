@@ -24,7 +24,7 @@ const calendar = await fetch(`${base}/api/calendar?address=${encodeURIComponent(
 );
 assert.ok(calendar.includes("BEGIN:VCALENDAR") && calendar.includes("BEGIN:VEVENT") && !calendar.includes("PRIMER"));
 const checks = [
-  ["/api/subscriptions", { ...person, topics: ["water", "roads"] }],
+  ["/api/subscriptions", { ...person, topics: ["water", "roads"], districtId: "vrhnika" }],
   [
     "/api/requests",
     {
@@ -68,7 +68,7 @@ for (const [route, body] of checks) {
     );
   } else {
     assert.equal(response.status, 201, JSON.stringify(result));
-    assert.equal(result.status, "demo-saved");
+    assert.equal(result.status, route === "/api/subscriptions" ? "confirmation-required" : "demo-saved");
     assert.ok(result.id.startsWith("KPV-"));
     console.log(`PASS ${route} · stored local demo receipt`);
   }

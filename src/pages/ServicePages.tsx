@@ -1,3 +1,4 @@
+import SubscriptionForm from "../components/SubscriptionForm";
 import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import {
   useEffect,
@@ -297,105 +298,6 @@ function Source({
   );
 }
 
-function SubscriptionForm() {
-  const [address, setAddress] = useState(rememberedAddress);
-  const [topics, setTopics] = useState(["water", "roads"]);
-  const submission = useSubmission();
-  return (
-    <section className="panel svc-subscribe" id="narocilo">
-      <div className="svc-icon">
-        <Bell size={24} />
-      </div>
-      <div>
-        <div className="eyebrow">OBVESTILA ZA MOJ DOM</div>
-        <h2>Naj vas spremembe ne presenetijo.</h2>
-        <p>
-          Izberite območje in teme, ki vas zanimajo. Vašo željo za obveščanje bomo obravnavali. Oddaja še ne vključi samodejnega pošiljanja obvestil.
-        </p>
-      </div>
-      <form
-        onSubmit={async (e) => {
-          const values = Values(e);
-          if (!topics.length) return;
-          const okay = await submission.submit("/api/subscriptions", {
-            ...values,
-            address,
-            topics,
-            consent: true,
-          });
-          if (okay) {
-            try {
-              localStorage.setItem("kpv-address", address);
-            } catch {
-              /* address persistence is optional */
-            }
-          }
-        }}
-      >
-        <div className="form-grid">
-          <Field label="Ime in priimek">
-            <input
-              name="name"
-              autoComplete="name"
-              minLength={2}
-              required
-              maxLength={100}
-              placeholder="Janez Novak"
-            />
-          </Field>
-          <Field label="E-poštni naslov">
-            <input
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="janez@primer.si"
-            />
-          </Field>
-          <Field label="Naslov, ki vas zanima" wide>
-            <input
-              name="address"
-              required
-              minLength={4}
-              maxLength={200}
-              autoComplete="street-address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Ulica in hišna številka, kraj"
-            />
-          </Field>
-        </div>
-        <fieldset className="svc-topics">
-          <legend>O čem želite biti obveščeni?</legend>
-          {Object.entries(categories).map(([key, name]) => (
-            <label key={key}>
-              <input
-                type="checkbox"
-                checked={topics.includes(key)}
-                onChange={(e) =>
-                  setTopics((previous) =>
-                    e.target.checked
-                      ? [...previous, key]
-                      : previous.filter((v) => v !== key),
-                  )
-                }
-              />
-              {name}
-            </label>
-          ))}
-        </fieldset>
-        {!topics.length && <p className="svc-error">Izberite vsaj eno temo.</p>}
-        <Consent />
-        <BotProtection action="subscriptions" />
-        <button className="button" disabled={submission.busy || !topics.length}>
-          {submission.busy ? "Shranjujemo …" : "Oddaj željo za obveščanje"}
-          <ArrowRight size={17} />
-        </button>
-        <Result receipt={submission.receipt} error={submission.error} />
-      </form>
-    </section>
-  );
-}
 function useNotices() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);

@@ -13,10 +13,11 @@ function database() {
     run: async () => sql.prepare(query).run(...bindings),
     all: async () => ({ results: sql.prepare(query).all(...bindings) }),
     first: async () => sql.prepare(query).get(...bindings) || null,
+    execute: () => ({results:sql.prepare(query).all(...bindings)}),
   });
   return { sql, prepare: wrap, async batch(statements) {
     sql.exec('BEGIN');
-    try { for (const stmt of statements) await stmt.run(); sql.exec('COMMIT'); }
+    try { const results=statements.map(stmt=>stmt.execute()); sql.exec('COMMIT'); return results; }
     catch (error) { sql.exec('ROLLBACK'); throw error; }
   } };
 }
@@ -85,6 +86,7 @@ test('permanent provider rejection stops retries and stale queues never resend',
   assert.equal(row(e).status, 'failed');
   assert.equal(row(e).last_error, 'http_403');
   const stale = env(); await enqueue(stale);
+  await deliverPending(stale,{now,fetcher:async()=>new Response('',{status:429})});
   await deliverPending(stale, { now: now + 21 * 3600000, fetcher: () => assert.fail('expired') });
   assert.equal(row(stale).last_error, 'retry_window_expired');
 });

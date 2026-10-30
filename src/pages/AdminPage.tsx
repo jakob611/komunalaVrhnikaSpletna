@@ -44,6 +44,7 @@ import AdminUsers from "../components/admin/AdminUsers";
 import NotificationSettings from "../components/admin/NotificationSettings";
 import CollectionEditor from "../components/admin/CollectionEditor";
 import NoticesEditor, { type EditableNotice } from "../components/admin/NoticesEditor";
+import DistrictsEditor, { type District } from "../components/admin/DistrictsEditor";
 import type { CollectionData } from "../../shared/collection-utils";
 import LayoutEditor from "../components/admin/LayoutEditor";
 import WebsiteEditor, { WEBSITE_SECTIONS, type WebsiteDraft } from "../components/admin/WebsiteEditor";
@@ -121,6 +122,7 @@ const sectionInfo: Record<
     description: "Objavljajte in urejajte obvestila za občane.",
     group: "Vsebine",
   },
+  districts: { name: "Območja e-obveščanja", description: "Občine, naselja in predeli, na katere se naročniki prijavijo za e-obvestila.", group: "Vsebine" },
   collection: {
     name: "Urniki odvoza",
     description: "Območja, termini in vrste odpadkov.",
@@ -1870,7 +1872,9 @@ export default function AdminPage() {
                       />
                     </fieldset>
                   ) : active === "notices" ? (
-                    <NoticesEditor value={draft as unknown as EditableNotice[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy} />
+                    <NoticesEditor value={draft as unknown as EditableNotice[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy} districts={sections.districts as unknown as District[]} revision={revisions.notices ?? 0} csrfToken={session.csrfToken} dirty={dirty} />
+                  ) : active === "districts" ? (
+                    <DistrictsEditor value={draft as unknown as District[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy}/>
                   ) : active === "collection" ? (
                     <fieldset className="admin-complex-editor" disabled={busy}>
                       <CollectionEditor

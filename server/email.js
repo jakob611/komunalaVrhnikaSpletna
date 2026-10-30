@@ -1,6 +1,7 @@
 import template from './email-template.generated.js';
 import { Buffer } from 'node:buffer';
 import { notificationRecipient } from './notification-settings.js';
+import { subscriberDeliveryAllowed } from './subscriptions.js';
 
 export function emailEnabled(env) {
   // File-backed development and automated tests never send real email.
@@ -55,24 +56,36 @@ export async function outboxInsert(db, record, env) {
       JSON.stringify(notification(record, { ...env, EMAIL_TO: recipient })), record.payload.photoKey || null);
 }
 
-export async function deliverPending(env, { id = null, fetcher = fetch, now = Date.now() } = {}) {
+export async function deliverPending(env, { id = null, fetcher = fetch, now = Date.now(), limit = 20 } = {}) {
   if (!emailEnabled(env)) return;
   // Stop uncertain retries before the provider's 24h deduplication window expires.
   await env.DB.prepare(`UPDATE email_outbox SET status = 'failed', last_error = 'retry_window_expired'
-    WHERE status = 'pending' AND created_at < ?`).bind(now - 20 * 60 * 60 * 1000).run();
+    WHERE status = 'pending' AND EXISTS(SELECT 1 FROM email_delivery_windows w WHERE w.outbox_id=email_outbox.id AND w.started_at < ?)`).bind(now - 20 * 60 * 60 * 1000).run();
   const { results } = await env.DB.prepare(`SELECT id FROM email_outbox
     WHERE status = 'pending' AND next_attempt <= ? AND (? IS NULL OR id = ?)
-    ORDER BY next_attempt LIMIT 5`).bind(now, id, id).all();
-  for (const candidate of results) {
+    ORDER BY CASE WHEN id LIKE 'subscriber-confirm-%' THEN 0 WHEN id LIKE 'subscriber-notice-%' THEN 2 ELSE 1 END,next_attempt,id LIMIT ?`).bind(now, id, id, Math.max(1,Math.min(20,Math.floor(limit)||20))).all();
+  if(!results.length)return;
+  const claimed=await env.DB.batch(results.flatMap(candidate=>[
+    env.DB.prepare(`INSERT OR IGNORE INTO email_delivery_windows(outbox_id,started_at) SELECT id,CASE WHEN attempts>0 THEN created_at ELSE ? END FROM email_outbox WHERE id=?`).bind(now,candidate.id),
+    env.DB.prepare(`UPDATE email_outbox SET next_attempt=?,attempts=attempts+1 WHERE id=? AND status='pending' AND next_attempt<=? AND EXISTS(SELECT 1 FROM email_delivery_windows w WHERE w.outbox_id=email_outbox.id AND w.started_at>=?) RETURNING *`).bind(now+360000,candidate.id,now,now-20*60*60*1000)
+  ]));
+  const leases=claimed.filter((_,index)=>index%2===1);
+  const settlements=[];
+  let sentRequests=0;
+  for (const lease of leases) {
     // A conditional lease prevents request and cron invocations from racing.
-    const row = await env.DB.prepare(`UPDATE email_outbox SET next_attempt = ?, attempts = attempts + 1
-      WHERE id = ? AND status = 'pending' AND next_attempt <= ? RETURNING *`)
-      .bind(now + 120000, candidate.id, now).first();
+    const row=lease.results?.[0];
     if (!row) continue;
+    if (!await subscriberDeliveryAllowed(env,row.id,now)) {
+      settlements.push(env.DB.prepare("UPDATE email_outbox SET status='failed',last_error='subscription_inactive' WHERE id=?").bind(row.id));
+      continue;
+    }
     let failure = 'network';
     let transient = true;
     try {
       const message = JSON.parse(row.message);
+      // Stay below the provider's standard two requests/second; mocks do not sleep.
+      if(fetcher===fetch&&sentRequests++)await new Promise(resolve=>setTimeout(resolve,600));
       if (row.photo_key) {
         const object = await env.PHOTOS?.get(row.photo_key);
         if (!object) throw new Error('Photo unavailable');
@@ -87,8 +100,8 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
       if (response.ok) {
         const data = await response.json();
         if (!data.id) throw new Error('Missing provider receipt');
-        await env.DB.prepare(`UPDATE email_outbox SET status = 'sent', provider_id = ?, last_error = NULL
-          WHERE id = ?`).bind(data.id, row.id).run();
+        settlements.push(env.DB.prepare(`UPDATE email_outbox SET status = 'sent', provider_id = ?, last_error = NULL
+          WHERE id = ?`).bind(data.id, row.id));
         continue;
       }
       failure = `http_${response.status}`;
@@ -99,10 +112,11 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
     }
     const status = transient && row.attempts < 8 ? 'pending' : 'failed';
     const next = now + Math.min(60, 5 * 2 ** (row.attempts - 1)) * 60000;
-    await env.DB.prepare(`UPDATE email_outbox SET status = ?, next_attempt = ?, last_error = ? WHERE id = ?`)
-      .bind(status, next, failure, row.id).run();
+    settlements.push(env.DB.prepare(`UPDATE email_outbox SET status = ?, next_attempt = ?, last_error = ? WHERE id = ?`)
+      .bind(status, next, failure, row.id));
     console.warn(JSON.stringify({ event: 'email_delivery', status, reason: failure }));
   }
+  if(settlements.length)await env.DB.batch(settlements);
 }
 
 export async function processEmail(env, options) {

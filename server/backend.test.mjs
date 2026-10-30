@@ -58,7 +58,7 @@ test("production write APIs require bot verification before saving", async () =>
     TURNSTILE_HOSTNAMES: "kpv.example",
   };
   const response = await handleRequest(
-    post("/api/subscriptions", { ...person, topics: ["water"] }),
+    post("/api/subscriptions", { ...person, topics: ["water"], districtId: "vrhnika" }),
     env,
   );
   assert.equal(response.status, 403);
@@ -267,7 +267,7 @@ test("local storage persists parallel submissions and survives a new adapter ins
     const responses = await Promise.all(
       Array.from({ length: 12 }, () =>
         handleRequest(
-          post("/api/subscriptions", { ...person, topics: ["water", "roads"] }),
+          post("/api/contact", { ...person, category:"other",subcategory:"",subject:"Testni stik",message:"Preverjanje vzporednega shranjevanja sporočil." }),
           env,
         ),
       ),
@@ -296,7 +296,7 @@ test("local storage persists parallel submissions and survives a new adapter ins
 
 test("missing storage never returns a false success", async () => {
   const response = await handleRequest(
-    post("/api/subscriptions", { ...person, topics: ["water"] }),
+    post("/api/subscriptions", { ...person, topics: ["water"], districtId: "vrhnika" }),
   );
   assert.equal(response.status, 503);
   assert.match((await response.json()).error, /ni shranjena/);
@@ -315,12 +315,12 @@ test("consent, allowed topics, dates and email are validated before saving", asy
     post("/api/subscriptions", {
       ...person,
       consent: false,
-      topics: ["water"],
+      topics: ["water"], districtId: "vrhnika",
     }),
     post("/api/subscriptions", {
       ...person,
       email: "invalid",
-      topics: ["water"],
+      topics: ["water"], districtId: "vrhnika",
     }),
     post("/api/subscriptions", { ...person, topics: ["anything"] }),
     post("/api/market", {
@@ -355,7 +355,7 @@ test("cross-site submission and oversized JSON are rejected", async () => {
       await handleRequest(
         post(
           "/api/subscriptions",
-          { ...person, topics: ["water"] },
+          { ...person, topics: ["water"], districtId: "vrhnika" },
           { Origin: "https://attacker.example" },
         ),
         env,
@@ -369,7 +369,7 @@ test("cross-site submission and oversized JSON are rejected", async () => {
         post("/api/subscriptions", {
           ...person,
           name: "x".repeat(40_000),
-          topics: ["water"],
+          topics: ["water"], districtId: "vrhnika",
         }),
         env,
       )

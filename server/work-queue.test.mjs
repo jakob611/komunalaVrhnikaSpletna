@@ -345,3 +345,48 @@ test("work search includes responsible teams and private notes while preserving 
   assert.equal(invalid.status, 400);
   env.DB.close();
 });
+
+test("new, open and closed queue filters combine correctly with every task kind and overdue priority", async () => {
+  const { env, session } = await setup();
+  const records = [
+    ["KPV-progress", "reports", "in-progress"],
+    ["KPV-resolved", "reports", "resolved"],
+    ["KPV-request", "requests", "demo-saved"],
+    ["KPV-market", "market", "demo-saved"],
+    ["KPV-subscription", "subscriptions", "demo-saved"],
+    ["KPV-contact", "contact", "demo-saved"],
+    ["KPV-spam", "contact", "spam"],
+    ["INT-test", "internal", "demo-saved"],
+  ];
+  for (const [id, kind, status] of records) {
+    const table = kind === "contact" ? "contact_submissions" : kind === "internal" ? "internal_tasks" : "submissions";
+    await env.DB.prepare(`INSERT INTO ${table}(id,kind,created_at,status,payload) VALUES(?,?,?,?,?)`)
+      .bind(id, kind, new Date().toISOString(), status, JSON.stringify({subject:id})).run();
+  }
+  const progress = (await (await handleAdmin(call("/api/admin/work/KPV-progress", session), env)).json()).item;
+  assert.equal((await handleAdmin(call("/api/admin/work/KPV-progress", session, { ...progress, priority: "urgent", dueDate: "2000-01-01" }), env)).status, 200);
+  const cases = [
+    ["status=demo-saved", ["KPV-test", "KPV-request", "KPV-market", "KPV-subscription", "KPV-contact", "INT-test"]],
+    ["status=open&kind=reports", ["KPV-test", "KPV-progress"]],
+    ["status=demo-saved&kind=reports", ["KPV-test"]],
+    ["status=in-progress", ["KPV-progress"]],
+    ["status=resolved", ["KPV-resolved"]],
+    ["status=spam", ["KPV-spam"]],
+    ["status=all&kind=contact", ["KPV-contact", "KPV-spam"]],
+    ["status=open&priority=urgent&overdue=true", ["KPV-progress"]],
+    ["status=demo-saved&priority=urgent", []],
+  ];
+  for (const kind of ["requests", "market", "subscriptions", "contact", "internal"])
+    cases.push([`status=demo-saved&kind=${kind}`, records.filter(([, k, status]) => k === kind && status === "demo-saved").map(([id]) => id)]);
+  for (const [query, expected] of cases) {
+    const response = await handleAdmin(call(`/api/admin/work?${query}`, session), env);
+    assert.equal(response.status, 200, query);
+    const data = await response.json();
+    assert.deepEqual(data.items.map(item => item.id).sort(), expected.sort(), query);
+    assert.equal(data.total, expected.length, query);
+    assert.equal(data.stats.new, 6, query);
+    assert.equal(data.stats.open, 7, query);
+    assert.equal(data.stats.overdue, 1, query);
+  }
+  env.DB.close();
+});

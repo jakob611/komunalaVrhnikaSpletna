@@ -9,6 +9,7 @@ import {
 } from "./admin-auth.js";
 import { handleWork, getWorkItem, saveWorkItem } from "./work-queue.js";
 import { handleNotificationSettings } from "./notification-settings.js";
+import { createCampaign, processCampaigns } from "./subscriptions.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const headers = {
@@ -330,6 +331,23 @@ export async function handleAdmin(request, env = {}) {
     });
     if (workResponse) return workResponse;
     const db = database(env);
+    if (path === '/api/admin/subscribers') {
+      allow(request,'GET');
+      const district=url.searchParams.get('district')||'';
+      if(district.length>80)fail(400,'Območje ni veljavno.');
+      const {results}=await db.prepare("SELECT email,address,district_id,status,topics FROM email_subscribers WHERE (?='' OR district_id=?) ORDER BY updated_at DESC LIMIT 50").bind(district,district).all();
+      const stats=await db.prepare('SELECT status,COUNT(*) AS count FROM email_subscribers GROUP BY status').all();
+      return json({items:results.map(row=>({...row,topics:JSON.parse(row.topics)})),counts:Object.fromEntries(stats.results.map(row=>[row.status,row.count]))});
+    }
+    if (path === "/api/admin/notice-delivery") {
+      allow(request, "POST");
+      const data = await body(request,8192);
+      const all = await content(env,true);
+      const notice = all.sections.notices.find(item => item.id === data.noticeId);
+      if (!notice) fail(404,"Obvestilo ne obstaja. Najprej ga shranite.");
+      const result = await createCampaign(env,notice,all.revisions.notices,data.revision,actor,all.sections.districts,data.preview===true);
+      return json(result);
+    }
     if (path === "/api/admin/content") {
       allow(request, "GET");
       return json(await content(env, true));
@@ -473,7 +491,7 @@ export async function handleAdmin(request, env = {}) {
       error instanceof AdminError ||
       error instanceof AuthError ||
       error instanceof BotError ||
-      error?.status === 400
+      Number.isInteger(error?.status)
     )
       return json({ error: error.message }, error.status);
     return json(

@@ -44,6 +44,7 @@ const environment = {
   LOCAL_STORAGE: localStorage,
   DB: cmsDB,
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+  SUBSCRIPTION_SIGNING_SECRET: process.env.SUBSCRIPTION_SIGNING_SECRET || 'local-only-subscriptions-not-for-public-hosts',
   ADMIN_OWNER_EMAIL: process.env.ADMIN_OWNER_EMAIL || "tomincjakob@gmail.com",
   EMAIL_FROM: "KPV razvoj <razvoj@kpv.jakobtominc.com>",
   async ADMIN_AUTH_SEND(message) {

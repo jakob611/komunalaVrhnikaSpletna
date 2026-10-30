@@ -62,6 +62,9 @@ export type SiteData = Omit<
     date: string;
     summary: string;
     status: string;
+    districtIds?: string[];
+    allDistricts?: boolean;
+    addressRules?: string[];
     latitude: number | null;
     longitude: number | null;
     published?: boolean;

@@ -160,3 +160,23 @@ CREATE TABLE IF NOT EXISTS notification_settings (
   updated_at TEXT NOT NULL,
   updated_by TEXT NOT NULL
 );
+
+-- Confirmed household subscriptions; existing form submissions are not activated automatically.
+CREATE TABLE IF NOT EXISTS email_subscribers (
+ id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','active','unsubscribed','suppressed')),
+ name TEXT NOT NULL,address TEXT NOT NULL,district_id TEXT NOT NULL,topics TEXT NOT NULL CHECK(json_valid(topics)),
+ created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,confirmed_at INTEGER,
+ pending_payload TEXT,pending_version INTEGER NOT NULL DEFAULT 0,confirm_until INTEGER NOT NULL DEFAULT 0,last_request INTEGER NOT NULL DEFAULT 0,generation INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS email_subscribers_active ON email_subscribers(status,id);
+CREATE TABLE IF NOT EXISTS subscription_limits (key TEXT NOT NULL,window INTEGER NOT NULL,attempts INTEGER NOT NULL,PRIMARY KEY(key,window));
+CREATE TABLE IF NOT EXISTS notification_campaigns (
+ id TEXT PRIMARY KEY,notice_id TEXT NOT NULL,payload TEXT NOT NULL CHECK(json_valid(payload)),created_at INTEGER NOT NULL,created_by TEXT NOT NULL,
+ cursor TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','complete','cancelled'))
+);
+CREATE TABLE IF NOT EXISTS subscription_deliveries (
+ outbox_id TEXT PRIMARY KEY,subscriber_id TEXT NOT NULL,generation INTEGER NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('confirmation','notice')),campaign_id TEXT
+);
+CREATE INDEX IF NOT EXISTS subscription_deliveries_campaign ON subscription_deliveries(campaign_id);
+
+CREATE TABLE IF NOT EXISTS email_delivery_windows(outbox_id TEXT PRIMARY KEY,started_at INTEGER NOT NULL);

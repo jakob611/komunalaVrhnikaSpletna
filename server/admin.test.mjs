@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { cleanupAdmin, handleAdmin, readPublished } from "./admin.js";
 import defaults from "../shared/site-defaults.json" with { type: "json" };
+import { requestSubscription } from './subscriptions.js';
 import { handleRequest } from "./worker.js";
 import {
   createTestSession,
@@ -121,6 +122,24 @@ const mutation = (session, body, method = "PUT") => ({
   body,
   cookie: session.cookie,
   csrf: session.csrfToken,
+});
+
+test('notice delivery and subscriber overview require authentication, CSRF, current revision and explicit targeting', async()=>{
+ const env=environment();env.SUBSCRIPTION_SIGNING_SECRET='test-only-subscription-key';
+ for(const path of ['/api/admin/subscribers','/api/admin/notice-delivery'])assert.equal((await handleAdmin(request(path),env)).status,401);
+ const session=await login(env);
+ const notice={id:'delivery-notice',title:'Objava za naslov',summary:'Pomembno obvestilo za občane Verda.',category:'water',area:'Verd',date:'2026-10-30',status:'active',published:true,latitude:null,longitude:null,districtIds:['vrhnika'],addressRules:['Verd, Vrhnika']};
+ const saved=await handleAdmin(request('/api/admin/content/notices',mutation(session,{value:[notice],revision:0})),env);assert.equal(saved.status,200);
+ await requestSubscription(env,{name:'Testna oseba',email:'private-subscriber@example.com',address:'Verd 12, Vrhnika',districtId:'vrhnika',topics:['water'],consent:true},defaults.districts);
+ await env.DB.prepare("UPDATE email_subscribers SET status='active',confirmed_at=?").bind(Date.now()).run();
+ const payload={noticeId:notice.id,revision:1,preview:true};
+ assert.equal((await handleAdmin(request('/api/admin/notice-delivery',{method:'POST',body:payload,cookie:session.cookie}),env)).status,403);
+ const preview=await handleAdmin(request('/api/admin/notice-delivery',mutation(session,payload,'POST')),env);assert.equal(preview.status,200);assert.equal((await preview.json()).recipients,1);
+ assert.equal((await handleAdmin(request('/api/admin/notice-delivery',mutation(session,{...payload,revision:0},'POST')),env)).status,409);
+ const queued=await handleAdmin(request('/api/admin/notice-delivery',mutation(session,{...payload,preview:false},'POST')),env);assert.equal(queued.status,200);
+ const duplicate=await handleAdmin(request('/api/admin/notice-delivery',mutation(session,{...payload,preview:false},'POST')),env);assert.equal((await duplicate.json()).alreadyQueued,true);
+ const overview=await handleAdmin(request('/api/admin/subscribers',{cookie:session.cookie}),env);assert.equal((await overview.json()).counts.active,1);
+ const publicContent=await (await handleAdmin(request('/api/content'),env)).text();assert.ok(!publicContent.includes('private-subscriber@example.com'));
 });
 
 test("public content works before DB setup and admin routes fail closed", async () => {
