@@ -129,7 +129,7 @@ export async function createCampaign(env,notice,revision,expected,actor,district
     await env.DB.prepare('INSERT OR IGNORE INTO notification_campaigns(id,notice_id,payload,created_at,created_by) VALUES(?,?,?,?,?)').bind(id,notice.id,JSON.stringify(payload),Date.now(),actor.email).run();
   }
   const stats=await env.DB.prepare(`SELECT o.status,COUNT(*) AS count FROM email_outbox o JOIN subscription_deliveries d ON d.outbox_id=o.id WHERE d.campaign_id=? GROUP BY o.status`).bind(id).all();
-  return {id,recipients:count,alreadyQueued:!!existing,status:existing?.status||(!preview?'pending':null),deliveries:Object.fromEntries(stats.results.map(r=>[r.status,r.count]))};
+  return {id,recipients:count,alreadyQueued:!!existing||!preview,status:existing?.status||(!preview?'pending':null),deliveries:Object.fromEntries(stats.results.map(r=>[r.status,r.count]))};
 }
 
 export async function processCampaigns(env,{now=Date.now()}={}) {
