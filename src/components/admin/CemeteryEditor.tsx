@@ -30,6 +30,29 @@ type Props = {
   disabled?: boolean;
   onUpload?: (file: File | undefined) => Promise<{ url: string } | undefined>;
 };
+function GraveIdentifier({
+  value,
+  onCommit,
+}: {
+  value: string;
+  onCommit: (value: string) => boolean;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  return (
+    <label className="admin-field">
+      <span>Oznaka groba (tudi za iskanje)</span>
+      <input
+        maxLength={100}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft !== value && !onCommit(draft)) setDraft(value);
+        }}
+      />
+    </label>
+  );
+}
 export default function CemeteryEditor({
   value,
   onChange,
@@ -519,28 +542,24 @@ export default function CemeteryEditor({
               </button>
             </div>
             <div className="cem-editor-add">
-              <label className="admin-field">
-                <span>Oznaka groba (tudi za iskanje)</span>
-                <input
-                  maxLength={100}
-                  value={selected.id}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    if (
-                      !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id) ||
-                      value.graves.some((g) => g.id === id && g !== selected)
-                    ) {
-                      setError(
-                        "Oznaka mora biti enolična; dovoljeni so črke brez šumnikov, številke, pika, pomišljaj in podčrtaj.",
-                      );
-                      return;
-                    }
-                    patch({ id });
-                    setChosenId(id);
-                    setError("");
-                  }}
-                />
-              </label>
+              <GraveIdentifier
+                value={selected.id}
+                onCommit={(id) => {
+                  if (
+                    !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id) ||
+                    value.graves.some((g) => g.id === id && g !== selected)
+                  ) {
+                    setError(
+                      "Oznaka mora biti enolična; dovoljeni so črke brez šumnikov, številke, pika, pomišljaj in podčrtaj.",
+                    );
+                    return false;
+                  }
+                  patch({ id });
+                  setChosenId(id);
+                  setError("");
+                  return true;
+                }}
+              />
               <label className="admin-field">
                 <span>Številka groba v vrsti</span>
                 <input

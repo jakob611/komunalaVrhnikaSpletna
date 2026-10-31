@@ -10,7 +10,7 @@ import WorkQueue from "../components/admin/WorkQueue";
 import type { CemeteryData } from "../data/cemetery";
 
 describe("citizen workflows", () => {
-  it("offers one date directly and a finite published series with explicit import instructions", () => {
+  it("keeps direct calendar opening when future collections are included", () => {
     const events = [
       {
         id: "one",
@@ -39,21 +39,24 @@ describe("citizen workflows", () => {
         event={events[0]}
         events={events}
         address="Verd 12, Vrhnika"
+        routeId="bio-verD"
         onClose={() => {}}
       />,
     );
     expect(
       screen.getByRole("link", { name: /Odpri Google/ }).getAttribute("href"),
     ).toContain("calendar.google.com");
-    fireEvent.click(screen.getByLabelText(/Ponavljajoči se odvozi/));
-    const link = screen.getByRole("link", { name: /Prenesi ponavljajoče/ });
+    fireEvent.click(screen.getByLabelText(/Vključi tudi prihodnje/));
+    const link = screen.getByRole("link", { name: /Odpri Google/ });
     const url = new URL(link.getAttribute("href")!, "https://kpv.example");
-    expect(url.searchParams.get("repeat")).toBe("published");
-    expect(url.searchParams.get("date")).toBe("2026-11-03");
-    expect(screen.getByText(/Za več datumov prenesite/)).toBeTruthy();
+    expect(url.hostname).toBe("calendar.google.com");
+    expect(new URL(url.searchParams.get("cid")!).pathname).toBe(
+      "/api/calendar/feed",
+    );
+    expect(screen.queryByText(/Nastavitve → Uvoz/)).toBeNull();
     expect(screen.queryByText("Embalaža")).toBeNull();
   });
-  it("calculates from household input and clears an obsolete result when the municipality changes", () => {
+  it("calculates from household input and updates the result when the municipality changes", () => {
     render(
       <MemoryRouter>
         <UtilityCalculator />
@@ -74,8 +77,7 @@ describe("citizen workflows", () => {
     fireEvent.change(screen.getByLabelText(/Občina odjemnega mesta/), {
       target: { value: "borovnica" },
     });
-    expect(screen.queryByRole("table")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Izračunaj mesečni/ }));
+    expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.getByText(/OCENA ZA EN CEL MESEC · Borovnica/)).toBeTruthy();
   });
 });

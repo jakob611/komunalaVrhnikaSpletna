@@ -35,6 +35,14 @@ test('audit: tariff CMS edits enforce auth, CSRF and revision; history restore r
  assert.equal((await (await handleAdmin(request('/api/content'),env)).json()).revisions.tariffs,2);
  const invalid=structuredClone(value);invalid.municipalities[0].sourceUrl='javascript:alert(1)';
  assert.equal((await handleAdmin(request(path,{session,method:'PUT',body:{value:invalid,revision:2}}),env)).status,400);
+ const futureDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+ for(const update of [data=>{data.municipalities[1].effectiveFrom=futureDate;},data=>{data.waste.effectiveFrom=futureDate;}]) {
+  const future=structuredClone(defaults.tariffs);update(future);
+  const response=await handleAdmin(request(path,{session,method:'PUT',body:{value:future,revision:2}}),env);
+  assert.equal(response.status,400);assert.match((await response.json()).error,/prihodnji cenik/);
+  const active=await (await handleAdmin(request('/api/content'),env)).json();
+  assert.deepEqual(active.sections.tariffs,defaults.tariffs);assert.equal(active.revisions.tariffs,2);
+ }
  env.DB.close();
 });
 

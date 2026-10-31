@@ -19,12 +19,14 @@ Pregled: 31. 10. 2026. Namen je preprečevanje ponavljajočih se napak v dejansk
 | Vsebine | Shema vsakega področja, zasebni osnutki, zgodovina/obnova, konflikti različic, uvoz in javno/zasebno ločevanje. |
 | Nalogi in obrazci | Oddaje, fotografije, kombinirani filtri, preprečevanje starih rezultatov ob napaki, stanja, opombe in sočasne spremembe. |
 | E-obvestila | Potrditev, območje in tema, različne oblike naslovov, točne hiše, osebne povezave, odjava, ponovitve ter preklic neposlane pošte. |
-| Odvozi in koledar | Ločene frakcije, dvoumna pokritost, datumi, praznične izjeme, omejeno ponavljanje in zaščita pred zastarelim datumom. |
+| Odvozi in koledar | Ločene frakcije, datumi, praznične izjeme, neposredne povezave Google/Apple/Outlook, naročniški koledar brez domačega naslova, spremembe in umiki ter združljivost prejšnjih izvozov. |
 | Cenik | Tri občine, osnovne omrežnine, DN, poraba, gospodinjske količine odpadkov, izključujoče kanalizacijske/greznične postavke, DDV in datumi veljavnosti. |
 | Pokopališče | Sektorji/vrste, več oseb, neznani datumi, preverjeni položaji, robovi in razmiki, menjava načrta brez izgube identitet, preklic. |
 | Lokacije | Veljavna točka ima neposredno povezavo; prazne koordinate ne postanejo (0, 0); pošta vsebuje klikljivo povezavo. |
 | Tržnica | Izbor objavljenih terminov, blokada zaprtih/preteklih datumov, sprememba razpoložljivosti in nevtralno povpraševanje brez obljube rezervacije. |
 | Knjižnica | Dostop do več kot 100 slik, isti čas nalaganja ne povzroči izpustov/podvojitev; starejša slika ostane uporabna v urejevalniku. |
+
+Ponovni pregled uporabnosti je odpravil obvezni ročni uvoz prihodnjih odvozov, ponavljajoče klikanje za primerjave izračuna, zavračanje oznake groba med tipkanjem, izgubljeno bližnjico za cestna obvestila in predolg razširjen cenovni blok pred naročilom storitve. Strežniški preizkus potrjuje, da prihodnja tarifa ne more prepisati trenutnega cenika in onesposobiti izračuna. Ti preizkusi preverjajo konkretna uporabniška dejanja; zgolj uspešna gradnja ni dokaz uporabnosti.
 
 ## Organizacija kode
 

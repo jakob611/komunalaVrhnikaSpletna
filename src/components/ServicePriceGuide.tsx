@@ -56,14 +56,36 @@ export default function ServicePriceGuide({ service }: { service: string }) {
       {prices.length ? (
         <>
           <p>
-            Objavljene cene posameznih postavk. Končni znesek je odvisen od
-            količine in obsega; spodnje postavke niso paketna cena.
+            {prices
+              .slice(0, service === "bulky" ? 2 : 1)
+              .map((price, index) => (
+                <span key={price.id}>
+                  {index > 0 ? " · " : ""}
+                  <strong>
+                    {price.name}:{" "}
+                    {new Intl.NumberFormat("sl-SI", {
+                      style: "currency",
+                      currency: "EUR",
+                      maximumFractionDigits: 4,
+                    }).format(price.priceWithVat)}{" "}
+                    / {price.unit}
+                  </strong>
+                </span>
+              ))}
+            . Z DDV; posamezne postavke niso paketna cena.
           </p>
-          <ul>
-            {prices.map((price) => (
-              <PriceRow key={price.id} price={price} />
-            ))}
-          </ul>
+          <details>
+            <summary>Cene in pogoji</summary>
+            <p>
+              Končni znesek je odvisen od količine in obsega. Tukaj preverite,
+              kaj se obračuna posebej.
+            </p>
+            <ul>
+              {prices.map((price) => (
+                <PriceRow key={price.id} price={price} />
+              ))}
+            </ul>
+          </details>
         </>
       ) : (
         <p>
@@ -78,13 +100,6 @@ export default function ServicePriceGuide({ service }: { service: string }) {
           greznice/MKČN. Pred naročilom izrednega prevzema preverite
           upravičenost in termin redne storitve.{" "}
           <Link to="/kalkulator">Izračun mesečnega stroška</Link>.
-        </p>
-      )}
-      {service === "bulky" && (
-        <p>
-          Pred naročilom preverimo tudi možnost prevzema v okviru redne
-          storitve. Zgornja cena za kilogram velja za plačljivo ravnanje z
-          odpadki in sama ne vključuje odvoza z vašega naslova.
         </p>
       )}
     </div>

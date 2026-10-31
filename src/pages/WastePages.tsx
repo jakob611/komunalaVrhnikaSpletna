@@ -522,7 +522,7 @@ type CollectionEvent = {
 type Schedule = {
   address: string; events: CollectionEvent[]; complete?: boolean;
   incompleteTypes?: string[]; ambiguousTypes?: string[]; expiredTypes?: string[];
-  routes?: Record<string, { name: string; lastDate: string }>;
+  routes?: Record<string, { id: string; name: string; lastDate: string }>;
 };
 const collectionLabels: Record<string, string> = {
   packaging: "Mešana embalaža", bio: "Biološki odpadki", residual: "Mešani komunalni odpadki",
@@ -828,6 +828,7 @@ export function CollectionPage() {
           <CalendarDialog
             event={calendarEvent}
             events={schedule.events}
+            routeId={schedule.routes?.[calendarEvent.type]?.id}
             address={schedule.address}
             onClose={() => setCalendarEvent(null)}
           />

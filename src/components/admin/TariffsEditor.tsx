@@ -117,9 +117,10 @@ export default function TariffsEditor({
         </p>
         <p>
           Sprememba ne spreminja izdanih računov. Objava zamenja cenik za
-          izračun; za starejša obdobja ni arhivskega obračuna. Prihodnji datum
-          ne načrtuje preklopa: do tega datuma izračun s takšnim cenikom ne bo
-          na voljo.
+          izračun; za starejša obdobja ni arhivskega obračuna. Prihodnjih tarif
+          še ne objavite: trenutni cenik ostane veljaven do uspešne objave.
+          Prihodnji datum ne načrtuje samodejnega preklopa. Neshranjeni osnutek
+          ni trajno shranjen; novi cenik objavite na dan začetka veljavnosti.
         </p>
       </div>
       <div className="admin-field-grid">

@@ -1,4 +1,5 @@
 import { ljubljanaDate, addDays } from "./seed.js";
+import {COLLECTION_TYPES} from '../shared/collection-utils.js';
 import { BotError, verifyBot } from "./bot-protection.js";
 import { emailEnabled, outboxInsert, processEmail } from "./email.js";
 import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
@@ -191,7 +192,7 @@ export function calendar(schedule, options = {}) {
     "PRODID:-//KPV//Urnik odvoza//SL",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:KPV – urnik odvoza",
+    `X-WR-CALNAME:${safeICS(options.name||'KPV – urnik odvoza')}`,
   ];
   const series = options.repeat === 'published' ? publishedCalendarSeries(schedule.events, options.eventId) : null;
   const events = series ? series.slice(0,1) : options.eventId
@@ -421,6 +422,19 @@ export async function handleRequest(request, env = {}, ctx) {
           notices: await readPublished(env, "notices"),
           demo: false,
         });
+      if(route==='/api/calendar/feed') {
+        const routeId=field({route:url.searchParams.get('route')},'route',1,180);
+        const type=url.searchParams.get('type');
+        if(!Object.hasOwn(COLLECTION_TYPES,type))throw new ApiError(400,'Izberite vrsto odpadkov.');
+        const from=url.searchParams.get('from');
+        if(typeof from!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(from)||from.startsWith('0000')||!Number.isFinite(Date.parse(from+'T12:00:00Z'))||new Date(from+'T12:00:00Z').toISOString().slice(0,10)!==from)throw new ApiError(400,'Datum začetka koledarja ni veljaven.');
+        const configured=await readPublished(env,'collection');
+        const selected=configured.routes.find(item=>item.id===routeId);
+        // A removed/emptied route remains an empty valid feed, so subscribers
+        // can refresh instead of receiving an expired-event error indefinitely.
+        const events=(selected?.events||[]).filter(event=>event.type===type&&event.date>=from).map(event=>({...event,id:`${routeId}-${event.id}`})).sort((a,b)=>a.date.localeCompare(b.date));
+        return new Response(calendar({address:selected?.name||'KPV',events},{name:`KPV – ${COLLECTION_TYPES[type]}`}),{headers:{...securityHeaders,'Cache-Control':'public, max-age=300','Content-Type':'text/calendar; charset=utf-8','Content-Disposition':'inline; filename="kpv-odvozi.ics"'}});
+      }
       if (route === "/api/collection" || route === "/api/calendar") {
         const address = field(
           { address: url.searchParams.get("address") },

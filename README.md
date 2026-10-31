@@ -17,7 +17,7 @@ Prijava zahteva dovoljeno e-pošto, osebno geslo in enkratno kodo. Lastnik uprav
 - **Obvestila in motnje:** seznam, iskanje, obrazec in predogled. Osnutki so zasebni. Oznaka prikaza določa vidnost po shranjevanju. Datum ni razpored objave; shranjevanje ne pošilja množične e-pošte.
 - **Urniki odvoza:** območje, datumi in preverjanje naslova; ločeno ujemanje BIO, embalaže in MKO.
 - **Ceniki in izračun:** mesečni gospodinjski izračun po občini, porabi vode in številu oseb; razčlenitev omrežnin, DDV in obračunskih količin. Uradne tarife in cene posebnih storitev se urejajo v administraciji. [Viri in navodila](docs/PRICING.md).
-- **Koledar odvozov:** posamezni dogodek ali omejeno ponavljanje po dejansko objavljenih datumih, tudi ob prazničnih spremembah. [Navodila](docs/CALENDAR.md).
+- **Koledar odvozov:** neposredno dodajanje dogodka ali koledarja s prihodnjimi objavljenimi odvozi v Google, Apple in Outlook; datoteka ostane neobvezna alternativa. [Navodila](docs/CALENDAR.md).
 - **Pokopališče:** sektorji, vrste, skupinsko dodajanje grobov, več oseb v istem grobu in umeščanje na načrt; iskanje, povečava in prikaz preverjenih položajev. Priloženi orientacijski osnutek urednik uporabi po izbiri. [Navodila](docs/CEMETERY.md).
 
 Podrobna slovenska navodila: [docs/ADMIN.md](docs/ADMIN.md). Vsebine imajo zgodovino in zaščito pred sočasnim prepisom. Pri delni napaki skupne objave že shranjeni deli ostanejo shranjeni, preostali ostanejo v osnutku.

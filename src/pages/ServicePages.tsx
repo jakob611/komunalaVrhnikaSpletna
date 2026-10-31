@@ -495,6 +495,7 @@ export function RoadsPage() {
         Pregled del na cestah in javnih površinah. Ste opazili poškodbo ali
         nedelujočo svetilko? Sporočite nam lokacijo.
       </Intro>
+      <p><Link className="text-link" to="/obvestila#narocilo"><Bell size={17}/>Prejemajte obvestila o cestah in zaporah po e-pošti<ArrowRight size={16}/></Link></p>
       <Demo />
       <section className="svc-road-layout">
         <div className="svc-map-wrap">

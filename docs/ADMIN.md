@@ -81,7 +81,7 @@ Začetni podatki so prepisani iz [uradnih urnikov KPV](https://www.kpv.si/mDejav
 
 Delni urnik ni popoln seznam odvozov za gospodinjstvo. Opozorila ne odstranite samo s spremembo besedila: najprej preverite manjkajoče poti in datume pri pristojni službi.
 
-Občan pri terminu izbere **Dodaj v koledar**, nato **Samo ta datum** ali **Ponavljajoči se odvozi te vrste**. Ponavljanje vsebuje samo objavljene datume in se konča z zadnjim; podrobna navodila za Google, Apple in Outlook so v [CALENDAR.md](CALENDAR.md).
+Občan pri terminu izbere **Dodaj v koledar** in svojo aplikacijo. Za en dogodek samo nadaljuje; za spremljanje odvozov vključi **Vključi tudi prihodnje odvoze te vrste**. Glavni gumb odpre izbrani koledar brez ročnega uvoza datoteke. Podrobnosti so v [CALENDAR.md](CALENDAR.md).
 
 ## Ceniki in izračun
 

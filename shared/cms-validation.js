@@ -265,7 +265,11 @@ function texts(value, label, maxItems = 30, maxText = 500) {
 }
 
 const validators = {
-  tariffs:validateTariffs,
+  tariffs(value) {
+    const clean=validateTariffs(value);
+    if(clean.municipalities.some(item=>item.effectiveFrom>today())||clean.waste.effectiveFrom>today())invalid('datum veljavnosti cenika','prihodnji cenik lahko pripravite v osnutku; objavite ga šele na datum veljavnosti, da trenutni izračun ostane na voljo');
+    return clean;
+  },
   districts: value => validateDistricts(value),
   layout: (value) => validateLayout(value, PUBLIC_PAGES),
   links: (value) => validateLinks(value, PUBLIC_PAGES),

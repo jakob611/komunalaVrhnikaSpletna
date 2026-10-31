@@ -28,26 +28,21 @@ export default function UtilityCalculator() {
       useState<HouseholdInput["wastewater"]>("sewer"),
     [meterBand, setMeterBand] = useState(0),
     [deduction, setDeduction] = useState("");
-  const [submitted, setSubmitted] = useState<HouseholdInput | null>(null),
-    [error, setError] = useState("");
+  const [hasCalculated, setHasCalculated] = useState(false);
   const water = scope !== "waste",
     waste = scope !== "water";
-  const result = useMemo(() => {
-    if (!submitted) return null;
-    try {
-      return calculateHousehold(tariffs, submitted);
-    } catch {
-      return null;
-    }
-  }, [tariffs, submitted]);
-  function changed(update: () => void) {
-    update();
-    setSubmitted(null);
-    setError("");
-  }
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    setError("");
+  const { result, submitted, error } = useMemo(() => {
+    if (!hasCalculated) return { result: null, submitted: null, error: "" };
+    if (
+      !municipalityId ||
+      (water && !consumption.trim()) ||
+      (waste && !people.trim())
+    )
+      return {
+        result: null,
+        submitted: null,
+        error: "Dopolnite obvezne podatke. Izračun se nato posodobi samodejno.",
+      };
     const input: HouseholdInput = {
       municipalityId,
       scope,
@@ -59,12 +54,38 @@ export default function UtilityCalculator() {
       monthlyDeduction: Number(deduction),
     };
     try {
-      calculateHousehold(tariffs, input);
-      setSubmitted(input);
+      return {
+        result: calculateHousehold(tariffs, input),
+        submitted: input,
+        error: "",
+      };
     } catch (cause) {
-      setSubmitted(null);
-      setError(cause instanceof Error ? cause.message : "Preverite vnos.");
+      return {
+        result: null,
+        submitted: null,
+        error: cause instanceof Error ? cause.message : "Preverite vnos.",
+      };
     }
+  }, [
+    tariffs,
+    hasCalculated,
+    municipalityId,
+    scope,
+    consumption,
+    people,
+    bio,
+    wastewater,
+    meterBand,
+    deduction,
+    water,
+    waste,
+  ]);
+  function changed(update: () => void) {
+    update();
+  }
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    setHasCalculated(true);
   }
   return (
     <CmsLayout>
@@ -252,6 +273,11 @@ export default function UtilityCalculator() {
           <button className="button" type="submit">
             Izračunaj mesečni strošek <ArrowRight size={18} />
           </button>
+          {hasCalculated && (
+            <p className="svc-small">
+              Ob spremembi podatkov se izračun posodobi samodejno.
+            </p>
+          )}
           {error && (
             <p className="svc-error" role="alert">
               {error}

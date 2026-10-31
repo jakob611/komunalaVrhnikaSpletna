@@ -1,24 +1,26 @@
-# Odvozi v osebnem koledarju
+# Dodajanje odvozov v koledar
 
-Na `/odpadki/urnik` vnesite celoten naslov in kliknite **Prikaži urnik**. Pri želenem odvozu kliknite **Dodaj v koledar**.
+Na `/odpadki/urnik` poiščite svoj naslov in pri terminu izberite **Dodaj v koledar**.
 
-1. **Samo ta datum** shrani en celodnevni dogodek.
-2. **Ponavljajoči se odvozi te vrste** shrani izbrani in vse poznejše objavljene odvoze iste vrste odpadkov. Pred prenosom lahko odprete seznam vseh datumov. Ponavljanje se konča z zadnjim objavljenim datumom; praznični premiki in izpusti ostanejo upoštevani. Če je objavljen samo en datum, druga možnost ni na voljo.
-3. Za posamezni datum izberite **Google Koledar** in tam potrdite shranjevanje. Za Apple ali Outlook prenesite datoteko `.ics` in potrdite uvoz v svojem koledarju.
-4. Ponavljanje se za vse koledarje prenese kot `.ics`. Google podpira uvoz na računalniku: **Nastavitve → Uvoz in izvoz → Izberite datoteko iz računalnika → Uvozi**. Navodila so tudi v pogovornem oknu. Mobilna aplikacija Google tega uvoza ne podpira.
+1. Izberite **Google Koledar**, **Apple Koledar**, **Outlook** ali drugo aplikacijo.
+2. Za en termin pustite **Vključi tudi prihodnje odvoze te vrste** izključeno. Gumb odpre dodajanje posameznega dogodka; v koledarju ga potrdite. Google ohrani prejšnjo neposredno povezavo, Outlook odpre svoj obrazec, Apple uporabi prejšnjo povezavo za aplikacijo.
+3. Za prihodnje odvoze vključite možnost. Isti glavni gumb odpre dodajanje koledarja v izbranem ponudniku oziroma aplikaciji. Datoteke ni treba ročno prenašati ali uvažati.
+4. Pri službenem/šolskem Outlooku vključite **Službeni ali šolski račun Microsoft 365**.
 
-Gumb **Vsi prikazani termini (.ics)** nad seznamom prenese vse prikazane datume vseh vrst odpadkov kot posamezne dogodke.
+Prihodnji odvozi so ločen koledar z dejanskimi objavljenimi termini izbrane vrste odpadkov za odvozno območje. Praznični premiki, izpusti in poznejše objave se upoštevajo ob osvežitvi. Čas osveževanja določa aplikacija oziroma ponudnik; spremembe niso nujno vidne takoj. Odstranitev naročnine uredite v svoji aplikaciji.
 
-Uvoz ustvari kopijo. Spremembe na portalu se vanjo ne prenesejo samodejno. Ob spremembi urnika odstranite oziroma popravite stare dogodke in uvozite nove. Čas opomnika izberete v svoji koledarski aplikaciji.
+Posamezni dogodek je kopija in se ne osvežuje. Prenos datoteke ostaja samo pod **Druga možnost dodajanja**, če aplikacija povezave ne odpre. Stari izvozi `.ics` so še podprti.
 
 ## Za urednika
 
-**Administracija → Urniki odvoza → izbrano območje → Termini odvozov**: uredite datum v seznamu, dodajte posamezni odvoz ali pripravite ponavljanje z začetkom, koncem, dnevom in intervalom. Generirane termine morate dodati v osnutek z gumbom **Dodaj predogledane termine v osnutek**. Praznične izjeme nato popravite v seznamu; nepotrjenih datumov ne objavljajte. Pod **Preveri naslov** preverite vsako vrsto odpadkov in kliknite **Shrani in objavi**.
+V **Administracija → Urniki odvoza** uredite datume in jih objavite. Pri rednem vzorcu pripravite predogled in **Dodaj predogledane termine v osnutek**; praznične izjeme uredite posamično. Preverite naslov in **Shrani in objavi**.
 
-Novi prenosi koledarja vedno berejo zadnje objavljene datume. Že prenesene kopije ostanejo pri prejemniku. Območja odvozov in območja e-obveščanja so ločena sistema.
+Koledarske naročnine so vezane na obstoječa odvozna območja. Pri novih urnikih praviloma dopolnite datume obstoječega območja. Če območje izbrišete in ustvarite novo, morajo uporabniki dodati nov koledar. Izpraznjeno ali odstranjeno območje vrne prazen veljaven koledar.
 
-## Oblika in preverjanje
+## Tehnično preverjanje
 
-Ponavljanje je omejeno z `UNTIL`, uporablja dneve dejanskih odvozov (`BYDAY`) ter z `EXDATE` izključi vse druge pojavitve. Tako koledar ohrani točen seznam objavljenih datumov, tudi če se interval med poletnim in zimskim urnikom spremeni. Izvoz ne dodaja predvidenih prihodnjih odvozov. Stare povezave za tedensko ponavljanje se zavrnejo, če vsebujejo katerikoli nepotrjen datum.
+`/api/calendar/feed` bere objavljene podatke po oznaki območja in vrsti odpadkov. Povezava ne vsebuje domačega naslova ali oznake posameznega dogodka. Začetek je dan dodajanja po času v Ljubljani, da premik na zgodnejši prihodnji datum ne izpade. Identitete dogodkov ostanejo stabilne tudi po premiku datuma.
 
-Vira: [iCalendar, RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html), [uradna navodila za uvoz v Google Koledar](https://support.google.com/calendar/answer/37118?hl=sl).
+Preizkusi preverjajo neposredne povezave ponudnikov, posamezni datum, vrste odpadkov, objavljene datume, spremembe, odstranitve, prazna območja in odsotnost domačega naslova v naročniški povezavi. Preizkus povezave ni isto kot dejanska potrditev v uporabnikovem računu.
+
+Viri: [Google – javni koledar](https://support.google.com/calendar/answer/37100), [Microsoft – naročanje na koledar](https://support.microsoft.com/en-us/outlook/import-or-subscribe-to-a-calendar-in-outlook-com-or-outlook-on-the-web), [Apple – naročanje na koledarje](https://support.apple.com/guide/calendar/subscribe-to-calendars-icl1022/mac). Oblike povezav sledijo tudi javni implementaciji [Google](https://github.com/add2cal/add-to-calendar-button/blob/main/src/generators/google.ts) in [Outlook](https://github.com/add2cal/add-to-calendar-button/blob/main/src/generators/outlook.ts).
