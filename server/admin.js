@@ -336,7 +336,7 @@ export async function handleAdmin(request, env = {}) {
       const district=url.searchParams.get('district')||'';
       if(district.length>80)fail(400,'Območje ni veljavno.');
       const {results}=await db.prepare("SELECT email,address,district_id,status,topics FROM email_subscribers WHERE (?='' OR district_id=?) ORDER BY updated_at DESC LIMIT 50").bind(district,district).all();
-      const stats=await db.prepare('SELECT status,COUNT(*) AS count FROM email_subscribers GROUP BY status').all();
+      const stats=await db.prepare("SELECT status,COUNT(*) AS count FROM email_subscribers WHERE (?='' OR district_id=?) GROUP BY status").bind(district,district).all();
       return json({items:results.map(row=>({...row,topics:JSON.parse(row.topics)})),counts:Object.fromEntries(stats.results.map(row=>[row.status,row.count]))});
     }
     if (path === "/api/admin/notice-delivery") {
@@ -417,10 +417,18 @@ export async function handleAdmin(request, env = {}) {
     if (path === "/api/admin/media") {
       if (request.method === "POST") return await upload(request, env);
       allow(request, "GET");
+      const cursor = url.searchParams.get("cursor");
+      const parsed = cursor?.match(/^(\d{1,16}):([a-f0-9-]{36})$/);
+      if (cursor !== null && (!parsed || !Number.isSafeInteger(Number(parsed[1]))))
+        fail(400, "Položaj v knjižnici ni veljaven. Osvežite knjižnico.");
       const { results } = await db
-        .prepare("SELECT * FROM cms_media ORDER BY created_at DESC LIMIT 100")
+        .prepare(parsed
+          ? "SELECT * FROM cms_media WHERE created_at < ? OR (created_at = ? AND id < ?) ORDER BY created_at DESC,id DESC LIMIT 101"
+          : "SELECT * FROM cms_media ORDER BY created_at DESC,id DESC LIMIT 101")
+        .bind(...(parsed ? [Number(parsed[1]),Number(parsed[1]),parsed[2]] : []))
         .all();
-      return json({ items: results.map(mediaItem) });
+      const items=results.slice(0,100),last=items.at(-1);
+      return json({items:items.map(mediaItem),nextCursor:results.length>100?`${last.created_at}:${last.id}`:null});
     }
     if (path === "/api/admin/submissions") {
       allow(request, "GET");

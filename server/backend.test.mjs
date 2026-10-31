@@ -176,7 +176,7 @@ test("selected calendar event exports one occurrence without recurrence", async 
   assert.ok(!ics.includes("RRULE"));
 });
 
-test("calendar repeat choices produce a bounded weekly series", async () => {
+test("legacy weekly links export only a bounded series of confirmed dates", async () => {
   const { schedule, env } = calendarFixture(person.address);
   const event = schedule.events.find((event) => event.type === "packaging");
   const params = new URLSearchParams({
@@ -184,7 +184,7 @@ test("calendar repeat choices produce a bounded weekly series", async () => {
     eventId: event.id,
     repeat: "weekly",
     interval: "2",
-    count: "7",
+    count: "4",
   });
   const response = await handleRequest(
     new Request(url(`/api/calendar?${params}`)), env,
@@ -192,8 +192,8 @@ test("calendar repeat choices produce a bounded weekly series", async () => {
   const ics = (await response.text()).replace(/\r\n /g, "");
   assert.equal(response.status, 200);
   assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 1);
-  assert.ok(ics.includes("RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=7\r\n"));
-  assert.ok(ics.includes("Ponavljanje ste izbrali sami"));
+  assert.ok(ics.includes("RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=4\r\n"));
+  assert.ok(ics.includes("Ponavljanje vsebuje samo objavljene datume"));
   assert.ok(ics.includes("SUMMARY:") && !ics.includes("PRIMER"));
 });
 
@@ -203,10 +203,12 @@ test("calendar rejects stale events and invalid or unbounded repeat rules", asyn
   for (const extra of [
     { repeat: "daily" },
     { repeat: "weekly" },
+    { repeat: "published" },
     { eventId: "unknown" },
     { eventId: event.id, repeat: "weekly", interval: "0", count: "4" },
     { eventId: event.id, repeat: "weekly", interval: "2", count: "999" },
     { eventId: event.id, repeat: "weekly", interval: "2", count: "0" },
+    { eventId: event.id, repeat: "weekly", interval: "2", count: "52" },
     {
       eventId: event.id,
       repeat: "weekly",

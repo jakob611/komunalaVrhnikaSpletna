@@ -1,4 +1,8 @@
 import SubscriptionForm from "../components/SubscriptionForm";
+import UtilityCalculator from "../components/UtilityCalculator";
+import ServicePriceGuide from "../components/ServicePriceGuide";
+import MapPointLink from '../components/MapPointLink';
+import {validCoordinates} from '../../shared/location.js';
 import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import {
   useEffect,
@@ -402,10 +406,7 @@ function NoticeCards({ notices }: { notices: Notice[] }) {
                 <MapPin size={15} />
                 {notice.area}
               </span>
-              <Link to="/obvestila#narocilo">
-                Obvestila za moj naslov
-                <ArrowRight size={15} />
-              </Link>
+              <MapPointLink latitude={notice.latitude} longitude={notice.longitude} label="Lokacija na zemljevidu"/>
             </div>
           </div>
         </article>
@@ -440,6 +441,7 @@ export function NoticesPage() {
         Vzdrževalna dela, spremembe odvozov in druge informacije za lažji
         vsakdan. Vse na enem mestu.
       </Intro>
+      <p><Link className="text-link" to="/obvestila#narocilo"><Bell size={17}/>Prejemajte obvestila za svoj naslov po e-pošti<ArrowRight size={16}/></Link></p>
       <Demo />
       <div className="svc-filter-row">
         <div className="svc-tabs" aria-label="Vrsta obvestil">
@@ -510,7 +512,7 @@ export function RoadsPage() {
             {roads
               .filter(
                 (n) =>
-                  Number.isFinite(n.latitude) && Number.isFinite(n.longitude),
+                  validCoordinates(n.latitude,n.longitude),
               )
               .map((n) => (
                 <CircleMarker
@@ -527,7 +529,7 @@ export function RoadsPage() {
                   <Popup>
                     <strong>{n.title}</strong>
                     <p>{n.area}</p>
-                    <p>Lokacija del</p>
+                    <MapPointLink latitude={n.latitude} longitude={n.longitude} label="Odpri točko v Google Zemljevidih"/>
                   </Popup>
                 </CircleMarker>
               ))}
@@ -886,9 +888,7 @@ export function ReportPage() {
                   <CheckCircle2 size={20} />
                   <div>
                     <strong>Natančna točka je dodana.</strong>
-                    <span>
-                      {position[0].toFixed(5)}, {position[1].toFixed(5)}
-                    </span>
+                    <MapPointLink latitude={position[0]} longitude={position[1]} label="Preveri točko v Google Zemljevidih"/>
                   </div>
                   <button
                     type="button"
@@ -953,7 +953,7 @@ export function ReportPage() {
                     </MapContainer>
                     <div className="svc-map-caption">
                       {draftPosition
-                        ? `Izbrana točka: ${draftPosition[0].toFixed(5)}, ${draftPosition[1].toFixed(5)}`
+                        ? <MapPointLink latitude={draftPosition[0]} longitude={draftPosition[1]} label="Preveri izbrano točko v Google Zemljevidih"/>
                         : "Točka še ni izbrana. Za izbiro tapnite zemljevid."}
                     </div>
                   </div>
@@ -1145,85 +1145,6 @@ export function ReportPage() {
     </CmsLayout>
   );
 }
-const serviceOptions = [
-  {
-    value: "bulky",
-    title: "Odvoz kosovnih odpadkov",
-    desc: "Pohištvo, vzmetnice in drugi večji predmeti.",
-    icon: Sofa,
-  },
-  {
-    value: "septic",
-    title: "Praznjenje greznice ali MKČN",
-    desc: "Povpraševanje za prevzem in odvoz blata.",
-    icon: Waves,
-  },
-  {
-    value: "water",
-    title: "Vodovod in kanalizacija",
-    desc: "Priključki, vzdrževanje in druga vprašanja.",
-    icon: Droplets,
-  },
-  {
-    value: "other",
-    title: "Druga komunalna storitev",
-    desc: "Povejte, pri čem potrebujete pomoč.",
-    icon: Wrench,
-  },
-];
-const serviceGuides: Record<
-  string,
-  { intro: string; prepare: string[]; note: string; placeholder: string }
-> = {
-  bulky: {
-    intro:
-      "Za večje predmete, kot so kavč, omara ali vzmetnica. Povejte, kaj želite oddati in kako je mogoče priti do predmetov.",
-    prepare: [
-      "Seznam predmetov in približno število kosov.",
-      "Naslov prevzema ter opis dostopa: dvorišče, stopnice ali ožja cesta.",
-      "Podatek, ali je predmet še uporaben. Morda je primeren za DEPO.",
-    ],
-    note: "Za gradbene ali nevarne odpadke najprej preverite ustrezno pot oddaje. Želeni datum je predlog; izvajalec mora potrditi pogoje, ceno in termin.",
-    placeholder:
-      "Npr. 1 kavč in 2 stola, dostop z dvorišča. Kavč je še uporaben. Želeni prevzem v dopoldanskem času …",
-  },
-  septic: {
-    intro:
-      "Za praznjenje greznice ali prevzem blata iz male komunalne čistilne naprave (MKČN). Navedite vrsto naprave in dostop do mesta praznjenja.",
-    prepare: [
-      "Ali gre za greznico ali malo komunalno čistilno napravo.",
-      "Približna prostornina, če jo poznate; če ne, to zapišite.",
-      "Kje je pokrov in ali je do njega mogoč dostop za vozilo.",
-    ],
-    note: "Pred izvedbo je treba preveriti pogoje in uskladiti termin. Oddaja še ne potrjuje izvedbe.",
-    placeholder:
-      "Npr. greznica približno 6 m³, pokrov na dvorišču, od ceste oddaljen okoli 10 m. Dostop za vozilo je mogoč …",
-  },
-  water: {
-    intro:
-      "Za vprašanja o priključku, vodomeru, kanalizaciji ali načrtovanem posegu. Pri nujni okvari uporabite dežurno številko 041 364 681.",
-    prepare: [
-      "Naslov objekta in kratek opis, kaj želite urediti.",
-      "Ali gre za nov priključek, obstoječi priključek, vodomer ali drugo vprašanje.",
-      "Številka odjemnega mesta, če jo poznate.",
-    ],
-    note: "Povpraševanje ni prijava nujne okvare. Za trenutno motnjo oskrbe najprej preverite obvestila ali pokličite dežurno službo.",
-    placeholder:
-      "Npr. zanima me ureditev priključka za obstoječi objekt. Naslov in trenutno stanje sta …",
-  },
-  other: {
-    intro:
-      "Niste našli ustrezne storitve? Opišite svoje vprašanje in lokacijo. Za prijavo poškodbe ceste, svetilke ali zabojnika uporabite obrazec Prijavite težavo.",
-    prepare: [
-      "Kaj želite urediti in na kateri lokaciji.",
-      "Obseg dela ali druge okoliščine, ki jih poznate.",
-      "Želeni termin, če je pomemben; vnos datuma ni obvezen.",
-    ],
-    note: "Najprej je treba preveriti, ali storitev sodi v dejavnost podjetja. Oddaja še ne potrjuje naročila.",
-    placeholder:
-      "Npr. potrebujem informacije o … Lokacija je … Urediti želim …",
-  },
-};
 export function ServicesPage() {
   const cms = useSiteContent();
   const icons = { bulky: Sofa, septic: Waves, water: Droplets, other: Wrench };
@@ -1317,6 +1238,7 @@ export function ServicesPage() {
           </div>
         </div>
         <p>{guide.intro}</p>
+        <ServicePriceGuide service={service}/>
         <details>
           <summary>
             Kaj pripraviti pred oddajo?
@@ -1475,6 +1397,7 @@ export function ServicesPage() {
 export function MarketPage() {
   const { rates, market } = useSiteContent();
   const [date, setDate] = useState("");
+  const [dateError,setDateError] = useState('');
   const [stallType, setStallType] = useState("standard");
   const submission = useSubmission();
   const rate =
@@ -1488,18 +1411,23 @@ export function MarketPage() {
       return market.dates
         .filter((date) => date >= today() && !market.closedDates.includes(date))
         .sort();
-    const start = new Date();
+    const start = new Date(today()+'T12:00:00Z');
     const result = [];
-    for (let i = 1; i < 35 && result.length < 4; i++) {
+    for (let i = 0; i < 35 && result.length < 4; i++) {
       const day = new Date(start);
-      day.setDate(start.getDate() + i);
-      if (day.getDay() === 6)
-        result.push(
-          `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
-        );
+      day.setUTCDate(start.getUTCDate() + i);
+      if (day.getUTCDay() === 6)result.push(day.toISOString().slice(0,10));
     }
     return result.filter((date) => !market.closedDates.includes(date));
   }, [market]);
+  const datesRestricted=market.dates.length>0;
+  const noUpcomingDates=datesRestricted&&!dateOptions.length;
+  function chooseDate(value:string){setDate(value);setDateError('');submission.clearResult();}
+  useEffect(()=>{
+    if(date&&(date<today()||market.closedDates.includes(date)||(datesRestricted&&!dateOptions.includes(date)))) {
+      setDate('');setDateError('Termini so bili posodobljeni. Izberite nov datum prijave.');submission.clearResult();
+    }
+  },[market,dateOptions]);
   return (
     <CmsLayout>
       <Intro eyebrow="LOKALNO JE LEPŠE" title="Vaša ponudba. Naša tržnica.">
@@ -1521,7 +1449,8 @@ export function MarketPage() {
                 key={day}
                 className={date === day ? "selected" : ""}
                 aria-pressed={date === day}
-                onClick={() => setDate(day)}
+                disabled={submission.busy}
+                onClick={() => chooseDate(day)}
               >
                 <span>{new Intl.DateTimeFormat("sl-SI", { weekday: "long" }).format(new Date(day + "T12:00:00"))}</span>
                 <strong>{new Date(day + "T12:00:00").getDate()}.</strong>
@@ -1534,9 +1463,15 @@ export function MarketPage() {
               </button>
             ))}
           </div>
+          {noUpcomingDates&&<p className="notice" role="status">Trenutno ni objavljenih prihodnjih terminov za prijavo. Za nov termin se obrnite na upravljavca tržnice.</p>}
           <form
             onSubmit={async (event) => {
               const values = Values(event);
+              const selected=String(values.date||'');
+              if(!/^\d{4}-\d{2}-\d{2}$/.test(selected)||!Number.isFinite(Date.parse(selected+'T12:00:00Z'))||new Date(selected+'T12:00:00Z').toISOString().slice(0,10)!==selected) {setDateError('Izberite veljaven datum prijave.');return;}
+              if(selected<today()){setDateError('Izbrani datum je že pretekel. Izberite prihodnji termin.');return;}
+              if(market.closedDates.includes(selected)||(datesRestricted&&!dateOptions.includes(selected))){setDateError('Izbrani termin ni na voljo. Izberite drug objavljen datum ali se obrnite na upravljavca.');return;}
+              setDateError('');
               await submission.submit("/api/market", {
                 ...values,
                 stallType,
@@ -1544,16 +1479,20 @@ export function MarketPage() {
               });
             }}
           >
+            <fieldset disabled={submission.busy||noUpcomingDates} style={{border:0,padding:0,minWidth:0}}>
             <Field label="Datum prijave">
-              <input
+              {datesRestricted?<select name="date" required value={date} onChange={event=>chooseDate(event.target.value)} aria-describedby="market-date-help"><option value="" disabled>Izberite objavljen datum</option>{dateOptions.map(day=><option key={day} value={day}>{dateLabel(day)}</option>)}</select>:<input
                 name="date"
                 required
                 type="date"
                 min={today()}
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
-              />
+                onChange={(event) => chooseDate(event.target.value)}
+                aria-describedby="market-date-help"
+              />}
             </Field>
+            <p id="market-date-help" className="svc-small">{datesRestricted?'Izberete lahko samo objavljene prihodnje termine. Izbira še ne potrdi razpoložljivosti stojnice.':'Vnesite želeni datum; termin in razpoložljivost potrdi upravljavec. Zaprti datumi niso na voljo.'}</p>
+            {dateError&&<p className="svc-error" role="alert">{dateError}</p>}
             <div className="svc-step">
               <span>02</span>
               <h2>Podatki o ponudniku</h2>
@@ -1620,6 +1559,7 @@ export function MarketPage() {
               {submission.busy ? "Shranjujemo …" : "Oddaj prijavo"}
               <ArrowRight size={17} />
             </button>
+            </fieldset>
             <Result receipt={submission.receipt} error={submission.error} />
           </form>
         </section>
@@ -1644,6 +1584,7 @@ export function MarketPage() {
               <CreditCard size={18} />
               Cena za sobotno zunanjo stojnico na Sodnijskem trgu, z DDV. Druge lokacije in dodatne storitve imajo ločen cenik. Plačilo uredite po dogovoru.
             </p>
+            <MapPointLink address="Sodnijski trg, Vrhnika" label="Pot do tržnice na Sodnijskem trgu"/>
           </div>
           <div className="svc-help">
             <Leaf size={23} />
@@ -1664,7 +1605,7 @@ export function MarketPage() {
 }
 
 export function CalculatorPage() {
-  return <CmsLayout><Intro eyebrow="CENIKI IN OBRAČUN" title="Preverite cene za svojo občino.">Znesek komunalnih storitev je odvisen od občine, odjemnega mesta, porabe in vrste storitve. Za preverjanje uporabite veljavne cenike ali pošljite vprašanje o svojem računu.</Intro><div className="svc-service-grid">{[["Vrhnika","mCvrh.html"],["Borovnica","mCbor.html"],["Log - Dragomer","mClod.html"]].map(([name,path])=><section className="panel" key={name}><h2>{name}</h2><p>Veljavne cene gospodarskih javnih služb.</p><Source href={"https://www.kpv.si/mCeniki/"+path}>Odpri cenik</Source></section>)}</div><section className="panel"><h2>Potrebujete razlago računa?</h2><p>Pri vprašanju navedite občino, številko odjemnega mesta in obračunsko obdobje. Podatkov ne objavljajte javno.</p><Link className="button" to="/kontakt?category=billing">Vprašanje o obračunu <ArrowRight size={17}/></Link></section></CmsLayout>;
+  return <UtilityCalculator/>;
 }
 
 export function DepoPage() {
@@ -1887,6 +1828,7 @@ const contactSuggestions: Record<
   },
 };
 function ContactForm() {
+  const [params] = useSearchParams();
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [subject, setSubject] = useState("");
@@ -1895,6 +1837,13 @@ function ContactForm() {
   const receiptElement = useRef<HTMLDivElement>(null);
   const area = contactAreas.find((item) => item.value === category);
   const suggestion = contactSuggestions[`${category}:${subcategory}`];
+  useEffect(()=>{
+    const selected=contactAreas.find(item=>item.value===params.get('category'));
+    const topic=selected?.topics.find(item=>item.value===params.get('subcategory'));
+    setCategory(selected?.value||'');
+    setSubcategory(topic?.value||'');
+    setSubject(selected&&selected.value!=='other'?`${selected.label} – ${topic?.label||'vprašanje'}`:'');
+  },[params]);
   useEffect(() => {
     if (submission.receipt)
       receiptElement.current?.scrollIntoView({
@@ -2127,48 +2076,6 @@ function ContactForm() {
     </section>
   );
 }
-const contactHours = [
-  {
-    name: "Informacijska pisarna",
-    description: "Računi, vodomeri in informacije za občane.",
-    icon: Phone,
-    tone: "office",
-    phone: "01 750 29 76",
-    telephone: "+38617502976",
-    email: "informacijska@kpv.si",
-    rows: [["Ponedeljek–petek", "8.00–12.00"]],
-  },
-  {
-    name: "Zbirni center Tojnice",
-    description: "Oddaja odpadkov v zbirnem centru.",
-    icon: Recycle,
-    tone: "collection",
-    phone: "031 686 121",
-    telephone: "+38631686121",
-    email: "tehtnica@kpv.si",
-    rows: [
-      ["Ponedeljek in petek", "8.00–14.00"],
-      ["Torek–četrtek", "8.00–17.00"],
-      ["Sobota", "8.00–12.00"],
-    ],
-  },
-  {
-    name: "Trgovina DEPO",
-    description: "Rabljeni in preoblikovani predmeti.",
-    icon: ShoppingBag,
-    tone: "depo",
-    phone: "041 777 385",
-    telephone: "+38641777385",
-    email: "depo@kpv.si",
-    rows: [
-      ["Ponedeljek", "Zaprto"],
-      ["Torek–četrtek", "10.00–18.00"],
-      ["Petek", "9.00–12.00"],
-      ["Sobota", "9.00–12.30"],
-    ],
-  },
-];
-
 function ContactHours() {
   const { hours, _revisions } = useSiteContent();
   const contactHours = hours.map((place) => ({

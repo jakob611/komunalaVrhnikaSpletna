@@ -16,6 +16,9 @@ Prijava zahteva dovoljeno e-pošto, osebno geslo in enkratno kodo. Lastnik uprav
 - **Urejevalnik spletne strani:** skupni osnutek besedil, slik, povezav, razdelkov, menija in logotipa KPV. Preklapljanje orodij ohrani spremembe; izbrani razdelek je označen v predogledu.
 - **Obvestila in motnje:** seznam, iskanje, obrazec in predogled. Osnutki so zasebni. Oznaka prikaza določa vidnost po shranjevanju. Datum ni razpored objave; shranjevanje ne pošilja množične e-pošte.
 - **Urniki odvoza:** območje, datumi in preverjanje naslova; ločeno ujemanje BIO, embalaže in MKO.
+- **Ceniki in izračun:** mesečni gospodinjski izračun po občini, porabi vode in številu oseb; razčlenitev omrežnin, DDV in obračunskih količin. Uradne tarife in cene posebnih storitev se urejajo v administraciji. [Viri in navodila](docs/PRICING.md).
+- **Koledar odvozov:** posamezni dogodek ali omejeno ponavljanje po dejansko objavljenih datumih, tudi ob prazničnih spremembah. [Navodila](docs/CALENDAR.md).
+- **Pokopališče:** sektorji, vrste, skupinsko dodajanje grobov, več oseb v istem grobu in umeščanje na načrt; iskanje, povečava in prikaz preverjenih položajev. Priloženi orientacijski osnutek urednik uporabi po izbiri. [Navodila](docs/CEMETERY.md).
 
 Podrobna slovenska navodila: [docs/ADMIN.md](docs/ADMIN.md). Vsebine imajo zgodovino in zaščito pred sočasnim prepisom. Pri delni napaki skupne objave že shranjeni deli ostanejo shranjeni, preostali ostanejo v osnutku.
 
@@ -38,6 +41,8 @@ npx wrangler deploy --dry-run
 npx wrangler deploy
 npm run test:smoke -- https://kpv.jakobtominc.com
 ```
+
+`npm run check` združi strežniške in uporabniške preizkuse ter produkcijsko gradnjo. Tipovni pregled zavrne tudi neuporabljeno kodo. Pregled preverjenih področij in meje preverjanja so v [docs/QUALITY.md](docs/QUALITY.md).
 
 `wrangler.jsonc` uporablja obstoječi Worker `kpv-portal`, D1 `kpv-portal` in zasebni R2 `kpv-portal-photos`. Skrivnosti ostanejo v Cloudflare. Običajna objava ne ustvarja novih virov. Pri selitvi uporabite `schema.sql` in prilagodite vezave, domene ter skrivnosti. Produkcijski smoke test ne ustvarja oddaj; preveri zavrnitev brez Turnstile žetona. Enotski testi preverjajo tudi uspešne oddaje, priponke, čakalno vrsto, pravice in konflikte.
 

@@ -1,7 +1,6 @@
 import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import {} from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -29,8 +28,6 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {
-  categories,
-  collectionPoints,
   findWasteItems,
   normalizeWaste,
   pointTypes,
@@ -38,7 +35,6 @@ import {
 } from "../data/waste";
 import type { CollectionPoint, WasteCategory } from "../data/waste";
 import { CalendarDialog } from "../components/CalendarDialog";
-import AnimatedDisclosure from "../components/AnimatedDisclosure";
 import { useSiteContent } from "../content/SiteContent";
 import "./waste.css";
 
@@ -242,8 +238,8 @@ export function WasteMapPage() {
                         {point.center
                           ? "ZBIRNI CENTER"
                           : point.types.includes("public")
-                            ? "VZORČNI JAVNI KOŠ"
-                            : "VZORČNA ZBIRALNICA"}
+                            ? "JAVNI KOŠ"
+                            : "ZBIRALNICA"}
                       </small>
                       <h3>{point.name}</h3>
                       <p>{point.address}</p>
@@ -327,7 +323,7 @@ export function WasteMapPage() {
               )}
             </MapContainer>
             <div className="waste-map-label">
-              <span /> Zemljevid zbirnih mest · primer
+              <span /> Zemljevid zbirnih mest
             </div>
           </div>
         </div>
@@ -715,7 +711,7 @@ export function CollectionPage() {
             </div>
             <p className="waste-calendar-note">
               Pri posameznem odvozu izberite »Dodaj v koledar«: določite lahko
-              koledar svoje naprave in shranite izbrani datum.
+              koledar svoje naprave in shranite samo izbrani datum ali ponavljajoče se odvoze te vrste po objavljenem urniku.
               Povezava zgoraj prenese vse prikazane potrjene datume.
               Uvoženi koledar se ne posodablja samodejno.
             </p>
@@ -738,9 +734,8 @@ export function CollectionPage() {
                   : "Območje ni enoznačno določeno – potrebna je potrditev pri KPV."}
               </p>)}
             </div>}
-            <p className="waste-calendar-note">Zimski odvoz BIO je od 14. decembra 2026 do 26. februarja 2027 na 14 dni.
-              V tednu 14.–18. decembra odvoza ni. Datum prazničnega petkovega odvoza okoli 25. decembra preverite pri KPV;
-              brez izrecne potrditve nadomestni datum ni dodan v koledar.</p>
+            <p className="waste-calendar-note">Spodaj so navedeni točni prihodnji datumi iz objavljenega urnika.
+              Praznične spremembe veljajo samo, ko jih potrdi in objavi KPV. Po koncu objavljenega obdobja novih datumov ne dodajamo samodejno.</p>
             <div className="waste-timeline">
               {schedule.events.map((event, index) => (
                 <article key={event.id} className="waste-event">
@@ -832,6 +827,7 @@ export function CollectionPage() {
         {calendarEvent && schedule && (
           <CalendarDialog
             event={calendarEvent}
+            events={schedule.events}
             address={schedule.address}
             onClose={() => setCalendarEvent(null)}
           />

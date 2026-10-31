@@ -42,6 +42,16 @@ test('notification fixes recipient, sets reply-to, escapes HTML and preserves pl
   assert.ok(email.text.includes('/admin?case=KPV-test'));
 });
 
+test('report email includes a usable exact-point map link instead of a coordinate-only location',()=>{
+ const message=notification({...record,kind:'reports',payload:{...record.payload,address:'Verd 12, Vrhnika',latitude:45.963,longitude:14.298}},env());
+ assert.match(message.text,/https:\/\/www.google.com\/maps\/search\/\?api=1&query=45.963,14.298/);
+ assert.match(message.html,/<a href="https:\/\/www.google.com\/maps\/search\/\?api=1&amp;query=45.963,14.298">Odpri lokacijo v Google Zemljevidih<\/a>/);
+ assert.ok(!message.text.includes('Zemljepisna širina:'));
+ const addressOnly=notification({...record,payload:{...record.payload,address:'Verd 12, Vrhnika',latitude:null,longitude:null}},env());
+ assert.ok(addressOnly.text.includes('query=Verd%2012%2C%20Vrhnika'));
+ assert.ok(!addressOnly.text.includes('query=0,0'));
+});
+
 test('local file storage cannot enable real email even when credentials are present', async () => {
   const e = { ...env(), LOCAL_STORAGE: { save: async () => {} } };
   assert.equal(emailEnabled(e), false);

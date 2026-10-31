@@ -1,0 +1,213 @@
+.utility-workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.35fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+.utility-form {
+  display: grid;
+  gap: 20px;
+}
+.utility-form h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.utility-form .field {
+  display: grid;
+  gap: 7px;
+}
+.utility-form small,
+.utility-form .svc-small {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #58685f;
+}
+.utility-check {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+}
+.utility-check input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 3px;
+}
+.utility-advanced {
+  border-top: 1px solid #dce5dc;
+  border-bottom: 1px solid #dce5dc;
+  padding: 16px 0;
+}
+.utility-advanced summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+.utility-advanced[open] {
+  display: grid;
+  gap: 18px;
+}
+.utility-advanced[open] summary {
+  margin-bottom: 18px;
+}
+.utility-advanced .field + .field {
+  margin-top: 20px;
+}
+.utility-assumption {
+  padding: 12px;
+  border-radius: 8px;
+  background: #f1f5ef;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.utility-result > h2 {
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  margin: 12px 0;
+}
+.utility-result > .eyebrow {
+  line-height: 1.7;
+}
+.utility-table-wrap {
+  overflow-x: auto;
+  margin: 24px 0;
+}
+.utility-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+.utility-table-wrap caption {
+  text-align: left;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.utility-table-wrap th,
+.utility-table-wrap td {
+  padding: 13px 7px;
+  border-bottom: 1px solid #dce5dc;
+  vertical-align: top;
+}
+.utility-table-wrap thead th {
+  font-size: 0.72rem;
+  color: #65776b;
+}
+.utility-table-wrap tbody th {
+  font-weight: 500;
+  min-width: 130px;
+}
+.utility-table-wrap th small {
+  display: block;
+  font-size: 0.7rem;
+  color: #65776b;
+  margin-top: 4px;
+}
+.utility-table-wrap td:last-child,
+.utility-table-wrap thead th:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+.utility-table-wrap tfoot {
+  font-weight: 700;
+}
+.utility-limits {
+  display: flex;
+  gap: 12px;
+  background: #f3f6ef;
+  border-radius: 10px;
+  padding: 18px;
+  margin-top: 24px;
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+.utility-limits > svg {
+  flex: none;
+  margin-top: 3px;
+}
+.utility-limits p {
+  margin: 8px 0 0;
+}
+.utility-empty {
+  padding: 30px 0;
+  line-height: 1.7;
+  color: #58685f;
+}
+.utility-empty h2 {
+  color: #204437;
+}
+.utility-sources > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 18px 0;
+}
+.utility-sources a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.utility-service-price {
+  padding: 18px;
+  border: 1px solid #dce5dc;
+  border-radius: 12px;
+  margin: 18px 0;
+  background: #f9faf6;
+}
+.utility-service-price h3 {
+  margin: 0 0 12px;
+}
+.utility-service-price ul {
+  padding-left: 20px;
+}
+.utility-service-price li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.utility-service-price small {
+  display: block;
+  color: #5b6d61;
+  line-height: 1.65;
+}
+.utility-service-price a {
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+.tariff-editor {
+  display: grid;
+  gap: 20px;
+}
+.tariff-editor summary {
+  font-weight: 650;
+  cursor: pointer;
+  padding: 10px 0;
+}
+.tariff-editor .admin-field-grid {
+  margin: 14px 0;
+}
+.tariff-editor .tariff-price-card {
+  border-top: 1px solid #dce5dc;
+  padding-top: 20px;
+  margin-top: 20px;
+}
+@media (max-width: 850px) {
+  .utility-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+@media print {
+  .utility-form,
+  .utility-print,
+  .utility-sources {
+    display: none !important;
+  }
+  .utility-workspace {
+    display: block;
+  }
+  .utility-result {
+    border: none;
+  }
+  .utility-table-wrap {
+    overflow: visible;
+  }
+}

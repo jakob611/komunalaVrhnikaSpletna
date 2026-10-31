@@ -2,12 +2,10 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   Check,
   ChevronRight,
@@ -22,7 +20,6 @@ import {
   Inbox,
   LayoutDashboard,
   LoaderCircle,
-  LockKeyhole,
   LogOut,
   Menu,
   Plus,
@@ -33,9 +30,11 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import BotProtection, { resetProtection } from "../components/BotProtection";
 import siteDefaults from "../../shared/site-defaults.json";
 import "./admin.css";
+import LocationPicker from '../components/admin/LocationPicker';
+import TariffsEditor from '../components/admin/TariffsEditor';
+import type {TariffData} from '../../shared/utility-pricing.js';
 import WorkQueue from "../components/admin/WorkQueue";
 import AdminSignIn, {
   type AdminSession,
@@ -43,6 +42,8 @@ import AdminSignIn, {
 import AdminUsers from "../components/admin/AdminUsers";
 import NotificationSettings from "../components/admin/NotificationSettings";
 import CollectionEditor from "../components/admin/CollectionEditor";
+import CemeteryEditor from "../components/admin/CemeteryEditor";
+import type { CemeteryData } from "../data/cemetery";
 import NoticesEditor, { type EditableNotice } from "../components/admin/NoticesEditor";
 import DistrictsEditor, { type District } from "../components/admin/DistrictsEditor";
 import type { CollectionData } from "../../shared/collection-utils";
@@ -59,13 +60,6 @@ type Media = {
   type: string;
   createdAt?: string;
   name?: string;
-};
-type Submission = {
-  id: string;
-  kind: string;
-  createdAt: string;
-  status: string;
-  payload: Record<string, Json>;
 };
 type Version = { revision: number; createdAt: string; value?: Json };
 type Selection = {
@@ -123,6 +117,7 @@ const sectionInfo: Record<
     group: "Vsebine",
   },
   districts: { name: "Območja e-obveščanja", description: "Občine, naselja in predeli, na katere se naročniki prijavijo za e-obvestila.", group: "Vsebine" },
+  tariffs: {name:'Ceniki in izračun',description:'Potrjene cene po občinah, obračunske količine in cene posebnih storitev.',group:'Vsebine'},
   collection: {
     name: "Urniki odvoza",
     description: "Območja, termini in vrste odpadkov.",
@@ -388,19 +383,6 @@ const serviceChoices: [string, string][] = [
   ["other", "Druga storitev"],
 ];
 const defaultSections = siteDefaults as unknown as Sections;
-const kinds: Record<string, string> = {
-  contact: "Kontaktna sporočila",
-  reports: "Prijave težav",
-  requests: "Povpraševanja",
-  market: "Prijave na tržnico",
-  subscriptions: "Naročila na obvestila",
-};
-const states: Record<string, string> = {
-  "demo-saved": "Novo",
-  "in-progress": "V obravnavi",
-  resolved: "Zaključeno",
-  spam: "Neželena oddaja",
-};
 const isObject = (value: Json): value is Record<string, Json> =>
   value !== null && !Array.isArray(value) && typeof value === "object";
 const prettyDate = (value?: string | number) => {
@@ -639,6 +621,8 @@ function Editor({
             ),
           ) + 1;
         item.types = ["public"];
+        item.lat = null;
+        item.lng = null;
       }
       if (isObject(item) && key === "graves") {
         const newSection = item.section;
@@ -772,6 +756,10 @@ function Editor({
     return (
       <div className={`admin-field-grid admin-depth-${Math.min(depth, 3)}`}>
         {Object.entries(value).map(([name, field]) => {
+          if(section==='wastePoints'&&['lat','lng'].includes(name)) {
+            if(name==='lng')return null;
+            return <LocationPicker key="location" latitude={typeof value.lat==='number'?value.lat:null} longitude={typeof value.lng==='number'?value.lng:null} optional={false} onChange={(lat,lng)=>onChange({...value,lat,lng})}/>;
+          }
           if (section === "settings" && !path.length && ["logoUrl", "logoAlt"].includes(name)) return null;
           if (section === "rates" && !path.length && !["marketStandard", "marketFood", "marketCraft"].includes(name)) return null;
           const nested = field !== null && typeof field === "object";
@@ -932,14 +920,9 @@ export default function AdminPage() {
   const [jsonText, setJsonText] = useState("");
   const [media, setMedia] = useState<Media[]>([]);
   const [mediaLoaded, setMediaLoaded] = useState(false);
+  const [mediaNextCursor,setMediaNextCursor]=useState<string|null>(null);
+  const [mediaLoading,setMediaLoading]=useState(false);
   const [copiedUrl, setCopiedUrl] = useState("");
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [submissionKind, setSubmissionKind] = useState("");
-  const [submissionPage, setSubmissionPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [openedSubmission, setOpenedSubmission] = useState<Submission | null>(
-    null,
-  );
   const [previewPage, setPreviewPage] = useState("/");
   const [previewMode, setPreviewMode] = useState<"edit" | "interact">("edit");
   const [workDirty, setWorkDirty] = useState(false);
@@ -1031,8 +1014,7 @@ export default function AdminPage() {
         setDraft(null);
         setMedia([]);
         setMediaLoaded(false);
-        setSubmissions([]);
-        setOpenedSubmission(null);
+      setMediaNextCursor(null);
         setHistory(null);
         setAdvanced(false);
         setSelection(null);
@@ -1076,34 +1058,18 @@ export default function AdminPage() {
       setLoading(false);
     }
   }
-  async function loadMedia() {
-    setLoading(true);
+  async function loadMedia(append=false) {
+    if(mediaLoading||(append&&!mediaNextCursor))return;
+    setMediaLoading(true);
+    if(!append)setLoading(true);
     try {
-      const data = await request<{ items: Media[] }>("/api/admin/media");
-      setMedia(data.items);
+      const query=append?'?'+new URLSearchParams({cursor:mediaNextCursor!}):'';
+      const data=await request<{items:Media[];nextCursor:string|null}>('/api/admin/media'+query);
+      setMedia(previous=>append?[...new Map([...previous,...data.items].map(item=>[item.id,item])).values()]:data.items);
+      setMediaNextCursor(data.nextCursor);
       setMediaLoaded(true);
-    } catch (cause) {
-      failure(cause);
-    } finally {
-      setLoading(false);
-    }
-  }
-  async function loadSubmissions(page = submissionPage, kind = submissionKind) {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(page) });
-      if (kind) params.set("kind", kind);
-      const data = await request<{ items: Submission[]; hasMore: boolean }>(
-        `/api/admin/submissions?${params}`,
-      );
-      setSubmissions(data.items);
-      setHasMore(data.hasMore);
-      setSubmissionPage(page);
-    } catch (cause) {
-      failure(cause);
-    } finally {
-      setLoading(false);
-    }
+    } catch(cause) {failure(cause);}
+    finally {setMediaLoading(false);if(!append)setLoading(false);}
   }
   useEffect(() => {
     let mounted = true;
@@ -1183,8 +1149,7 @@ export default function AdminPage() {
       setDraft(null);
       setMedia([]);
       setMediaLoaded(false);
-      setSubmissions([]);
-      setOpenedSubmission(null);
+      setMediaNextCursor(null);
       setHistory(null);
       setAdvanced(false);
       setSelection(null);
@@ -1860,7 +1825,7 @@ export default function AdminPage() {
                   </div>
                   {active === "website" ? (
                     <fieldset className="admin-complex-editor" disabled={busy}>
-                      <WebsiteEditor value={draft as unknown as WebsiteDraft} onChange={next => setDraft(next as unknown as Json)} pages={pages} media={media} onUpload={upload} disabled={busy} />
+                      <WebsiteEditor value={draft as unknown as WebsiteDraft} onChange={next => setDraft(next as unknown as Json)} pages={pages} media={media} onUpload={upload} disabled={busy} hasMoreMedia={!!mediaNextCursor} mediaLoading={mediaLoading} onMoreMedia={()=>void loadMedia(true)} />
                     </fieldset>
                   ) : active === "layout" ? (
                     <fieldset className="admin-complex-editor" disabled={busy}>
@@ -1875,6 +1840,10 @@ export default function AdminPage() {
                     <NoticesEditor value={draft as unknown as EditableNotice[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy} districts={sections.districts as unknown as District[]} revision={revisions.notices ?? 0} csrfToken={session.csrfToken} dirty={dirty} />
                   ) : active === "districts" ? (
                     <DistrictsEditor value={draft as unknown as District[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy}/>
+                  ) : active === "tariffs" ? (
+                    <TariffsEditor value={draft as unknown as TariffData} onChange={next=>setDraft(next as unknown as Json)} disabled={busy}/>
+                  ) : active === "cemetery" ? (
+                    <CemeteryEditor value={draft as unknown as CemeteryData} onChange={next=>setDraft(next as unknown as Json)} disabled={busy} onUpload={upload}/>
                   ) : active === "collection" ? (
                     <fieldset className="admin-complex-editor" disabled={busy}>
                       <CollectionEditor
@@ -2260,6 +2229,7 @@ export default function AdminPage() {
                       </article>
                     ))}
                   </div>
+                  {mediaNextCursor&&<button type="button" className="admin-button" disabled={mediaLoading} onClick={()=>void loadMedia(true)}>{mediaLoading?'Nalagamo starejše slike …':'Naloži starejše slike'}</button>}
                 </>
               )}
               {active === "notifications" && session.user.role === "owner" && <NotificationSettings csrfToken={session.csrfToken} onSessionExpired={() => setSession(null)} onDirtyChange={setWorkDirty} onBusyChange={setWorkBusy} />}
@@ -2279,7 +2249,6 @@ export default function AdminPage() {
                     setSections({});
                     setDraft(null);
                     setMedia([]);
-                    setOpenedSubmission(null);
                     setNotice(
                       "Seja je potekla. Za nadaljevanje se znova prijavite.",
                     );
@@ -2424,93 +2393,6 @@ export default function AdminPage() {
               Uporabi v obrazcu
             </button>
           </div>
-        </Dialog>
-      )}
-      {openedSubmission && (
-        <Dialog
-          error={error}
-          title={kinds[openedSubmission.kind] || "Podrobnosti oddaje"}
-          onClose={() => {
-            if (!busy) setOpenedSubmission(null);
-          }}
-        >
-          <p className="admin-dialog-description">
-            Referenca: {openedSubmission.id}
-            <br />
-            Prejeto: {prettyDate(openedSubmission.createdAt)}
-          </p>
-          <label className="admin-field">
-            <span>Status obravnave</span>
-            <select
-              value={openedSubmission.status}
-              disabled={busy}
-              onChange={async (event) => {
-                const status = event.target.value;
-                setBusy(true);
-                setError("");
-                try {
-                  await request(
-                    `/api/admin/submissions/${openedSubmission.id}`,
-                    { method: "PATCH", body: JSON.stringify({ status }) },
-                  );
-                  setOpenedSubmission({ ...openedSubmission, status });
-                  setSubmissions((old) =>
-                    old.map((item) =>
-                      item.id === openedSubmission.id
-                        ? { ...item, status }
-                        : item,
-                    ),
-                  );
-                  setNotice("Status oddaje je posodobljen.");
-                } catch (cause) {
-                  failure(cause);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {Object.entries(states).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <dl className="admin-submission-details">
-            {Object.entries(openedSubmission.payload)
-              .filter(([key]) => key !== "photoKey")
-              .map(([key, value]) => (
-                <div key={key}>
-                  <dt>{fieldName(key)}</dt>
-                  <dd>
-                    {typeof value === "boolean"
-                      ? value
-                        ? "Da"
-                        : "Ne"
-                      : typeof value === "string"
-                        ? value
-                        : JSON.stringify(value)}
-                  </dd>
-                </div>
-              ))}
-          </dl>
-          {openedSubmission.payload.photoKey && (
-            <a
-              className="admin-submission-photo"
-              href={`/api/admin/submissions/${openedSubmission.id}/photo`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <img
-                src={`/api/admin/submissions/${openedSubmission.id}/photo`}
-                alt="Priložena fotografija prijavljene težave"
-              />
-              <span>
-                Odpri fotografijo
-                <ExternalLink size={16} />
-              </span>
-            </a>
-          )}
         </Dialog>
       )}
     </div>

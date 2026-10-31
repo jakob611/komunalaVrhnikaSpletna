@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import "./calendar.css";
+import { publishedCalendarSeries } from "../../shared/calendar-series.js";
 
 export type CalendarCollectionEvent = {
   id: string;
@@ -39,10 +40,12 @@ const labelDate = (date: string) =>
 
 export function CalendarDialog({
   event,
+  events,
   address,
   onClose,
 }: {
   event: CalendarCollectionEvent;
+  events: CalendarCollectionEvent[];
   address: string;
   onClose: () => void;
 }) {
@@ -50,7 +53,10 @@ export function CalendarDialog({
   const closeButton = useRef<HTMLButtonElement>(null);
   const [calendar, setCalendar] = useState<CalendarChoice>(suggestedCalendar);
   const [action, setAction] = useState<"google" | "file" | null>(null);
-  const params = new URLSearchParams({ address, eventId: event.id, repeat: "once" });
+  const [repeat,setRepeat] = useState<'once'|'published'>('once');
+  const series = publishedCalendarSeries(events,event.id);
+  const directGoogle = calendar === 'google' && repeat === 'once';
+  const params = new URLSearchParams({ address, eventId: event.id, date:event.date, repeat });
   const icsUrl = `/api/calendar?${params}`;
   const googleParams = new URLSearchParams({
     action: "TEMPLATE",
@@ -144,6 +150,23 @@ export function CalendarDialog({
             </div>
           </div>
           <fieldset className="calendar-fieldset">
+            <legend>Kaj želite shraniti?</legend>
+            <div className="calendar-repeat-options">
+              <label className={repeat==='once'?'selected':''}>
+                <input type="radio" name="calendar-repeat" checked={repeat==='once'} onChange={()=>{setRepeat('once');setAction(null);}}/>
+                <span><strong>Samo ta datum</strong><small>{labelDate(event.date)}</small></span>
+              </label>
+              <label className={repeat==='published'?'selected':''}>
+                <input type="radio" name="calendar-repeat" checked={repeat==='published'} disabled={series.length<2} onChange={()=>{setRepeat('published');setAction(null);}}/>
+                <span><strong>Ponavljajoči se odvozi te vrste</strong><small>{series.length<2?'Za to vrsto je objavljen samo ta prihodnji datum.':`${series.length} objavljenih odvozov od ${labelDate(event.date)} do ${labelDate(series.at(-1)!.date)}.`}</small></span>
+              </label>
+            </div>
+            {repeat==='published'&&<div className="calendar-recurrence">
+              <p className="calendar-rule-summary">Datumi sledijo objavljenemu urniku in potrjenim izjemam. Po zadnjem datumu se ponavljanje konča.</p>
+              <details><summary>Preveri vseh {series.length} datumov</summary><ul className="calendar-date-list">{series.map(item=><li key={item.id}><time dateTime={item.date}>{labelDate(item.date)}</time></li>)}</ul></details>
+            </div>}
+          </fieldset>
+          <fieldset className="calendar-fieldset">
             <legend>
               Kateri koledar uporabljate?
             </legend>
@@ -194,31 +217,34 @@ export function CalendarDialog({
           <div className="calendar-demo-note">
             <Info size={17} />
             <p>
-              Uvoz ustvari kopijo tega objavljenega termina, ki se ne posodablja samodejno. Ob
-              spremembi urnika star dogodek uredite ali izbrišite v koledarju.
+              Uvoz ustvari kopijo {repeat==='once'?'izbranega termina':'prikazanih datumov'}, ki se ne posodablja samodejno. Ob
+              spremembi urnika stare dogodke uredite ali izbrišite v koledarju in uvozite popravljene datume.
               Čas opozorila nastavite v svoji koledarski aplikaciji.
             </p>
           </div>
-          {calendar !== "google" && (
+          {!directGoogle && (
             <details className="calendar-help">
-              <summary>Kako odprem datoteko .ics?</summary>
+              <summary>{calendar==='google'?'Kako shranim ponavljanje v Google Koledar?':'Kako odprem datoteko .ics?'}</summary>
               <p>
-                {calendar === "apple"
+                {calendar==='google'
+                  ? 'Prenesite datoteko .ics. Na računalniku odprite Google Koledar → Nastavitve → Uvoz in izvoz → Izberite datoteko iz računalnika. Izberite preneseno datoteko in koledar ter potrdite Uvozi. Mobilna aplikacija ne podpira tega uvoza; posamezni datum lahko odprete neposredno z izbiro »Samo ta datum«.'
+                  : calendar === "apple"
                   ? "Brskalnik odpre predogled ali prenese datoteko. V aplikaciji Koledar potrdite dodajanje. Če iPhone pokaže le predogled, lahko datoteko odprete iz e-poštne priloge ali tukaj izberete Google Koledar. Na Macu datoteko odprite z aplikacijo Koledar."
                   : "Odprite preneseno datoteko v koledarski aplikaciji. V Outlooku v spletu izberite Dodaj koledar → Naloži iz datoteke in potrdite uvoz. Google Koledar datoteke uvaža na računalniku; za telefon tukaj izberite možnost Google Koledar."}
               </p>
             </details>
           )}
+          {calendar==='google'&&repeat==='published'&&<p className="calendar-rule-summary">Za več datumov prenesite datoteko in jo uvozite v Google Koledar na računalniku. <a href="https://support.google.com/calendar/answer/37118?hl=sl" target="_blank" rel="noreferrer">Navodila za uvoz</a></p>}
         </div>
         <footer className="calendar-footer">
           <a
             className="button calendar-primary"
-            href={calendar === "google" ? googleUrl : icsUrl}
-            target={calendar === "google" ? "_blank" : undefined}
-            rel={calendar === "google" ? "noreferrer" : undefined}
-            onClick={() => setAction(calendar === "google" ? "google" : "file")}
+            href={directGoogle ? googleUrl : icsUrl}
+            target={directGoogle ? "_blank" : undefined}
+            rel={directGoogle ? "noreferrer" : undefined}
+            onClick={() => setAction(directGoogle ? "google" : "file")}
           >
-            {calendar === "google" ? (
+            {directGoogle ? (
               <>
                 <CalendarDays size={19} />
                 Odpri Google Koledar
@@ -227,7 +253,7 @@ export function CalendarDialog({
             ) : (
               <>
                 <Download size={19} />
-                Prenesi za {calendar === "apple" ? "Apple Koledar" : "koledar"}
+                {repeat==='published'?'Prenesi ponavljajoče se odvoze (.ics)':`Prenesi za ${calendar === "apple" ? "Apple Koledar" : "koledar"}`}
                 <ArrowUpRight size={18} />
               </>
             )}

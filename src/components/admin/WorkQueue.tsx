@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import "./workqueue.css";
+import MapPointLink from '../MapPointLink';
 
 type Step = { id: string; text: string; done: boolean };
 type Item = {
@@ -933,7 +934,7 @@ export default function WorkQueue({
                   {Object.entries(item.payload)
                     .filter(
                       ([key, value]) =>
-                        key in labels &&
+                        key in labels && !['latitude','longitude'].includes(key) &&
                         value !== "" &&
                         value !== null &&
                         value !== undefined,
@@ -954,6 +955,7 @@ export default function WorkQueue({
                       </div>
                     ))}
                 </dl>
+                <MapPointLink latitude={item.payload.latitude} longitude={item.payload.longitude} address={String(item.payload.address||'')}/>
                 {Boolean(item.payload.photoKey) && (
                   <a
                     href={`/api/admin/submissions/${item.id}/photo`}

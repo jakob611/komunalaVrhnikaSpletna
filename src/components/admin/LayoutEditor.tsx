@@ -27,15 +27,6 @@ const typeNames: Record<CmsBlock["type"], string> = {
   callout: "Poudarjeno obvestilo",
   spacer: "Razmik",
 };
-const nativeBlock = (item: Native): CmsBlock => ({
-  id: item.id,
-  type: "native",
-  nativeId: item.id,
-  tone: "plain",
-  align: "left",
-  width: "wide",
-  hidden: false,
-});
 const emptyButton = (): CmsButton => ({
   id: uid(),
   label: "Več informacij",
@@ -76,7 +67,7 @@ export default function LayoutEditor({
   onChange,
   pages,
   disabled = false,
-  previewData, page, onPageChange, initialSelected = "", onEditContent, media = [], onUpload,
+  previewData, page, onPageChange, initialSelected = "", onEditContent, media = [], onUpload, hasMoreMedia=false, mediaLoading=false, onMoreMedia,
 }: {
   value: CmsLayoutData;
   onChange: (next: CmsLayoutData) => void;
@@ -84,6 +75,7 @@ export default function LayoutEditor({
   disabled?: boolean;
   previewData?: Record<string, unknown>;
   page?: string; onPageChange?: (page: string) => void; initialSelected?: string;
+  hasMoreMedia?:boolean;mediaLoading?:boolean;onMoreMedia?:()=>void;
   onEditContent?: () => void; media?: {id: string; url: string; name?: string}[];
   onUpload?: (file: File) => Promise<{url: string} | undefined>;
 }) {
@@ -97,7 +89,6 @@ export default function LayoutEditor({
   const [slug, setSlug] = useState("");
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
-  const [menu, setMenu] = useState(false);
   const properties = useRef<HTMLFieldSetElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const current = value.pages.find((p) => p.path === path);
@@ -241,7 +232,6 @@ export default function LayoutEditor({
         ["O podjetju", "/o-podjetju"],
       ].map(([label, url]) => ({ id: uid(), label, url, variant: "text" })),
     });
-    setMenu(true);
   }
   return (
     <div className="layout-editor">
@@ -540,7 +530,7 @@ export default function LayoutEditor({
           {block.type === "image" && <>
             {block.image && <img className="admin-selected-image" src={block.image} alt={block.alt || "Predogled slike"} />}
             {onUpload && <label className="admin-button website-upload">Naloži in uporabi sliko<input type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={async e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) { const item = await onUpload(file); if (item) patch({image: item.url}); } }} /></label>}
-            {!!media.length && <details><summary>Izberi sliko iz knjižnice</summary><div className="admin-image-picker">{media.map(item => <button key={item.id} type="button" onClick={() => patch({image: item.url})} aria-label={`Uporabi ${item.name || "sliko"}`}><img src={item.url} alt={item.name || "Slika"} loading="lazy" /></button>)}</div></details>}
+            {!!media.length && <details><summary>Izberi sliko iz knjižnice</summary><div className="admin-image-picker">{media.map(item => <button key={item.id} type="button" onClick={() => patch({image: item.url})} aria-label={`Uporabi ${item.name || "sliko"}`}><img src={item.url} alt={item.name || "Slika"} loading="lazy" /></button>)}</div>{hasMoreMedia&&<button type="button" className="admin-button" disabled={disabled||mediaLoading} onClick={onMoreMedia}>{mediaLoading?'Nalagamo …':'Naloži starejše slike'}</button>}</details>}
           </>}
           {block.type === "spacer" && (
             <label className="admin-field">

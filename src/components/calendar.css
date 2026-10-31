@@ -226,6 +226,28 @@
   margin: 10px 0 6px;
   color: #577647;
 }
+.calendar-repeat-options label:has(input:disabled) {
+  cursor: default;
+  color: #6b7765;
+  background: #f5f6f2;
+}
+.calendar-recurrence summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.calendar-date-list {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px 18px;
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+  font-size: 12px;
+}
 .calendar-invalid {
   color: #a44738;
 }

@@ -17,6 +17,8 @@ Lastnik v **Dostop in skrbniki** povabi urednike. Povabilo velja 24 ur. Povablje
 | Redni delovni čas | **Delovni časi** |
 | Novico, načrtovana dela ali motnjo | **Obvestila in motnje** |
 | Območja in dejanske datume odvozov | **Urniki odvoza** |
+| Izračun komunalnih stroškov in objavljene cene storitev | **Ceniki in izračun** |
+| Sektorje, vrste, grobove in pokojne osebe | **Pokopališče** |
 | Prijavo občana ali interno opravilo | **Delovni nalogi** |
 | Predal za obvestila o novih oddajah | **E-poštna obvestila**; samo lastnik |
 | Fotografije za večkratno uporabo | **Datoteke** |
@@ -78,6 +80,16 @@ Začetni podatki so prepisani iz [uradnih urnikov KPV](https://www.kpv.si/mDejav
 - BIO med 14. in 18. decembrom 2026 nima odvoza. Nejasna petkova praznična izjema ob božiču ni prenesena kot domnevni datum.
 
 Delni urnik ni popoln seznam odvozov za gospodinjstvo. Opozorila ne odstranite samo s spremembo besedila: najprej preverite manjkajoče poti in datume pri pristojni službi.
+
+Občan pri terminu izbere **Dodaj v koledar**, nato **Samo ta datum** ali **Ponavljajoči se odvozi te vrste**. Ponavljanje vsebuje samo objavljene datume in se konča z zadnjim; podrobna navodila za Google, Apple in Outlook so v [CALENDAR.md](CALENDAR.md).
+
+## Ceniki in izračun
+
+Odprite **Ceniki in izračun**, izberite občino in prepišite potrjene neto cene, osnovne omrežnine, vir ter datum veljavnosti. Skupne tarife greznic, okoljske dajatve in količine odpadkov uredite v ustreznih razdelkih. Pri posebnih storitvah vpisujte ceno z DDV, njeno enoto in vključeni obseg. Preverite primer osnutka in **Shrani in objavi**; javni izračun preizkusite na `/kalkulator`. Cene stojnic se še naprej urejajo posebej. Viri, predpostavke in navodila so v [PRICING.md](PRICING.md).
+
+## Evidenca pokopališča
+
+V **Pokopališče** dodajte sektor, vanj vrsto, nato eno ali več grobnih mest. Izberite grob in dodajte osebe; nov pokop v obstoječi grob pomeni novo osebo v istem zapisu. Neznane datume pustite prazne. **Uporabi orientacijski osnutek** pripravi podlago za načrt; položaj posameznega groba določite s klikom ali razporedite vrsto z dvema klikoma. Pred objavo preverite vsak položaj. Grob brez potrjenega položaja ostane v iskalniku, če ima osebe, in ne kaže domnevne točke. Menjava načrta posebej vpraša, ali položaje ohranite ali umaknete do preverjanja; **Prekliči menjavo načrta** ne spremeni zapisov. [Podrobna navodila](CEMETERY.md).
 
 ## Delovni nalogi
 

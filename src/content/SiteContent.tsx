@@ -8,7 +8,8 @@ import {
 } from "react";
 import defaults from "../../shared/site-defaults.json";
 import type { CollectionPoint, WasteCategory } from "../data/waste";
-import type { Grave } from "../data/cemetery";
+import type { CemeteryData } from "../data/cemetery";
+import type {TariffData} from '../../shared/utility-pricing.js';
 import "./content.css";
 import type { CmsLayoutData, CmsLinkOverride } from "../../shared/page-layout";
 
@@ -36,7 +37,9 @@ export type SiteData = Omit<
   | "market"
   | "layout"
   | "links"
+  | "tariffs"
 > & {
+  tariffs:TariffData;
   layout: CmsLayoutData;
   links: CmsLinkOverride[];
   market: { dates: string[]; closedDates: string[] };
@@ -50,10 +53,7 @@ export type SiteData = Omit<
   }[];
   copy: CopyOverride[];
   images: ImageOverride[];
-  cemetery: {
-    plan: { width: number; height: number; imageUrl: string | null };
-    graves: Grave[];
-  };
+  cemetery: CemeteryData;
   notices: {
     id: string;
     title: string;

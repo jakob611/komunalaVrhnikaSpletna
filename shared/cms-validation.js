@@ -2,6 +2,7 @@
 import { normalizedAddress } from "./collection-utils.js";
 import { validateLayout, validateLinks, CUSTOM_PAGE } from "./page-layout.js";
 import { validateDistricts, validateDeliveryFields } from "./notification-rules.js";
+import {validateTariffs} from './utility-pricing.js';
 export const CMS_SECTIONS = Object.freeze([
   "settings",
   "hours",
@@ -19,6 +20,7 @@ export const CMS_SECTIONS = Object.freeze([
   "layout",
   "links",
   "districts",
+  "tariffs",
 ]);
 export const PUBLIC_PAGES = Object.freeze([
   "/",
@@ -63,7 +65,7 @@ const pointTypes = [
   "tekstil",
 ];
 const services = ["bulky", "septic", "water", "other"];
-const rateKeys = [
+const legacyRateKeys = [
   "wasteBase",
   "wastePerson",
   "bio",
@@ -74,6 +76,7 @@ const rateKeys = [
   "marketFood",
   "marketCraft",
 ];
+const rateKeys=['marketStandard','marketFood','marketCraft'];
 const forbiddenKeys = new Set(["__proto__", "prototype", "constructor"]);
 const maxBytes = 1024 * 1024;
 
@@ -262,6 +265,7 @@ function texts(value, label, maxItems = 30, maxText = 500) {
 }
 
 const validators = {
+  tariffs:validateTariffs,
   districts: value => validateDistricts(value),
   layout: (value) => validateLayout(value, PUBLIC_PAGES),
   links: (value) => validateLinks(value, PUBLIC_PAGES),
@@ -546,7 +550,10 @@ const validators = {
     return clean;
   },
   rates(value) {
-    object(value, "cene", rateKeys);
+    // Older saved sections contain obsolete demonstration utility amounts.
+    // Accept them only for migration, validate, and discard them permanently.
+    object(value, "cene", legacyRateKeys,rateKeys);
+    for(const key of legacyRateKeys)if(Object.hasOwn(value,key))number(value[key],`cena ${key}`,0,100_000);
     return Object.fromEntries(
       rateKeys.map((key) => [
         key,
@@ -575,7 +582,7 @@ const validators = {
     return { dates, closedDates };
   },
   cemetery(value) {
-    object(value, "pokopališče", ["plan", "graves"]);
+    object(value, "pokopališče", ["plan", "graves", "sectors"], ["plan", "graves"]);
     object(value.plan, "načrt pokopališča", ["width", "height", "imageUrl"]);
     const plan = {
       width: number(value.plan.width, "širina načrta", 1, 10_000, true),
@@ -587,7 +594,7 @@ const validators = {
     };
     const currentDate = today();
     const graves = unique(
-      array(value.graves, "grobovi", 1000).map((grave) => {
+      array(value.graves, "grobovi", 5000).map((grave) => {
         object(grave, "grob", [
           "id",
           "section",
@@ -596,7 +603,12 @@ const validators = {
           "x",
           "y",
           "people",
-        ]);
+          "positioned",
+        ], ["id", "section", "row", "number", "x", "y", "people"]);
+        if (grave.positioned !== undefined && typeof grave.positioned !== "boolean")
+          invalid("položaj groba", "potrditev položaja mora biti vključena ali izključena");
+        if (grave.positioned === true && (grave.x + 36 > plan.width || grave.y + 32 > plan.height))
+          invalid("položaj groba", "celotno grobno mesto mora biti znotraj načrta");
         return {
           id: id(grave.id, "oznaka groba"),
           section: text(grave.section, "oddelek", 60),
@@ -604,14 +616,15 @@ const validators = {
           number: number(grave.number, "številka groba", 1, 100_000, true),
           x: number(grave.x, "položaj x", 0, plan.width),
           y: number(grave.y, "položaj y", 0, plan.height),
+          ...(grave.positioned === undefined ? {} : { positioned: grave.positioned }),
           people: array(grave.people, "osebe v grobu", 10).map((person) => {
             object(person, "pokojnik", ["name", "born", "died"]);
-            const born = date(person.born, "datum rojstva");
-            const died = date(person.died, "datum smrti");
-            if (born >= died || died > currentDate)
+            const born = person.born === "" ? "" : date(person.born, "datum rojstva");
+            const died = person.died === "" ? "" : date(person.died, "datum smrti");
+            if ((born && died && born > died) || (died && died > currentDate) || (born && born > currentDate))
               invalid(
                 "datuma pokojnika",
-                "rojstvo mora biti pred smrtjo, datum smrti pa ne sme biti v prihodnosti",
+                "rojstvo ne sme biti po smrti, datuma pa ne smeta biti v prihodnosti",
               );
             return {
               name: text(person.name, "ime pokojnika", 200),
@@ -630,7 +643,14 @@ const validators = {
         `${grave.section.toLocaleLowerCase("sl")}|${grave.row}|${grave.number}`,
       "oznaka groba",
     );
-    return { plan, graves };
+    if (value.sectors === undefined) return { plan, graves };
+    const sectors = unique(array(value.sectors, "sektorji", 100).map(sector => {
+      object(sector, "sektor", ["name", "rows"]);
+      return {name:text(sector.name, "oznaka sektorja", 60),rows:unique(array(sector.rows, "vrste sektorja", 1000).map(row=>number(row, "vrsta", 1, 10000, true)),row=>row,"vrste sektorja").sort((a,b)=>a-b)};
+    }),sector=>sector.name.toLocaleLowerCase("sl"),"sektorji");
+    if (graves.some(grave=>!sectors.some(sector=>sector.name===grave.section&&sector.rows.includes(grave.row))))
+      invalid("sektor in vrsta groba", "vsak grob mora pripadati obstoječi vrsti v sektorju");
+    return { plan, graves, sectors };
   },
   copy(value) {
     return unique(

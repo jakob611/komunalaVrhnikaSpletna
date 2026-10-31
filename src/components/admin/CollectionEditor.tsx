@@ -225,6 +225,7 @@ export default function CollectionEditor({
             Izberite območje na levi. Nato uredite naslove ali datume in preverite,
             kaj bo za svoj naslov videl občan. Spremembe postanejo javne šele z gumbom »Shrani in objavi«.
           </p>
+          <p>Občan lahko v koledar shrani en datum ali vse naslednje odvoze iste vrste. Ponavljanje uporablja samo tukaj objavljene datume, tudi praznične izjeme. Že prenesenega koledarja poznejši popravek ne posodobi.</p>
         </div>
       </div>
       <nav className="collection-steps" aria-label="Koraki urejanja urnikov">

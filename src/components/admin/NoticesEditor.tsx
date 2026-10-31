@@ -3,6 +3,7 @@ import NoticeDelivery from './NoticeDelivery';
 import type { District } from './DistrictsEditor';
 import { Eye, Plus, Search, Trash2 } from "lucide-react";
 import "./notices-editor.css";
+import LocationPicker from './LocationPicker';
 
 export type EditableNotice = {
   id: string; title: string; category: "water" | "roads" | "waste" | "general";
@@ -25,6 +26,7 @@ export default function NoticesEditor({ value, onChange, disabled = false, distr
   const item = value.find(n => n.id === selected);
   const [addressText,setAddressText]=useState('');
   useEffect(()=>{setAddressText(item?.addressRules?.join('\n')||'');},[selected]);
+  useEffect(()=>{if(!dirty)setAddressText(item?.addressRules?.join('\n')||'');},[revision,dirty]);
   const shown = value.filter(n => normalize(`${n.title} ${n.area} ${n.summary}`).includes(normalize(query)) && (filter === "all" || (filter === "draft" ? n.published === false : n.published !== false))).sort((a,b) => b.date.localeCompare(a.date));
   const patch = (change: Partial<EditableNotice>) => onChange(value.map(n => n.id === selected ? { ...n, ...change } : n));
   function add() {
@@ -53,7 +55,7 @@ export default function NoticesEditor({ value, onChange, disabled = false, distr
           {!item.allDistricts&&<div className="admin-choice-grid">{districts.filter(d=>d.active).map(d=><label key={d.id} className="admin-checkbox"><input type="checkbox" checked={(item.districtIds||[]).includes(d.id)} onChange={e=>patch({districtIds:e.target.checked?[...(item.districtIds||[]),d.id]:(item.districtIds||[]).filter(id=>id!==d.id)})}/>{d.name}</label>)}</div>}
           <label className="admin-field"><span>Omejitev na ulice ali hiše · neobvezno</span><textarea rows={3} value={addressText} placeholder={'Verd, Vrhnika\nTržaška cesta 48, Vrhnika'} onChange={e=>{setAddressText(e.target.value);patch({addressRules:e.target.value.split('\n').map(s=>s.trim()).filter(Boolean)});}}/><small>En naslov ali ulica na vrstico. Vedno dodajte kraj. Brez te omejitve prejmejo obvestilo vsi naročniki izbranih območij za izbrano temo. Hiša 1 ne vključuje 12 ali 1a. Razpon hiš vpišite kot posamezne naslove; prostega opisa »del ulice« sistem ne ugiba.</small></label>
         </section>
-        <p className="admin-muted">Datum je podatek za občane. Ne določa časa objave; vključeno obvestilo se prikaže takoj po shranjevanju.</p><details><summary>Neobvezna točka na zemljevidu cestnih del</summary><p>Vnesite obe koordinati samo, če poznate točno lokacijo. Obvestilo je brez točke še vedno vidno na seznamu.</p><div className="admin-field-grid">{(["latitude", "longitude"] as const).map(k => <label className="admin-field" key={k}><span>{k === "latitude" ? "Zemljepisna širina" : "Zemljepisna dolžina"}</span><input type="number" step="any" min={k === "latitude" ? -90 : -180} max={k === "latitude" ? 90 : 180} value={item[k] ?? ""} onChange={e => patch({[k]:e.target.value === "" ? null : Number(e.target.value)})}/></label>)}</div></details>
+        <p className="admin-muted">Datum je podatek za občane. Ne določa časa objave; vključeno obvestilo se prikaže takoj po shranjevanju.</p><LocationPicker latitude={item.latitude} longitude={item.longitude} onChange={(latitude,longitude)=>patch({latitude,longitude})} label="Točka obvestila · neobvezno"/>
         <label className="admin-checkbox notice-editor-publish"><input type="checkbox" checked={item.published !== false} onChange={e => patch({published:e.target.checked})}/><span><strong>Prikaži na spletni strani</strong><small>Sprememba začne veljati, ko zgoraj izberete »Shrani in objavi«.</small></span></label>
         <section className="notice-editor-preview" aria-label="Predogled obvestila"><span>Predogled · {item.published === false ? "osnutek" : "objava po shranjevanju"}</span><p>{categories[item.category]} · {statuses[item.status as keyof typeof statuses]} · {item.date}</p><h3>{item.title || "Naslov obvestila"}</h3><p className="notice-preview-body">{item.summary || "Vsebina obvestila se prikaže tukaj."}</p><small>{item.area || "Območje"}</small></section>
         <NoticeDelivery noticeId={item.id} revision={revision} csrfToken={csrfToken} dirty={dirty}/>

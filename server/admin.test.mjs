@@ -139,6 +139,10 @@ test('notice delivery and subscriber overview require authentication, CSRF, curr
  const queued=await handleAdmin(request('/api/admin/notice-delivery',mutation(session,{...payload,preview:false},'POST')),env);assert.equal(queued.status,200);
  const duplicate=await handleAdmin(request('/api/admin/notice-delivery',mutation(session,{...payload,preview:false},'POST')),env);assert.equal((await duplicate.json()).alreadyQueued,true);
  const overview=await handleAdmin(request('/api/admin/subscribers',{cookie:session.cookie}),env);assert.equal((await overview.json()).counts.active,1);
+ const otherDistrict=await (await handleAdmin(request('/api/admin/subscribers?district=borovnica',{cookie:session.cookie}),env)).json();
+ assert.equal(otherDistrict.counts.active||0,0);assert.equal(otherDistrict.items.length,0);
+ const thisDistrict=await (await handleAdmin(request('/api/admin/subscribers?district=vrhnika',{cookie:session.cookie}),env)).json();
+ assert.equal(thisDistrict.counts.active,1);assert.equal(thisDistrict.items.length,1);
  const publicContent=await (await handleAdmin(request('/api/content'),env)).text();assert.ok(!publicContent.includes('private-subscriber@example.com'));
 });
 
@@ -892,4 +896,28 @@ test("body limits, methods, logout CSRF and revocation fail safely", async () =>
     env.DB.sql.prepare("SELECT count(*) AS n FROM admin_sessions").get().n,
     0,
   );
+});
+
+test('media library keyset pagination keeps older uploads reachable across tied timestamps without duplicates',async()=>{
+  const env=environment(),session=await login(env);
+  const insert=env.DB.sql.prepare('INSERT INTO cms_media(id,object_key,name,type,size,created_at) VALUES(?,?,?,?,?,?)');
+  const ids=[];
+  for(let index=0;index<225;index++){
+    const id=crypto.randomUUID();ids.push(id);
+    insert.run(id,`cms/${id}.png`,`image-${index}.png`,'image/png',100,1000+Math.floor(index/120));
+  }
+  const seen=[];let cursor=null,pages=0;
+  do {
+    const path='/api/admin/media'+(cursor?'?'+new URLSearchParams({cursor}):'');
+    const response=await handleAdmin(request(path,{cookie:session.cookie}),env);
+    assert.equal(response.status,200,await response.clone().text());
+    const data=await response.json();assert.ok(data.items.length<=100);
+    seen.push(...data.items.map(item=>item.id));cursor=data.nextCursor;pages++;
+  }while(cursor&&pages<5);
+  assert.equal(pages,3);assert.equal(cursor,null);assert.equal(new Set(seen).size,225);assert.deepEqual(seen.sort(),ids.sort());
+  for(const cursor of ['', 'invalid', '1000:bad-id', '9999999999999999:'+ids[0], '1000:'+ids[0]+'\n']){
+    const response=await handleAdmin(request('/api/admin/media?'+new URLSearchParams({cursor}),{cookie:session.cookie}),env);
+    assert.equal(response.status,400,`${cursor}: ${await response.text()}`);
+  }
+  assert.equal((await handleAdmin(request('/api/admin/media?cursor=invalid'),env)).status,401);
 });

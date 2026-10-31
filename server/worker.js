@@ -4,6 +4,7 @@ import { emailEnabled, outboxInsert, processEmail } from "./email.js";
 import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
 import { managedCollection } from "./managed-collection.js";
 import { requestSubscription, subscriptionAction, processCampaigns } from "./subscriptions.js";
+import { publishedCalendarSeries, publishedRecurrence } from "../shared/calendar-series.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -192,15 +193,16 @@ export function calendar(schedule, options = {}) {
     "METHOD:PUBLISH",
     "X-WR-CALNAME:KPV – urnik odvoza",
   ];
-  const events = options.eventId
+  const series = options.repeat === 'published' ? publishedCalendarSeries(schedule.events, options.eventId) : null;
+  const events = series ? series.slice(0,1) : options.eventId
     ? schedule.events.filter((event) => event.id === options.eventId)
     : schedule.events;
   for (const event of events) {
-    const recurrence =
+    const recurrence = series ? publishedRecurrence(series.map(event=>event.date)) :
       options.repeat === "weekly"
-        ? `RRULE:FREQ=WEEKLY;INTERVAL=${options.interval};COUNT=${options.count}`
-        : null;
-    const uidSuffix = recurrence
+        ? [`RRULE:FREQ=WEEKLY;INTERVAL=${options.interval};COUNT=${options.count}`]
+        : [];
+    const uidSuffix = series ? '-published' : recurrence.length
       ? `-repeat-${options.interval}-${options.count}`
       : "";
     lines.push(
@@ -211,9 +213,9 @@ export function calendar(schedule, options = {}) {
       `DTEND;VALUE=DATE:${addDays(event.date, 1).replace(/-/g, "")}`,
       `SUMMARY:${safeICS(event.label)}`,
       `LOCATION:${safeICS(schedule.address)}`,
-      `DESCRIPTION:${safeICS("Urnik odvoza KPV. Uvoženi koledar se ne posodablja samodejno; spremembe preverite na spletni strani." + (recurrence ? " Ponavljanje ste izbrali sami; ne upošteva praznikov ali sprememb odvoza." : ""))}`,
+      `DESCRIPTION:${safeICS("Urnik odvoza KPV. Uvoženi koledar se ne posodablja samodejno; spremembe preverite na https://kpv.jakobtominc.com/odpadki/urnik." + (recurrence.length ? " Ponavljanje vsebuje samo objavljene datume, vključno s potrjenimi izjemami." : ""))}`,
     );
-    if (recurrence) lines.push(recurrence);
+    lines.push(...recurrence);
     lines.push("END:VEVENT");
   }
   lines.push("END:VCALENDAR");
@@ -223,13 +225,13 @@ export function calendar(schedule, options = {}) {
 function calendarOptions(params, schedule) {
   const eventId = params.get("eventId");
   const repeat = params.get("repeat") || "once";
-  if (!["once", "weekly"].includes(repeat))
+  if (!["once", "published", "weekly"].includes(repeat))
     throw new ApiError(
       400,
-      "Izberite enkraten dogodek ali tedensko ponavljanje.",
+      "Izberite posamezni datum ali ponavljanje po objavljenem urniku.",
     );
   if (!eventId) {
-    if (repeat === "weekly")
+    if (repeat !== "once")
       throw new ApiError(
         400,
         "Za ponavljanje najprej izberite posamezen odvoz.",
@@ -242,7 +244,9 @@ function calendarOptions(params, schedule) {
       404,
       "Izbranega odvoza ni več v prikazanem urniku. Osvežite urnik in izberite nov termin.",
     );
-  if (repeat === "once") return { eventId, repeat };
+  if (params.has('date') && params.get('date') !== event.date)
+    throw new ApiError(409, 'Datum odvoza se je spremenil. Osvežite urnik in ponovno izberite datum.');
+  if (repeat === "once" || repeat === "published") return { eventId, repeat };
   const defaults = { bio: 1, packaging: 2, residual: 3 };
   const intervalText =
     params.get("interval") ?? String(defaults[event.type] || 1);
@@ -257,6 +261,13 @@ function calendarOptions(params, schedule) {
       400,
       "Ponavljanje je mogoče na 1 do 8 tednov, za 2 do 52 odvozov.",
     );
+  // Legacy interval links are accepted only when every occurrence is published.
+  // Otherwise an assumed cycle could reintroduce cancelled/past-holiday dates.
+  for(let index=0;index<Number(countText);index++) {
+    const date=addDays(event.date,index*Number(intervalText)*7);
+    if(!schedule.events.some(item=>item.type===event.type&&item.date===date))
+      throw new ApiError(400, 'Zahtevano ponavljanje vključuje nepotrjen datum. Izberite ponavljanje po objavljenem urniku.');
+  }
   return {
     eventId,
     repeat,

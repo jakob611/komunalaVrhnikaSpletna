@@ -2,6 +2,7 @@ import template from './email-template.generated.js';
 import { Buffer } from 'node:buffer';
 import { notificationRecipient } from './notification-settings.js';
 import { subscriberDeliveryAllowed } from './subscriptions.js';
+import {mapPointUrl,mapAddressUrl} from '../shared/location.js';
 
 export function emailEnabled(env) {
   // File-backed development and automated tests never send real email.
@@ -29,6 +30,7 @@ export function notification(record, env) {
   if (!title) throw new Error('Unknown email kind');
   const lines = [`Referenca: ${record.id}`, `Oddano: ${record.createdAt}`, ''];
   for (const [key, label] of Object.entries(labels)) {
+    if(['latitude','longitude'].includes(key))continue;
     const value = record.payload[key];
     if (value == null || value === '') continue;
     const display = choiceFields.has(key)
@@ -36,14 +38,19 @@ export function notification(record, env) {
       : value;
     lines.push(`${label}: ${display}`);
   }
+  const mapUrl=mapPointUrl(record.payload.latitude,record.payload.longitude)||mapAddressUrl(record.payload.address);
+  if(mapUrl)lines.push(`Lokacija na zemljevidu: ${mapUrl}`);
   if (record.payload.photoKey) lines.push('Fotografija: v priponki.');
   if (record.kind === 'subscriptions') lines.push('', 'Preverite izbrane teme in zabeležite obravnavo naročila v konzoli.');
   const details = lines.join('\n');
+  const detailsHtml = lines.map(line=>mapUrl&&line===`Lokacija na zemljevidu: ${mapUrl}`
+    ? `Lokacija na zemljevidu: <a href="${escapeHtml(mapUrl)}">Odpri lokacijo v Google Zemljevidih</a>`
+    : escapeHtml(line)).join('<br/>');
   const adminUrl = `https://kpv.jakobtominc.com/admin?case=${encodeURIComponent(record.id)}`;
   return {
     from: env.EMAIL_FROM, to: [env.EMAIL_TO], reply_to: record.payload.email,
     subject: `[KPV] ${title} · ${record.id.slice(0, 12)}`,
-    html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => escapeHtml(details).replace(/\n/g, '<br/>')).replace('KPV_ADMIN_LINK_TOKEN', escapeHtml(adminUrl)),
+    html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => detailsHtml).replace('KPV_ADMIN_LINK_TOKEN', escapeHtml(adminUrl)),
     text: `${title}\n\n${details}\n\nObravnava v skrbniški konzoli (potrebna je prijava): ${adminUrl}\n\nOddaja je evidentirana. Termin storitve ali rezervacijo mora potrditi pristojna služba.`,
   };
 }

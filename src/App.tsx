@@ -8,6 +8,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import PageMotion from "./components/PageMotion";
 import ContentBridge from "./content/ContentBridge";
 import { CmsPageImage, useSiteContent, telephone } from "./content/SiteContent";
+import {mapAddressUrl} from '../shared/location.js';
 import {
   NavLink,
   Route,
@@ -23,7 +24,6 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
-  Clock3,
   Droplets,
   ExternalLink,
   Flower2,
@@ -162,7 +162,7 @@ const searchable = [
   ],
   [
     "Tržnica Vrhnika",
-    "Izberite termin in rezervirajte prodajno mesto",
+    "Preverite termine in pošljite povpraševanje za prodajno mesto",
     "/trznica",
   ],
   [
@@ -1325,7 +1325,7 @@ function Footer() {
             {settings.email}
             <ArrowUpRight size={13} />
           </CmsAnchor>
-          <p>{settings.address}</p>
+          <CmsAnchor href={mapAddressUrl(settings.address)||'/kontakt'} target="_blank" rel="noreferrer">{settings.address}</CmsAnchor>
           <Link to="/kontakt">
             Vsi kontakti
             <ArrowRight size={14} />

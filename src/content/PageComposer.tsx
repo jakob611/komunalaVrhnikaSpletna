@@ -16,7 +16,6 @@ import { useSiteContent, contentKey } from "./SiteContent";
 import type {
   CmsBlock,
   CmsLayoutData,
-  CmsLinkOverride,
 } from "../../shared/page-layout";
 import { safeDestination, safePicture, mergeNativeBlocks } from "../../shared/page-layout";
 import "./page-composer.css";

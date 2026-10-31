@@ -10,8 +10,9 @@ export type WebsiteDraft = Pick<SiteData, typeof WEBSITE_SECTIONS[number]>;
 type Media = { id: string; url: string; name?: string };
 type Selection = { kind: "text" | "image" | "link"; page: string; key: string; original: string; src?: string; alt?: string; label?: string; url?: string };
 
-export default function WebsiteEditor({ value, onChange, pages, media, onUpload, disabled = false }: {
+export default function WebsiteEditor({ value, onChange, pages, media, onUpload, disabled = false, hasMoreMedia=false, mediaLoading=false, onMoreMedia }: {
   value: WebsiteDraft; onChange: (value: WebsiteDraft) => void; pages: string[][];
+  hasMoreMedia?:boolean;mediaLoading?:boolean;onMoreMedia?:()=>void;
   media: Media[]; onUpload: (file: File) => Promise<Media | undefined>; disabled?: boolean;
 }) {
   const [tab, setTab] = useState<"content" | "layout" | "brand">("content");
@@ -61,14 +62,14 @@ export default function WebsiteEditor({ value, onChange, pages, media, onUpload,
       <input type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={async e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) { const item = await onUpload(file); if (item) choose(item.url); } }} />
     </label>
     <p className="website-help">JPG, PNG ali WebP do 5 MB. Za logotip priporočamo PNG s prosojnim ozadjem.</p>
-    {media.length > 0 && <details><summary>Izberi obstoječo sliko ({media.length})</summary><div className="admin-image-picker">{media.map(item => <button type="button" key={item.id} disabled={disabled} onClick={() => choose(item.url)} aria-label={`Uporabi ${item.name || "sliko"}`}><img src={item.url} alt={item.name || "Slika iz knjižnice"} loading="lazy" /></button>)}</div></details>}
+    {media.length > 0 && <details><summary>Izberi obstoječo sliko ({media.length})</summary><div className="admin-image-picker">{media.map(item => <button type="button" key={item.id} disabled={disabled} onClick={() => choose(item.url)} aria-label={`Uporabi ${item.name || "sliko"}`}><img src={item.url} alt={item.name || "Slika iz knjižnice"} loading="lazy" /></button>)}</div>{hasMoreMedia&&<button type="button" className="admin-button" disabled={disabled||mediaLoading} onClick={onMoreMedia}>{mediaLoading?'Nalagamo …':'Naloži starejše slike'}</button>}</details>}
   </>;
   return <div className="website-editor">
     <div className="website-tabs" aria-label="Opravila urejevalnika">
       {([["content", "1. Besedila, slike in povezave"], ["layout", "2. Razdelki in meni"], ["brand", "3. Logotip KPV"]] as const).map(([key, label]) => <button type="button" aria-pressed={tab === key} className={tab === key ? "admin-button admin-primary" : "admin-button"} onClick={() => setTab(key)} key={key}>{label}</button>)}
     </div>
     <p className="website-help">Izberite stran in kliknite vsebino v predogledu. Med opravili lahko prehajate brez izgube sprememb. Ko končate, uporabite »Shrani in objavi«.</p>
-    {tab === "layout" ? <LayoutEditor value={value.layout} onChange={layout => onChange({ ...value, layout })} pages={pages} disabled={disabled} previewData={value} page={page} onPageChange={setPage} initialSelected={selectedBlock} onEditContent={() => setTab("content")} media={media} onUpload={onUpload} /> : tab === "brand" ? <section className="admin-panel website-brand">
+    {tab === "layout" ? <LayoutEditor value={value.layout} onChange={layout => onChange({ ...value, layout })} pages={pages} disabled={disabled} previewData={value} page={page} onPageChange={setPage} initialSelected={selectedBlock} onEditContent={() => setTab("content")} media={media} onUpload={onUpload} hasMoreMedia={hasMoreMedia} mediaLoading={mediaLoading} onMoreMedia={onMoreMedia} /> : tab === "brand" ? <section className="admin-panel website-brand">
       <h2>Logotip KPV</h2><p>Ta logotip se prikaže v glavi in nogi vseh strani. Brez izbrane slike se prikaže besedilna oznaka podjetja.</p>
       <div className="website-logo-preview">{value.settings.logoUrl ? <img src={value.settings.logoUrl} alt={value.settings.logoAlt} /> : <strong>Komunala Vrhnika</strong>}</div>
       <fieldset disabled={disabled}><label className="admin-field"><span>Slika logotipa</span><input value={value.settings.logoUrl} placeholder="Izberite ali naložite sliko spodaj" onChange={e => onChange({ ...value, settings: { ...value.settings, logoUrl: e.target.value } })} /></label>
