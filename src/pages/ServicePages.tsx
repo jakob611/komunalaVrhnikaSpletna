@@ -1833,17 +1833,23 @@ function ContactForm() {
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [subject, setSubject] = useState("");
+  const suggestedSubject=useRef('');
   const [message, setMessage] = useState("");
   const submission = useSubmission();
   const receiptElement = useRef<HTMLDivElement>(null);
   const area = contactAreas.find((item) => item.value === category);
   const suggestion = contactSuggestions[`${category}:${subcategory}`];
+  function suggestSubject(next:string) {
+    const previousSuggestion=suggestedSubject.current;
+    suggestedSubject.current=next;
+    setSubject(previous=>!previous.trim()||previous===previousSuggestion?next:previous);
+  }
   useEffect(()=>{
     const selected=contactAreas.find(item=>item.value===params.get('category'));
     const topic=selected?.topics.find(item=>item.value===params.get('subcategory'));
     setCategory(selected?.value||'');
     setSubcategory(topic?.value||'');
-    setSubject(selected&&selected.value!=='other'?`${selected.label} – ${topic?.label||'vprašanje'}`:'');
+    suggestSubject(selected&&selected.value!=='other'?`${selected.label} – ${topic?.label||'vprašanje'}`:'');
   },[params]);
   useEffect(() => {
     if (submission.receipt)
@@ -1858,7 +1864,7 @@ function ContactForm() {
     const selected = contactAreas.find((item) => item.value === value);
     setCategory(value);
     setSubcategory("");
-    setSubject(
+    suggestSubject(
       value === "other" || !selected ? "" : `${selected.label} – vprašanje`,
     );
   }
@@ -1866,7 +1872,7 @@ function ContactForm() {
     setSubcategory(value);
     const topic = area?.topics.find((item) => item.value === value);
     if (area)
-      setSubject(
+      suggestSubject(
         topic ? `${area.label} – ${topic.label}` : `${area.label} – vprašanje`,
       );
   }

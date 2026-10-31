@@ -1281,7 +1281,9 @@ export default function AdminPage() {
       ]);
       setMediaLoaded(true);
       setNotice(
-        "Slika je naložena. Spremembe objavite z gumbom »Shrani in objavi«.",
+        active === 'media'
+          ? 'Slika je shranjena v knjižnici. Za prikaz na spletni strani jo izberite v urejevalniku spletne strani.'
+          : "Slika je naložena. Spremembe objavite z gumbom »Shrani in objavi«.",
       );
       return item;
     } catch (cause) {

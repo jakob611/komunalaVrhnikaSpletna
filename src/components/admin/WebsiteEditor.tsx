@@ -24,12 +24,22 @@ export default function WebsiteEditor({ value, onChange, pages, media, onUpload,
   const [selectedBlock, setSelectedBlock] = useState("");
   const frame = useRef<HTMLIFrameElement>(null);
   const allPages = [...pages, ...value.layout.pages.filter(p => !pages.some(([path]) => path === p.path)).map(p => [p.path, p.title])];
+  function changePage(next: string) {
+    if (next === page) return;
+    setPage(next);
+    setSelection(null);
+    setSelectedBlock("");
+    setReady(false);
+  }
+  useEffect(() => {
+    if (!allPages.some(([path]) => path === page)) changePage("/");
+  }, [page, value.layout.pages]);
   const post = () => frame.current?.contentWindow?.postMessage({ type: "kpv-cms-update", ...value, mode, tool }, location.origin);
   useEffect(() => {
     const receive = (event: MessageEvent) => {
       if (event.origin !== location.origin || event.source !== frame.current?.contentWindow) return;
       if (event.data?.type === "kpv-cms-ready") {
-        if (allPages.some(([path]) => path === event.data.page)) setPage(event.data.page);
+        if (allPages.some(([path]) => path === event.data.page)) changePage(event.data.page);
         setReady(true); post();
       }
       if (event.data?.type === "kpv-cms-select") {
@@ -69,7 +79,7 @@ export default function WebsiteEditor({ value, onChange, pages, media, onUpload,
       {([["content", "1. Besedila, slike in povezave"], ["layout", "2. Razdelki in meni"], ["brand", "3. Logotip KPV"]] as const).map(([key, label]) => <button type="button" aria-pressed={tab === key} className={tab === key ? "admin-button admin-primary" : "admin-button"} onClick={() => setTab(key)} key={key}>{label}</button>)}
     </div>
     <p className="website-help">Izberite stran in kliknite vsebino v predogledu. Med opravili lahko prehajate brez izgube sprememb. Ko končate, uporabite »Shrani in objavi«.</p>
-    {tab === "layout" ? <LayoutEditor value={value.layout} onChange={layout => onChange({ ...value, layout })} pages={pages} disabled={disabled} previewData={value} page={page} onPageChange={setPage} initialSelected={selectedBlock} onEditContent={() => setTab("content")} media={media} onUpload={onUpload} hasMoreMedia={hasMoreMedia} mediaLoading={mediaLoading} onMoreMedia={onMoreMedia} /> : tab === "brand" ? <section className="admin-panel website-brand">
+    {tab === "layout" ? <LayoutEditor value={value.layout} onChange={layout => onChange({ ...value, layout })} pages={pages} disabled={disabled} previewData={value} page={page} onPageChange={changePage} initialSelected={selectedBlock} onEditContent={() => setTab("content")} media={media} onUpload={onUpload} hasMoreMedia={hasMoreMedia} mediaLoading={mediaLoading} onMoreMedia={onMoreMedia} /> : tab === "brand" ? <section className="admin-panel website-brand">
       <h2>Logotip KPV</h2><p>Ta logotip se prikaže v glavi in nogi vseh strani. Brez izbrane slike se prikaže besedilna oznaka podjetja.</p>
       <div className="website-logo-preview">{value.settings.logoUrl ? <img src={value.settings.logoUrl} alt={value.settings.logoAlt} /> : <strong>Komunala Vrhnika</strong>}</div>
       <fieldset disabled={disabled}><label className="admin-field"><span>Slika logotipa</span><input value={value.settings.logoUrl} placeholder="Izberite ali naložite sliko spodaj" onChange={e => onChange({ ...value, settings: { ...value.settings, logoUrl: e.target.value } })} /></label>
@@ -77,7 +87,7 @@ export default function WebsiteEditor({ value, onChange, pages, media, onUpload,
       {imagePicker(url => onChange({ ...value, settings: { ...value.settings, logoUrl: url } }))}
       {!!value.settings.logoUrl && <button type="button" className="admin-danger-link" onClick={() => onChange({ ...value, settings: { ...value.settings, logoUrl: "" } })}>Odstrani logotip</button>}</fieldset>
     </section> : <>
-      <div className="admin-preview-toolbar"><label>Stran za urejanje<select value={page} disabled={disabled} onChange={e => { setPage(e.target.value); setSelection(null); setReady(false); }}>{allPages.map(([path, label]) => <option key={path} value={path}>{label}</option>)}</select></label>
+      <div className="admin-preview-toolbar"><label>Stran za urejanje<select value={page} disabled={disabled} onChange={e => changePage(e.target.value)}>{allPages.map(([path, label]) => <option key={path} value={path}>{label}</option>)}</select></label>
         <label>Opravilo<select value={tool} onChange={e => { setTool(e.target.value as "text" | "link"); setSelection(null); }}><option value="text">Besedilo ali slika · klikni vsebino</option><option value="link">Povezava · klikni gumb ali povezavo</option></select></label>
         <label>Način<select value={mode} onChange={e => setMode(e.target.value as "edit" | "interact")}><option value="edit">Urejanje</option><option value="interact">Preizkus povezav brez oddaje obrazcev</option></select></label>
       </div>

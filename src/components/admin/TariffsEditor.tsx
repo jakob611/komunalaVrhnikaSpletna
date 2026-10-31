@@ -1,4 +1,5 @@
 import { useState } from "react";
+import NumericInput from './NumericInput';
 import {
   calculateHousehold,
   tariffDate,
@@ -70,14 +71,13 @@ export default function TariffsEditor({
     return (
       <label className="admin-field" key={key}>
         <span>{labels[key] || key}</span>
-        <input
-          type="number"
+        <NumericInput
           min="0"
           max="100000"
           step="0.0001"
           required
           value={current}
-          onChange={(e) => change(Number(e.target.value))}
+          onValueChange={change}
         />
       </label>
     );
@@ -135,15 +135,14 @@ export default function TariffsEditor({
         </label>
         <label className="admin-field">
           <span>DDV rednih storitev (%)</span>
-          <input
-            type="number"
+          <NumericInput
             min="0"
             max="30"
             step="0.1"
             required
             value={value.vatPercent}
-            onChange={(e) =>
-              onChange({ ...value, vatPercent: Number(e.target.value) })
+            onValueChange={(vatPercent) =>
+              onChange({ ...value, vatPercent })
             }
           />
         </label>
@@ -315,15 +314,14 @@ export default function TariffsEditor({
               </label>
               <label className="admin-field">
                 <span>Cena z DDV (€ na enoto)</span>
-                <input
-                  type="number"
+                <NumericInput
                   min="0"
                   max="100000"
                   step="0.0001"
                   required
                   value={p.priceWithVat}
-                  onChange={(e) =>
-                    price(p.id, { priceWithVat: Number(e.target.value) })
+                  onValueChange={(priceWithVat) =>
+                    price(p.id, { priceWithVat })
                   }
                 />
               </label>
@@ -344,15 +342,14 @@ export default function TariffsEditor({
               </label>
               <label className="admin-field">
                 <span>Vključeni DDV (%)</span>
-                <input
-                  type="number"
+                <NumericInput
                   min="0"
                   max="30"
                   step="0.1"
                   required
                   value={p.vatPercent}
-                  onChange={(e) =>
-                    price(p.id, { vatPercent: Number(e.target.value) })
+                  onValueChange={(vatPercent) =>
+                    price(p.id, { vatPercent })
                   }
                 />
               </label>

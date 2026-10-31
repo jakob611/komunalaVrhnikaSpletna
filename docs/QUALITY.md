@@ -28,6 +28,8 @@ Pregled: 31. 10. 2026. Namen je preprečevanje ponavljajočih se napak v dejansk
 
 Ponovni pregled uporabnosti je odpravil obvezni ročni uvoz prihodnjih odvozov, ponavljajoče klikanje za primerjave izračuna, zavračanje oznake groba med tipkanjem, izgubljeno bližnjico za cestna obvestila in predolg razširjen cenovni blok pred naročilom storitve. Strežniški preizkus potrjuje, da prihodnja tarifa ne more prepisati trenutnega cenika in onesposobiti izračuna. Ti preizkusi preverjajo konkretna uporabniška dejanja; zgolj uspešna gradnja ni dokaz uporabnosti.
 
+Dodatni pregled ohranja že delujoče postopke in preverja izgubljen kontekst: izbor druge strani odstrani prejšnjo izbiro v pregledovalniku brez izgube osnutka; pozni odgovor za prejšnje obvestilo ne pokaže napačnega števila prejemnikov. Obrazec za kontakt ohrani ročno napisano zadevo tudi po spremembi področja. Prazno cenovno polje med urejanjem ne postane samodejno ničla. Sporočilo po nalaganju v knjižnico ne zahteva gumba za objavo, ki ga tam ni.
+
 ## Organizacija kode
 
 Računska pravila so v `shared/utility-pricing.js`, dejanske tarife in viri v `shared/official-tariffs-2026.json`. `shared/calendar-series.js` hrani pravilo točnega ponavljanja. `shared/location.js` sestavlja varne povezave. Pokopališki postopki so v `src/data/cemetery.ts` in namenskem `CemeteryEditor`; cene ureja `TariffsEditor`. Enaka strežniška validacija velja za urejevalnik, napredni uvoz in obnovo zgodovine.

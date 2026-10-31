@@ -1,9 +1,154 @@
-import { useEffect,useState } from 'react';
-type Result={recipients:number;alreadyQueued:boolean;status:string|null;deliveries:Record<string,number>};
-export default function NoticeDelivery({noticeId,revision,csrfToken,dirty}:{noticeId:string;revision:number;csrfToken:string;dirty:boolean}) {
-  const [result,setResult]=useState<Result|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
-  useEffect(()=>{setResult(null);setError('');setMessage('');},[noticeId,revision,dirty]);
-  async function run(preview:boolean){setBusy(true);setResult(null);setError('');setMessage('');try{const response=await fetch('/api/admin/notice-delivery',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({noticeId,revision,preview}),signal:AbortSignal.timeout(30000)});const data=await response.json();if(!response.ok)throw Error(data.error||'Zahteva ni uspela.');setResult(data);if(!preview)setMessage('Pošiljanje je uvrščeno v trajno čakalno vrsto. Dostavo spremljajte spodaj.');}catch(cause){setError(cause instanceof Error?cause.message:'Povezava ni uspela.');}finally{setBusy(false);}}
-  return <section className="notice-editor-preview"><h3>E-poštno obveščanje naročnikov</h3><p>Najprej shranite in objavite obvestilo. Nato preverite prejemnike in potrdite pošiljanje. Pošiljanje zajame samo potrjene naročnike za izbrana območja, naslove in temo.</p>{dirty&&<p role="status">Pred preverjanjem shranite spremembe.</p>}<button type="button" className="admin-button" disabled={dirty||busy} onClick={()=>void run(true)}>{busy?'Preverjamo …':'Preveri prejemnike in dostavo'}</button>
-    {result&&<div role="status"><p>Ujemajoči potrjeni naročniki: <strong>{result.recipients}</strong>.</p>{result.alreadyQueued?<><p>Ta različica je že uvrščena za pošiljanje; ponovno je ne pošljemo.</p><p>Priprava: {result.status==='complete'?'zaključena':result.status==='cancelled'?'preklicana':'v teku'} · v čakanju: {result.deliveries.pending||0} · sprejeto pri ponudniku: {result.deliveries.sent||0} · neuspešno ali preklicano: {result.deliveries.failed||0}</p></>:<button type="button" className="admin-button admin-primary" disabled={busy||!result.recipients||dirty} onClick={()=>void run(false)}>Potrdi pošiljanje za {result.recipients} naročnikov</button>}</div>}{error&&<p className="admin-error" role="alert">{error}</p>}{message&&<p role="status">{message}</p>}</section>;
+import { useEffect, useRef, useState } from "react";
+
+type Result = {
+  recipients: number;
+  alreadyQueued: boolean;
+  status: string | null;
+  deliveries: Record<string, number>;
+};
+export default function NoticeDelivery({
+  noticeId,
+  revision,
+  csrfToken,
+  dirty,
+}: {
+  noticeId: string;
+  revision: number;
+  csrfToken: string;
+  dirty: boolean;
+}) {
+  const [result, setResult] = useState<Result | null>(null);
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [message, setMessage] = useState("");
+  const request = useRef<AbortController | null>(null);
+  const context = JSON.stringify([noticeId, revision, csrfToken, dirty]);
+  const currentContext = useRef(context);
+  currentContext.current = context;
+
+  useEffect(() => {
+    request.current?.abort();
+    request.current = null;
+    setBusy(false);
+    setResult(null);
+    setError("");
+    setMessage("");
+    return () => {
+      request.current?.abort();
+      request.current = null;
+    };
+  }, [context]);
+
+  async function run(preview: boolean) {
+    if (
+      dirty ||
+      request.current ||
+      (!preview && (!result || result.alreadyQueued || !result.recipients))
+    )
+      return;
+    const controller = new AbortController();
+    request.current = controller;
+    const requestedContext = context;
+    const stillCurrent = () =>
+      !controller.signal.aborted &&
+      request.current === controller &&
+      currentContext.current === requestedContext;
+    setBusy(true);
+    setResult(null);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/notice-delivery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
+        body: JSON.stringify({ noticeId, revision, preview }),
+        signal: AbortSignal.any([
+          controller.signal,
+          AbortSignal.timeout(30000),
+        ]),
+      });
+      const data = await response.json();
+      if (!stillCurrent()) return;
+      if (!response.ok) throw Error(data.error || "Zahteva ni uspela.");
+      setResult(data);
+      if (!preview)
+        setMessage(
+          "Pošiljanje je uvrščeno v trajno čakalno vrsto. Dostavo spremljajte spodaj.",
+        );
+    } catch (cause) {
+      if (stillCurrent())
+        setError(
+          cause instanceof Error ? cause.message : "Povezava ni uspela.",
+        );
+    } finally {
+      // A superseded response must not unlock a newer request's controls.
+      if (request.current === controller) {
+        request.current = null;
+        setBusy(false);
+      }
+    }
+  }
+  return (
+    <section className="notice-editor-preview">
+      <h3>E-poštno obveščanje naročnikov</h3>
+      <p>
+        Najprej shranite in objavite obvestilo. Nato preverite prejemnike in
+        potrdite pošiljanje. Pošiljanje zajame samo potrjene naročnike za
+        izbrana območja, naslove in temo.
+      </p>
+      {dirty && <p role="status">Pred preverjanjem shranite spremembe.</p>}
+      <button
+        type="button"
+        className="admin-button"
+        disabled={dirty || busy}
+        onClick={() => void run(true)}
+      >
+        {busy ? "Preverjamo …" : "Preveri prejemnike in dostavo"}
+      </button>
+      {result && (
+        <div role="status">
+          <p>
+            Ujemajoči potrjeni naročniki: <strong>{result.recipients}</strong>.
+          </p>
+          {result.alreadyQueued ? (
+            <>
+              <p>
+                Ta različica je že uvrščena za pošiljanje; ponovno je ne
+                pošljemo.
+              </p>
+              <p>
+                Priprava:{" "}
+                {result.status === "complete"
+                  ? "zaključena"
+                  : result.status === "cancelled"
+                    ? "preklicana"
+                    : "v teku"}{" "}
+                · v čakanju: {result.deliveries.pending || 0} · sprejeto pri
+                ponudniku: {result.deliveries.sent || 0} · neuspešno ali
+                preklicano: {result.deliveries.failed || 0}
+              </p>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="admin-button admin-primary"
+              disabled={busy || !result.recipients || dirty}
+              onClick={() => void run(false)}
+            >
+              Potrdi pošiljanje za {result.recipients} naročnikov
+            </button>
+          )}
+        </div>
+      )}
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
+      {message && <p role="status">{message}</p>}
+    </section>
+  );
 }
