@@ -8,6 +8,8 @@ import {
   cleanupAdminAuth,
 } from "./admin-auth.js";
 import { handleWork, getWorkItem, saveWorkItem } from "./work-queue.js";
+import { handleNotificationSettings } from "./notification-settings.js";
+import { createCampaign, processCampaigns } from "./subscriptions.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const headers = {
@@ -105,6 +107,7 @@ async function content(env, admin = false) {
         };
       }
   }
+  if (!admin) sections.notices = sections.notices.filter(item => item.published !== false);
   return { sections, revisions, ...(admin ? { metadata } : {}) };
 }
 
@@ -118,9 +121,10 @@ export async function readPublished(env, section) {
     )
       .bind(section)
       .first();
-    return row
+    const value = row
       ? validateSection(section, JSON.parse(row.value))
       : structuredClone(defaults[section]);
+    return section === "notices" ? value.filter(item => item.published !== false) : value;
   } catch {
     return structuredClone(defaults[section]);
   }
@@ -316,7 +320,9 @@ export async function handleAdmin(request, env = {}) {
     const session = await authenticateAdmin(request, env);
     const sessionResponse = await handleAdminAuth(request, env, session);
     if (sessionResponse) return sessionResponse;
-    const actor = { email: session.email };
+    const actor = { email: session.email, role: session.role };
+    const notificationResponse = await handleNotificationSettings(request, env, { json, body, fail, actor });
+    if (notificationResponse) return notificationResponse;
     const workResponse = await handleWork(request, env, {
       json,
       body,
@@ -325,6 +331,23 @@ export async function handleAdmin(request, env = {}) {
     });
     if (workResponse) return workResponse;
     const db = database(env);
+    if (path === '/api/admin/subscribers') {
+      allow(request,'GET');
+      const district=url.searchParams.get('district')||'';
+      if(district.length>80)fail(400,'Območje ni veljavno.');
+      const {results}=await db.prepare("SELECT email,address,district_id,status,topics FROM email_subscribers WHERE (?='' OR district_id=?) ORDER BY updated_at DESC LIMIT 50").bind(district,district).all();
+      const stats=await db.prepare("SELECT status,COUNT(*) AS count FROM email_subscribers WHERE (?='' OR district_id=?) GROUP BY status").bind(district,district).all();
+      return json({items:results.map(row=>({...row,topics:JSON.parse(row.topics)})),counts:Object.fromEntries(stats.results.map(row=>[row.status,row.count]))});
+    }
+    if (path === "/api/admin/notice-delivery") {
+      allow(request, "POST");
+      const data = await body(request,8192);
+      const all = await content(env,true);
+      const notice = all.sections.notices.find(item => item.id === data.noticeId);
+      if (!notice) fail(404,"Obvestilo ne obstaja. Najprej ga shranite.");
+      const result = await createCampaign(env,notice,all.revisions.notices,data.revision,actor,all.sections.districts,data.preview===true);
+      return json(result);
+    }
     if (path === "/api/admin/content") {
       allow(request, "GET");
       return json(await content(env, true));
@@ -394,10 +417,18 @@ export async function handleAdmin(request, env = {}) {
     if (path === "/api/admin/media") {
       if (request.method === "POST") return await upload(request, env);
       allow(request, "GET");
+      const cursor = url.searchParams.get("cursor");
+      const parsed = cursor?.match(/^(\d{1,16}):([a-f0-9-]{36})$/);
+      if (cursor !== null && (!parsed || !Number.isSafeInteger(Number(parsed[1]))))
+        fail(400, "Položaj v knjižnici ni veljaven. Osvežite knjižnico.");
       const { results } = await db
-        .prepare("SELECT * FROM cms_media ORDER BY created_at DESC LIMIT 100")
+        .prepare(parsed
+          ? "SELECT * FROM cms_media WHERE created_at < ? OR (created_at = ? AND id < ?) ORDER BY created_at DESC,id DESC LIMIT 101"
+          : "SELECT * FROM cms_media ORDER BY created_at DESC,id DESC LIMIT 101")
+        .bind(...(parsed ? [Number(parsed[1]),Number(parsed[1]),parsed[2]] : []))
         .all();
-      return json({ items: results.map(mediaItem) });
+      const items=results.slice(0,100),last=items.at(-1);
+      return json({items:items.map(mediaItem),nextCursor:results.length>100?`${last.created_at}:${last.id}`:null});
     }
     if (path === "/api/admin/submissions") {
       allow(request, "GET");
@@ -451,6 +482,8 @@ export async function handleAdmin(request, env = {}) {
       const data = await body(request, 8192);
       if (!statuses.includes(data.status)) fail(400, "Status ni veljaven.");
       const item = await getWorkItem(env, update[1], fail);
+      if (!Number.isSafeInteger(data.version) || data.version !== item.version)
+        fail(409, "Nalog je bil spremenjen. Osvežite ga pred shranjevanjem.");
       const result = await saveWorkItem(
         env,
         item.id,
@@ -466,7 +499,7 @@ export async function handleAdmin(request, env = {}) {
       error instanceof AdminError ||
       error instanceof AuthError ||
       error instanceof BotError ||
-      error?.status === 400
+      Number.isInteger(error?.status)
     )
       return json({ error: error.message }, error.status);
     return json(

@@ -74,54 +74,2938 @@
       ]
     }
   ],
-  "notices": [
-    {
-      "id": "demo-water",
-      "title": "Vzdrževalna dela na vodovodnem omrežju",
-      "category": "water",
-      "area": "Vrhnika · Verd",
-      "date": "2026-10-30",
-      "summary": "Primer obvestila: med 8. in 12. uro je predvidena začasna prekinitev oskrbe s pitno vodo. To ni uradno obvestilo KPV.",
-      "status": "planned",
-      "latitude": 45.9602,
-      "longitude": 14.301
-    },
-    {
-      "id": "demo-roads",
-      "title": "Obnova vozišča na lokalni cesti",
-      "category": "roads",
-      "area": "Borovnica",
-      "date": "2026-11-02",
-      "summary": "Primer obvestila: zaradi obnove je predvidena delna zapora ceste. Upoštevajte prometno signalizacijo. Podatki so prikazni.",
-      "status": "planned",
-      "latitude": 45.9203,
-      "longitude": 14.3625
-    },
-    {
-      "id": "demo-waste",
-      "title": "Jesensko zbiranje nevarnih odpadkov",
-      "category": "waste",
-      "area": "Vrhnika · Log - Dragomer · Borovnica",
-      "date": "2026-11-07",
-      "summary": "Primer obvestila: odpadne baterije, barve in druga nevarna sredstva oddajte ločeno. Za dejanski termin preverite uradno stran KPV.",
-      "status": "planned",
-      "latitude": 45.9722,
-      "longitude": 14.3021
-    },
-    {
-      "id": "demo-general",
-      "title": "Predmetom podarimo novo življenje",
-      "category": "general",
-      "area": "DEPO · Vrhnika",
-      "date": "2026-10-28",
-      "summary": "Dobro ohranjeno pohištvo, oprema in drugi uporabni predmeti lahko zaživijo ponovno. Obiščite uradno stran DEPO.",
-      "status": "info",
-      "latitude": 45.9631,
-      "longitude": 14.2937
-    }
-  ],
+  "notices": [],
   "collection": {
-    "routes": []
+    "routes": [
+      {
+        "id": "official-emb-vrh-e1",
+        "name": "Embalaža · E1e · Podlipa, Stara Vrhnika, del Rovt in Lavrovca",
+        "addresses": [
+          "Podlipa",
+          "Podlipa, Vrhnika",
+          "Rovte",
+          "Rovte, Vrhnika",
+          "Smrečje",
+          "Smrečje, Vrhnika",
+          "Stara Vrhnika",
+          "Stara Vrhnika, Vrhnika",
+          "Trčkov Grič",
+          "Trčkov Grič, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-05",
+            "date": "2026-10-05",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-19",
+            "date": "2026-10-19",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-02",
+            "date": "2026-11-02",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-16",
+            "date": "2026-11-16",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-30",
+            "date": "2026-11-30",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-14",
+            "date": "2026-12-14",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-28",
+            "date": "2026-12-28",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-vrh-k2",
+        "name": "Embalaža · K2e · Padež, Pokojišče, Zavrh",
+        "addresses": [
+          "Padež",
+          "Padež, Vrhnika",
+          "Pokojišče",
+          "Pokojišče, Vrhnika",
+          "Zavrh",
+          "Zavrh, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-06",
+            "date": "2026-10-06",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-20",
+            "date": "2026-10-20",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-03",
+            "date": "2026-11-03",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-17",
+            "date": "2026-11-17",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-01",
+            "date": "2026-12-01",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-15",
+            "date": "2026-12-15",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-29",
+            "date": "2026-12-29",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-vrh-i3",
+        "name": "Embalaža · I3e · Bistra, Janezova vas, Verd",
+        "addresses": [
+          "Bistra",
+          "Bistra, Vrhnika",
+          "Janezova vas, Vrhnika",
+          "Brigadirska cesta, Vrhnika",
+          "Cankarjevo nabrežje, Vrhnika",
+          "Cesta krimskega odreda, Vrhnika",
+          "Cesta na barju, Vrhnika",
+          "Cesta na polju, Vrhnika",
+          "Čolnarska cesta, Vrhnika",
+          "Janezova cesta, Vrhnika",
+          "Jagrova cesta, Vrhnika",
+          "Kačurjeva cesta, Vrhnika",
+          "Kotnikova cesta, Vrhnika",
+          "Pionirska cesta, Vrhnika",
+          "Stara stranska cesta, Vrhnika",
+          "Sternenova cesta, Vrhnika",
+          "Verd",
+          "Verd, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-07",
+            "date": "2026-10-07",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-21",
+            "date": "2026-10-21",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-04",
+            "date": "2026-11-04",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-18",
+            "date": "2026-11-18",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-02",
+            "date": "2026-12-02",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-16",
+            "date": "2026-12-16",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-30",
+            "date": "2026-12-30",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-vrh-h4",
+        "name": "Embalaža · H4e · Bevke, Blatna Brezovica, Ligojna",
+        "addresses": [
+          "Bevke",
+          "Bevke, Vrhnika",
+          "Blatna Brezovica",
+          "Blatna Brezovica, Vrhnika",
+          "Mala Ligojna",
+          "Mala Ligojna, Vrhnika",
+          "Velika Ligojna",
+          "Velika Ligojna, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-08",
+            "date": "2026-10-08",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-22",
+            "date": "2026-10-22",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-05",
+            "date": "2026-11-05",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-19",
+            "date": "2026-11-19",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-03",
+            "date": "2026-12-03",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-17",
+            "date": "2026-12-17",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-31",
+            "date": "2026-12-31",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-vrh-a6",
+        "name": "Embalaža · A6e · Vrhnika – navedene ulice in hišne številke",
+        "addresses": [
+          "Betajnova, Vrhnika",
+          "Gabrče, Vrhnika",
+          "Grilčev grič, Vrhnika",
+          "Hrastje, Vrhnika",
+          "Mirke, Vrhnika",
+          "Močilnik, Vrhnika",
+          "Notranjska cesta, Vrhnika",
+          "Pavkarjeva pot, Vrhnika",
+          "Raskovec, Vrhnika",
+          "Storžev grič, Vrhnika",
+          "Švabičeva ulica, Vrhnika",
+          "Turnovše, Vrhnika",
+          "Tržaška cesta 34, Vrhnika",
+          "Tržaška cesta 34a, Vrhnika",
+          "Tržaška cesta 37, Vrhnika",
+          "Tržaška cesta 38, Vrhnika",
+          "Tržaška cesta 38a, Vrhnika",
+          "Tržaška cesta 40, Vrhnika",
+          "Tržaška cesta 42, Vrhnika",
+          "Tržaška cesta 44, Vrhnika",
+          "Tržaška cesta 46, Vrhnika",
+          "Tržaška cesta 48, Vrhnika",
+          "Tržaška cesta 50, Vrhnika",
+          "Tržaška cesta 52, Vrhnika",
+          "Tržaška cesta 52a, Vrhnika",
+          "Tržaška cesta 53, Vrhnika",
+          "Tržaška cesta 55, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-12",
+            "date": "2026-10-12",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-26",
+            "date": "2026-10-26",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-09",
+            "date": "2026-11-09",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-23",
+            "date": "2026-11-23",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-07",
+            "date": "2026-12-07",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-21",
+            "date": "2026-12-21",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-vrh-c8",
+        "name": "Embalaža · C8e · Zaplana, Rovte in okoliški kraji",
+        "addresses": [
+          "Jamnik",
+          "Jamnik, Vrhnika",
+          "Jerinov Grič",
+          "Jerinov Grič, Vrhnika",
+          "Marinčev Grič",
+          "Marinčev Grič, Vrhnika",
+          "Mizni Dol",
+          "Mizni Dol, Vrhnika",
+          "Ograje",
+          "Ograje, Vrhnika",
+          "Prezid",
+          "Prezid, Vrhnika",
+          "Rovte",
+          "Rovte, Vrhnika",
+          "Strmica",
+          "Strmica, Vrhnika",
+          "Zaplana",
+          "Zaplana, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-14",
+            "date": "2026-10-14",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-28",
+            "date": "2026-10-28",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-11",
+            "date": "2026-11-11",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-25",
+            "date": "2026-11-25",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-09",
+            "date": "2026-12-09",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-23",
+            "date": "2026-12-23",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-vrh-f9",
+        "name": "Embalaža · F9e · Drenov Grič, Lesno Brdo, Sinja Gorica",
+        "addresses": [
+          "Drenov Grič",
+          "Drenov Grič, Vrhnika",
+          "Lesno Brdo",
+          "Lesno Brdo, Vrhnika",
+          "Sinja Gorica",
+          "Sinja Gorica, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-01",
+            "date": "2026-10-01",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-15",
+            "date": "2026-10-15",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-29",
+            "date": "2026-10-29",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-12",
+            "date": "2026-11-12",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-26",
+            "date": "2026-11-26",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-10",
+            "date": "2026-12-10",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-24",
+            "date": "2026-12-24",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-bor-k2",
+        "name": "Embalaža · K2e · Borovnica – območje K",
+        "addresses": [
+          "Cesta pod goro, Borovnica",
+          "Demšarjeva ulica, Borovnica",
+          "Ljubljanska cesta, Borovnica",
+          "Obrtniška ulica, Borovnica",
+          "Ulica bratov Debevec, Borovnica",
+          "Brezovica pri Borovnici",
+          "Brezovica pri Borovnici, Borovnica",
+          "Breg, Borovnica",
+          "Dražica",
+          "Dražica, Borovnica",
+          "Lašče",
+          "Lašče, Borovnica",
+          "Niževec",
+          "Niževec, Borovnica",
+          "Ohonica",
+          "Ohonica, Borovnica",
+          "Pako",
+          "Pako, Borovnica",
+          "Pristava, Borovnica",
+          "Zabočevo",
+          "Zabočevo, Borovnica"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-06",
+            "date": "2026-10-06",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-20",
+            "date": "2026-10-20",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-03",
+            "date": "2026-11-03",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-17",
+            "date": "2026-11-17",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-01",
+            "date": "2026-12-01",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-15",
+            "date": "2026-12-15",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-29",
+            "date": "2026-12-29",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-bor-b7",
+        "name": "Embalaža · B7e · Borovnica – območje B, Dol, Laze",
+        "addresses": [
+          "Cerkova ulica, Borovnica",
+          "Cesta na grič, Borovnica",
+          "Mejačeva ulica, Borovnica",
+          "Miklavičeva cesta, Borovnica",
+          "Mikuževa ulica, Borovnica",
+          "Molkov trg, Borovnica",
+          "Paplerjeva ulica, Borovnica",
+          "Pot na Malence, Borovnica",
+          "Pot v Jele, Borovnica",
+          "Ramovševa ulica, Borovnica",
+          "Rimska cesta, Borovnica",
+          "Struge, Borovnica",
+          "Švigljeva ulica, Borovnica",
+          "Ulica bratov Mivšek, Borovnica",
+          "Zalarjeva cesta, Borovnica",
+          "Dol, Borovnica",
+          "Laze, Borovnica"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-13",
+            "date": "2026-10-13",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-27",
+            "date": "2026-10-27",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-10",
+            "date": "2026-11-10",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-24",
+            "date": "2026-11-24",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-08",
+            "date": "2026-12-08",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-22",
+            "date": "2026-12-22",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-log-g5",
+        "name": "Embalaža · G5e · Log",
+        "addresses": [
+          "Log",
+          "Log, Log - Dragomer",
+          "Log pri Brezovici",
+          "Log pri Brezovici, Log - Dragomer",
+          "Jordanov kot, Log",
+          "Jordanov kot, Log pri Brezovici",
+          "Jordanov kot, Log - Dragomer",
+          "Barjanska, Log",
+          "Barjanska, Log pri Brezovici",
+          "Barjanska, Log - Dragomer"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-09",
+            "date": "2026-10-09",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-23",
+            "date": "2026-10-23",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-06",
+            "date": "2026-11-06",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-20",
+            "date": "2026-11-20",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-04",
+            "date": "2026-12-04",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-18",
+            "date": "2026-12-18",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-emb-log-j10",
+        "name": "Embalaža · J10e · Dragomer in Lukovica",
+        "addresses": [
+          "Dragomer",
+          "Dragomer, Log - Dragomer",
+          "Lukovica",
+          "Lukovica, Log - Dragomer",
+          "Lukovica pri Brezovici",
+          "Lukovica pri Brezovici, Log - Dragomer"
+        ],
+        "events": [
+          {
+            "id": "packaging-2026-10-02",
+            "date": "2026-10-02",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-16",
+            "date": "2026-10-16",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-10-30",
+            "date": "2026-10-30",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-13",
+            "date": "2026-11-13",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-11-27",
+            "date": "2026-11-27",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-11",
+            "date": "2026-12-11",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          },
+          {
+            "id": "packaging-2026-12-26",
+            "date": "2026-12-26",
+            "type": "packaging",
+            "label": "Mešana embalaža"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-a",
+        "name": "MKO · A · Vrhnika – območje A",
+        "addresses": [
+          "Idrijska, Vrhnika",
+          "Betajnova, Vrhnika",
+          "Notranjska, Vrhnika",
+          "Gabrče, Vrhnika",
+          "Grilčev grič, Vrhnika",
+          "Švabičeva, Vrhnika",
+          "Turnovše, Vrhnika",
+          "Raskovec, Vrhnika",
+          "Pavkarjeva pot, Vrhnika",
+          "Hrastje, Vrhnika",
+          "Močilnik, Vrhnika",
+          "Kolesarska, Vrhnika",
+          "Med vrtovi, Vrhnika",
+          "Pot k studencu, Vrhnika",
+          "Prisojna pot, Vrhnika",
+          "Ob potoku, Vrhnika",
+          "Ob beli, Vrhnika",
+          "Mokrice, Vrhnika",
+          "Rožna, Vrhnika",
+          "Kuclerjeva, Vrhnika",
+          "Vrtnarija, Vrhnika",
+          "Pod Hruševco, Vrhnika",
+          "Zlatica, Vrhnika",
+          "Kolodvorska, Vrhnika",
+          "Možinova, Vrhnika",
+          "Sivkina, Vrhnika",
+          "Ob progi, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-26",
+            "date": "2026-01-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-23",
+            "date": "2026-02-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-23",
+            "date": "2026-03-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-20",
+            "date": "2026-04-20",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-18",
+            "date": "2026-05-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-15",
+            "date": "2026-06-15",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-13",
+            "date": "2026-07-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-10",
+            "date": "2026-08-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-07",
+            "date": "2026-09-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-05",
+            "date": "2026-10-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-02",
+            "date": "2026-11-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-30",
+            "date": "2026-11-30",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-28",
+            "date": "2026-12-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-25",
+            "date": "2027-01-25",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-c",
+        "name": "MKO · C · Vrhnika – klanci in Zaplana",
+        "addresses": [
+          "Dobovičnikova, Vrhnika",
+          "Dolge njive, Vrhnika",
+          "Pri lipi, Vrhnika",
+          "Pot na Košace, Vrhnika",
+          "Na klancu, Vrhnika",
+          "Pot k Trojici, Vrhnika",
+          "Čuža, Vrhnika",
+          "Petkovškova, Vrhnika",
+          "Vas, Vrhnika",
+          "Tičnica, Vrhnika",
+          "Stara cesta, Vrhnika",
+          "Cankarjev trg, Vrhnika",
+          "Zaplana",
+          "Zaplana, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-12",
+            "date": "2026-01-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-09",
+            "date": "2026-02-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-09",
+            "date": "2026-03-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-07",
+            "date": "2026-04-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-04",
+            "date": "2026-05-04",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-01",
+            "date": "2026-06-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-29",
+            "date": "2026-06-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-27",
+            "date": "2026-07-27",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-24",
+            "date": "2026-08-24",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-21",
+            "date": "2026-09-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-19",
+            "date": "2026-10-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-16",
+            "date": "2026-11-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-14",
+            "date": "2026-12-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-11",
+            "date": "2027-01-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-d",
+        "name": "MKO · D · Vrhnika – območje D",
+        "addresses": [
+          "Mirke, Vrhnika",
+          "Lošca, Vrhnika",
+          "Prečna pot, Vrhnika",
+          "Pot v Močilnik, Vrhnika",
+          "Usnjarska, Vrhnika",
+          "Markova, Vrhnika",
+          "Sušnikova, Vrhnika",
+          "Kopališka, Vrhnika",
+          "Ob Ljubljanici, Vrhnika",
+          "Ribiška pot, Vrhnika",
+          "Ob igrišču, Vrhnika",
+          "Voljčeva, Vrhnika",
+          "Na Klisu, Vrhnika",
+          "Hrib, Vrhnika",
+          "Kurirska, Vrhnika",
+          "Cesta 6. maja, Vrhnika",
+          "Na Zelenci, Vrhnika",
+          "Krožna, Vrhnika",
+          "Poštna, Vrhnika",
+          "Krpanova, Vrhnika",
+          "Cesta gradenj, Vrhnika",
+          "Opekarska, Vrhnika",
+          "Gradišče, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-19",
+            "date": "2026-01-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-16",
+            "date": "2026-02-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-16",
+            "date": "2026-03-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-13",
+            "date": "2026-04-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-11",
+            "date": "2026-05-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-08",
+            "date": "2026-06-08",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-06",
+            "date": "2026-07-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-03",
+            "date": "2026-08-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-31",
+            "date": "2026-08-31",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-28",
+            "date": "2026-09-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-26",
+            "date": "2026-10-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-23",
+            "date": "2026-11-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-21",
+            "date": "2026-12-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-18",
+            "date": "2027-01-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-e",
+        "name": "MKO · E · Janezova vas, Stara Vrhnika, Podlipa, Krošljev Grič",
+        "addresses": [
+          "Janezova vas, Vrhnika",
+          "Brigadirska cesta, Vrhnika",
+          "Cankarjevo nabrežje, Vrhnika",
+          "Cesta krimskega odreda, Vrhnika",
+          "Cesta na barju, Vrhnika",
+          "Cesta na polju, Vrhnika",
+          "Čolnarska cesta, Vrhnika",
+          "Janezova cesta, Vrhnika",
+          "Jagrova cesta, Vrhnika",
+          "Kačurjeva cesta, Vrhnika",
+          "Kotnikova cesta, Vrhnika",
+          "Pionirska cesta, Vrhnika",
+          "Stara stranska cesta, Vrhnika",
+          "Sternenova cesta, Vrhnika",
+          "Stara Vrhnika",
+          "Stara Vrhnika, Vrhnika",
+          "Podlipa",
+          "Podlipa, Vrhnika",
+          "Krošljev Grič, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-27",
+            "date": "2026-01-27",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-24",
+            "date": "2026-02-24",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-24",
+            "date": "2026-03-24",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-21",
+            "date": "2026-04-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-19",
+            "date": "2026-05-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-16",
+            "date": "2026-06-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-14",
+            "date": "2026-07-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-11",
+            "date": "2026-08-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-08",
+            "date": "2026-09-08",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-06",
+            "date": "2026-10-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-03",
+            "date": "2026-11-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-01",
+            "date": "2026-12-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-29",
+            "date": "2026-12-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-26",
+            "date": "2027-01-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-f",
+        "name": "MKO · F · Sinja Gorica, Drenov Grič, Lesno Brdo",
+        "addresses": [
+          "Sinja Gorica",
+          "Sinja Gorica, Vrhnika",
+          "Drenov Grič",
+          "Drenov Grič, Vrhnika",
+          "Lesno Brdo",
+          "Lesno Brdo, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-06",
+            "date": "2026-01-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-03",
+            "date": "2026-02-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-03",
+            "date": "2026-03-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-31",
+            "date": "2026-03-31",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-28",
+            "date": "2026-04-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-26",
+            "date": "2026-05-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-23",
+            "date": "2026-06-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-21",
+            "date": "2026-07-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-18",
+            "date": "2026-08-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-15",
+            "date": "2026-09-15",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-13",
+            "date": "2026-10-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-10",
+            "date": "2026-11-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-08",
+            "date": "2026-12-08",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-05",
+            "date": "2027-01-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-h",
+        "name": "MKO · H · Bevke, Blatna Brezovica, Ligojna in del Vrhnike",
+        "addresses": [
+          "Bevke",
+          "Bevke, Vrhnika",
+          "Blatna Brezovica",
+          "Blatna Brezovica, Vrhnika",
+          "Mala Ligojna",
+          "Mala Ligojna, Vrhnika",
+          "Velika Ligojna",
+          "Velika Ligojna, Vrhnika",
+          "Delavsko naselje, Vrhnika",
+          "Partizanski tabor, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-20",
+            "date": "2026-01-20",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-17",
+            "date": "2026-02-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-17",
+            "date": "2026-03-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-14",
+            "date": "2026-04-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-12",
+            "date": "2026-05-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-09",
+            "date": "2026-06-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-07",
+            "date": "2026-07-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-04",
+            "date": "2026-08-04",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-01",
+            "date": "2026-09-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-29",
+            "date": "2026-09-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-27",
+            "date": "2026-10-27",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-24",
+            "date": "2026-11-24",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-22",
+            "date": "2026-12-22",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-19",
+            "date": "2027-01-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-i",
+        "name": "MKO · I · Verd in Bistra",
+        "addresses": [
+          "Verd",
+          "Verd, Vrhnika",
+          "Bistra",
+          "Bistra, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-02",
+            "date": "2026-01-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-01-29",
+            "date": "2026-01-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-26",
+            "date": "2026-02-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-26",
+            "date": "2026-03-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-23",
+            "date": "2026-04-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-21",
+            "date": "2026-05-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-18",
+            "date": "2026-06-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-16",
+            "date": "2026-07-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-13",
+            "date": "2026-08-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-10",
+            "date": "2026-09-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-08",
+            "date": "2026-10-08",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-05",
+            "date": "2026-11-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-03",
+            "date": "2026-12-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-31",
+            "date": "2026-12-31",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-28",
+            "date": "2027-01-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-l",
+        "name": "MKO · L · Malo vozilo – Stara Vrhnika, Ligojna, Bevke in okolica",
+        "addresses": [
+          "Stara Vrhnika",
+          "Stara Vrhnika, Vrhnika",
+          "Trojica, Vrhnika",
+          "Tankovska, Vrhnika",
+          "Star maln, Vrhnika",
+          "Mala Ligojna",
+          "Mala Ligojna, Vrhnika",
+          "Velika Ligojna",
+          "Velika Ligojna, Vrhnika",
+          "Mirke, Vrhnika",
+          "Bevke",
+          "Bevke, Vrhnika",
+          "Blatna Brezovica",
+          "Blatna Brezovica, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-28",
+            "date": "2026-01-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-25",
+            "date": "2026-02-25",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-25",
+            "date": "2026-03-25",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-22",
+            "date": "2026-04-22",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-20",
+            "date": "2026-05-20",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-17",
+            "date": "2026-06-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-15",
+            "date": "2026-07-15",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-12",
+            "date": "2026-08-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-09",
+            "date": "2026-09-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-07",
+            "date": "2026-10-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-04",
+            "date": "2026-11-04",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-02",
+            "date": "2026-12-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-30",
+            "date": "2026-12-30",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-27",
+            "date": "2027-01-27",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-m",
+        "name": "MKO · M · Malo vozilo – Pokojišče, Drenov Grič, Lesno Brdo",
+        "addresses": [
+          "Pokojišče",
+          "Pokojišče, Vrhnika",
+          "Drenov Grič",
+          "Drenov Grič, Vrhnika",
+          "Lesno Brdo",
+          "Lesno Brdo, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-14",
+            "date": "2026-01-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-11",
+            "date": "2026-02-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-11",
+            "date": "2026-03-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-09",
+            "date": "2026-04-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-06",
+            "date": "2026-05-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-03",
+            "date": "2026-06-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-01",
+            "date": "2026-07-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-29",
+            "date": "2026-07-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-26",
+            "date": "2026-08-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-23",
+            "date": "2026-09-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-21",
+            "date": "2026-10-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-18",
+            "date": "2026-11-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-16",
+            "date": "2026-12-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-13",
+            "date": "2027-01-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-vrh-n",
+        "name": "MKO · N · Malo vozilo – Podlipa in Smrečje",
+        "addresses": [
+          "Podlipa",
+          "Podlipa, Vrhnika",
+          "Smrečje",
+          "Smrečje, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-22",
+            "date": "2026-01-22",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-19",
+            "date": "2026-02-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-19",
+            "date": "2026-03-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-16",
+            "date": "2026-04-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-14",
+            "date": "2026-05-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-11",
+            "date": "2026-06-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-09",
+            "date": "2026-07-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-06",
+            "date": "2026-08-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-03",
+            "date": "2026-09-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-01",
+            "date": "2026-10-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-29",
+            "date": "2026-10-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-26",
+            "date": "2026-11-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-24",
+            "date": "2026-12-24",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-21",
+            "date": "2027-01-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-bor-b",
+        "name": "MKO · B · Borovnica – območje B, Laze in Dol",
+        "addresses": [
+          "Cesta na grič, Borovnica",
+          "Gradišnikova ulica, Borovnica",
+          "Mejačeva ulica, Borovnica",
+          "Miklavičeva cesta, Borovnica",
+          "Mikuževa ulica, Borovnica",
+          "Molkov trg, Borovnica",
+          "Paplerjeva ulica, Borovnica",
+          "Pot na Malence, Borovnica",
+          "Pot v Jele, Borovnica",
+          "Ramovševa ulica, Borovnica",
+          "Rimska cesta, Borovnica",
+          "Struge, Borovnica",
+          "Švigljeva ulica, Borovnica",
+          "Ulica bratov Mivšek, Borovnica",
+          "Zalarjeva cesta, Borovnica",
+          "Laze, Borovnica",
+          "Dol, Borovnica"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-05",
+            "date": "2026-01-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-02",
+            "date": "2026-02-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-02",
+            "date": "2026-03-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-30",
+            "date": "2026-03-30",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-27",
+            "date": "2026-04-27",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-25",
+            "date": "2026-05-25",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-22",
+            "date": "2026-06-22",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-20",
+            "date": "2026-07-20",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-17",
+            "date": "2026-08-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-14",
+            "date": "2026-09-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-12",
+            "date": "2026-10-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-09",
+            "date": "2026-11-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-07",
+            "date": "2026-12-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-04",
+            "date": "2027-01-04",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-bor-k",
+        "name": "MKO · K · Borovnica – območje K in okoliška naselja",
+        "addresses": [
+          "Cesta pod goro, Borovnica",
+          "Demšarjeva ulica, Borovnica",
+          "Ljubljanska cesta, Borovnica",
+          "Obrtniška ulica, Borovnica",
+          "Ulica bratov Debevec, Borovnica",
+          "Ohonica",
+          "Ohonica, Borovnica",
+          "Dražica",
+          "Dražica, Borovnica",
+          "Brezovica pri Borovnici",
+          "Brezovica pri Borovnici, Borovnica",
+          "Niževec",
+          "Niževec, Borovnica",
+          "Zabočevo",
+          "Zabočevo, Borovnica",
+          "Pako",
+          "Pako, Borovnica",
+          "Breg, Borovnica"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-15",
+            "date": "2026-01-15",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-12",
+            "date": "2026-02-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-12",
+            "date": "2026-03-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-10",
+            "date": "2026-04-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-07",
+            "date": "2026-05-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-04",
+            "date": "2026-06-04",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-02",
+            "date": "2026-07-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-30",
+            "date": "2026-07-30",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-27",
+            "date": "2026-08-27",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-24",
+            "date": "2026-09-24",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-22",
+            "date": "2026-10-22",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-19",
+            "date": "2026-11-19",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-17",
+            "date": "2026-12-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-14",
+            "date": "2027-01-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-bor-m",
+        "name": "MKO · M · Malo vozilo – Borovnica in okoliška naselja",
+        "addresses": [
+          "Cerkova ulica, Borovnica",
+          "Pot v Jele, Borovnica",
+          "Brezovica pri Borovnici",
+          "Brezovica pri Borovnici, Borovnica",
+          "Zabočevo",
+          "Zabočevo, Borovnica",
+          "Breg, Borovnica",
+          "Pako",
+          "Pako, Borovnica",
+          "Dol, Borovnica"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-14",
+            "date": "2026-01-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-11",
+            "date": "2026-02-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-11",
+            "date": "2026-03-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-09",
+            "date": "2026-04-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-06",
+            "date": "2026-05-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-03",
+            "date": "2026-06-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-01",
+            "date": "2026-07-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-29",
+            "date": "2026-07-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-26",
+            "date": "2026-08-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-23",
+            "date": "2026-09-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-21",
+            "date": "2026-10-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-18",
+            "date": "2026-11-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-16",
+            "date": "2026-12-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-13",
+            "date": "2027-01-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-log-g",
+        "name": "MKO · G · Log, Jordanov kot, Barjanska",
+        "addresses": [
+          "Log",
+          "Log, Log - Dragomer",
+          "Log pri Brezovici",
+          "Log pri Brezovici, Log - Dragomer",
+          "Jordanov kot, Log",
+          "Jordanov kot, Log pri Brezovici",
+          "Jordanov kot, Log - Dragomer",
+          "Barjanska, Log",
+          "Barjanska, Log pri Brezovici",
+          "Barjanska, Log - Dragomer"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-13",
+            "date": "2026-01-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-10",
+            "date": "2026-02-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-10",
+            "date": "2026-03-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-08",
+            "date": "2026-04-08",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-05",
+            "date": "2026-05-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-02",
+            "date": "2026-06-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-30",
+            "date": "2026-06-30",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-28",
+            "date": "2026-07-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-25",
+            "date": "2026-08-25",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-22",
+            "date": "2026-09-22",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-20",
+            "date": "2026-10-20",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-17",
+            "date": "2026-11-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-15",
+            "date": "2026-12-15",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-12",
+            "date": "2027-01-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-log-j",
+        "name": "MKO · J · Dragomer, Lukovica, Pot na mah, Pot na Plešivico",
+        "addresses": [
+          "Dragomer",
+          "Dragomer, Log - Dragomer",
+          "Lukovica",
+          "Lukovica, Log - Dragomer",
+          "Lukovica pri Brezovici",
+          "Lukovica pri Brezovici, Log - Dragomer",
+          "Pot na mah, Log",
+          "Pot na mah, Log pri Brezovici",
+          "Pot na mah, Dragomer",
+          "Pot na mah, Lukovica",
+          "Pot na mah, Log - Dragomer",
+          "Pot na Plešivico, Log",
+          "Pot na Plešivico, Log pri Brezovici",
+          "Pot na Plešivico, Dragomer",
+          "Pot na Plešivico, Lukovica",
+          "Pot na Plešivico, Log - Dragomer"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-08",
+            "date": "2026-01-08",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-05",
+            "date": "2026-02-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-05",
+            "date": "2026-03-05",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-02",
+            "date": "2026-04-02",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-30",
+            "date": "2026-04-30",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-28",
+            "date": "2026-05-28",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-26",
+            "date": "2026-06-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-23",
+            "date": "2026-07-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-20",
+            "date": "2026-08-20",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-17",
+            "date": "2026-09-17",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-15",
+            "date": "2026-10-15",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-12",
+            "date": "2026-11-12",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-10",
+            "date": "2026-12-10",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-07",
+            "date": "2027-01-07",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-mko-log-m",
+        "name": "MKO · M · Malo vozilo – del Loga in Dragomer",
+        "addresses": [
+          "Cesta na breg, Log",
+          "Cesta na breg, Log pri Brezovici",
+          "Cesta na breg, Log - Dragomer",
+          "Pot na Ferjanko, Log",
+          "Pot na Ferjanko, Log pri Brezovici",
+          "Pot na Ferjanko, Log - Dragomer",
+          "Jordanov kot, Log",
+          "Jordanov kot, Log pri Brezovici",
+          "Jordanov kot, Log - Dragomer",
+          "Dragomer",
+          "Dragomer, Log - Dragomer"
+        ],
+        "events": [
+          {
+            "id": "residual-2026-01-14",
+            "date": "2026-01-14",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-02-11",
+            "date": "2026-02-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-03-11",
+            "date": "2026-03-11",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-04-09",
+            "date": "2026-04-09",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-05-06",
+            "date": "2026-05-06",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-06-03",
+            "date": "2026-06-03",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-01",
+            "date": "2026-07-01",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-07-29",
+            "date": "2026-07-29",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-08-26",
+            "date": "2026-08-26",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-09-23",
+            "date": "2026-09-23",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-10-21",
+            "date": "2026-10-21",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-11-18",
+            "date": "2026-11-18",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2026-12-16",
+            "date": "2026-12-16",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          },
+          {
+            "id": "residual-2027-01-13",
+            "date": "2027-01-13",
+            "type": "residual",
+            "label": "Mešani komunalni odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-bio-a",
+        "name": "BIO · a · Ponedeljek",
+        "addresses": [
+          "Janezova vas, Vrhnika",
+          "Brigadirska cesta, Vrhnika",
+          "Cankarjevo nabrežje, Vrhnika",
+          "Cesta krimskega odreda, Vrhnika",
+          "Cesta na barju, Vrhnika",
+          "Cesta na polju, Vrhnika",
+          "Čolnarska cesta, Vrhnika",
+          "Janezova cesta, Vrhnika",
+          "Jagrova cesta, Vrhnika",
+          "Kačurjeva cesta, Vrhnika",
+          "Kotnikova cesta, Vrhnika",
+          "Pionirska cesta, Vrhnika",
+          "Stara stranska cesta, Vrhnika",
+          "Sternenova cesta, Vrhnika",
+          "Log",
+          "Log, Log - Dragomer",
+          "Log pri Brezovici",
+          "Log pri Brezovici, Log - Dragomer",
+          "Jordanov kot, Log",
+          "Jordanov kot, Log pri Brezovici",
+          "Jordanov kot, Log - Dragomer",
+          "Pod Hruševco, Vrhnika",
+          "Mokrice, Vrhnika",
+          "Stara Vrhnika",
+          "Stara Vrhnika, Vrhnika",
+          "Sinja Gorica",
+          "Sinja Gorica, Vrhnika",
+          "Ligojna",
+          "Ligojna, Vrhnika",
+          "Mala Ligojna",
+          "Mala Ligojna, Vrhnika",
+          "Velika Ligojna",
+          "Velika Ligojna, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "bio-2026-10-05",
+            "date": "2026-10-05",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-12",
+            "date": "2026-10-12",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-19",
+            "date": "2026-10-19",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-26",
+            "date": "2026-10-26",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-02",
+            "date": "2026-11-02",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-09",
+            "date": "2026-11-09",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-16",
+            "date": "2026-11-16",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-23",
+            "date": "2026-11-23",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-30",
+            "date": "2026-11-30",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-07",
+            "date": "2026-12-07",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-21",
+            "date": "2026-12-21",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-04",
+            "date": "2027-01-04",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-18",
+            "date": "2027-01-18",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-01",
+            "date": "2027-02-01",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-15",
+            "date": "2027-02-15",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-bio-b",
+        "name": "BIO · b · Torek",
+        "addresses": [
+          "Verd",
+          "Verd, Vrhnika",
+          "Bistra",
+          "Bistra, Vrhnika",
+          "Podlipa",
+          "Podlipa, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "bio-2026-10-06",
+            "date": "2026-10-06",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-13",
+            "date": "2026-10-13",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-20",
+            "date": "2026-10-20",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-27",
+            "date": "2026-10-27",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-03",
+            "date": "2026-11-03",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-10",
+            "date": "2026-11-10",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-17",
+            "date": "2026-11-17",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-24",
+            "date": "2026-11-24",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-01",
+            "date": "2026-12-01",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-08",
+            "date": "2026-12-08",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-22",
+            "date": "2026-12-22",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-05",
+            "date": "2027-01-05",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-19",
+            "date": "2027-01-19",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-02",
+            "date": "2027-02-02",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-16",
+            "date": "2027-02-16",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-bio-c",
+        "name": "BIO · c · Sreda",
+        "addresses": [
+          "Borovnica",
+          "Laze, Borovnica",
+          "Dol, Borovnica",
+          "Ohonica",
+          "Ohonica, Borovnica",
+          "Dražica",
+          "Dražica, Borovnica",
+          "Brezovica pri Borovnici",
+          "Brezovica pri Borovnici, Borovnica",
+          "Niževec",
+          "Niževec, Borovnica",
+          "Zabočevo",
+          "Zabočevo, Borovnica",
+          "Pako",
+          "Pako, Borovnica",
+          "Breg, Borovnica"
+        ],
+        "events": [
+          {
+            "id": "bio-2026-10-07",
+            "date": "2026-10-07",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-14",
+            "date": "2026-10-14",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-21",
+            "date": "2026-10-21",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-28",
+            "date": "2026-10-28",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-04",
+            "date": "2026-11-04",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-11",
+            "date": "2026-11-11",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-18",
+            "date": "2026-11-18",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-25",
+            "date": "2026-11-25",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-02",
+            "date": "2026-12-02",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-09",
+            "date": "2026-12-09",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-23",
+            "date": "2026-12-23",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-06",
+            "date": "2027-01-06",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-20",
+            "date": "2027-01-20",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-03",
+            "date": "2027-02-03",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-17",
+            "date": "2027-02-17",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-bio-d",
+        "name": "BIO · d · Četrtek",
+        "addresses": [
+          "Dragomer",
+          "Dragomer, Log - Dragomer",
+          "Lukovica",
+          "Lukovica, Log - Dragomer",
+          "Lukovica pri Brezovici",
+          "Lukovica pri Brezovici, Log - Dragomer",
+          "Robova, Vrhnika",
+          "Partizanski tabor, Vrhnika",
+          "Delavsko naselje, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "bio-2026-10-01",
+            "date": "2026-10-01",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-08",
+            "date": "2026-10-08",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-15",
+            "date": "2026-10-15",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-22",
+            "date": "2026-10-22",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-29",
+            "date": "2026-10-29",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-05",
+            "date": "2026-11-05",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-12",
+            "date": "2026-11-12",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-19",
+            "date": "2026-11-19",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-26",
+            "date": "2026-11-26",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-03",
+            "date": "2026-12-03",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-10",
+            "date": "2026-12-10",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-24",
+            "date": "2026-12-24",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-07",
+            "date": "2027-01-07",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-21",
+            "date": "2027-01-21",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-04",
+            "date": "2027-02-04",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-18",
+            "date": "2027-02-18",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          }
+        ]
+      },
+      {
+        "id": "official-bio-e",
+        "name": "BIO · e · Petek",
+        "addresses": [
+          "Bevke",
+          "Bevke, Vrhnika",
+          "Blatna Brezovica",
+          "Blatna Brezovica, Vrhnika",
+          "Drenov Grič",
+          "Drenov Grič, Vrhnika",
+          "Lesno Brdo",
+          "Lesno Brdo, Vrhnika"
+        ],
+        "events": [
+          {
+            "id": "bio-2026-10-02",
+            "date": "2026-10-02",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-09",
+            "date": "2026-10-09",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-16",
+            "date": "2026-10-16",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-23",
+            "date": "2026-10-23",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-10-30",
+            "date": "2026-10-30",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-06",
+            "date": "2026-11-06",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-13",
+            "date": "2026-11-13",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-20",
+            "date": "2026-11-20",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-11-27",
+            "date": "2026-11-27",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-04",
+            "date": "2026-12-04",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2026-12-11",
+            "date": "2026-12-11",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-08",
+            "date": "2027-01-08",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-01-22",
+            "date": "2027-01-22",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-05",
+            "date": "2027-02-05",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          },
+          {
+            "id": "bio-2027-02-19",
+            "date": "2027-02-19",
+            "type": "bio",
+            "label": "Biološki odpadki"
+          }
+        ]
+      }
+    ]
   },
   "wastePoints": [
     {
@@ -141,97 +3025,6 @@
         "tekstil"
       ],
       "center": true
-    },
-    {
-      "id": 2,
-      "name": "Primer ekološkega otoka · center",
-      "area": "Vrhnika",
-      "address": "Prikazna točka pri središču Vrhnike",
-      "lat": 45.9638,
-      "lng": 14.2936,
-      "types": [
-        "papir",
-        "steklo",
-        "embalaza"
-      ]
-    },
-    {
-      "id": 3,
-      "name": "Primer zbiralnice · Verd",
-      "area": "Verd",
-      "address": "Prikazna točka v Verdu",
-      "lat": 45.9566,
-      "lng": 14.306,
-      "types": [
-        "papir",
-        "steklo",
-        "embalaza",
-        "tekstil"
-      ]
-    },
-    {
-      "id": 4,
-      "name": "Primer zbiralnice · Borovnica",
-      "area": "Borovnica",
-      "address": "Prikazna točka v Borovnici",
-      "lat": 45.9194,
-      "lng": 14.3632,
-      "types": [
-        "papir",
-        "steklo",
-        "embalaza",
-        "elektronika"
-      ]
-    },
-    {
-      "id": 5,
-      "name": "Primer zbiralnice · Log - Dragomer",
-      "area": "Log - Dragomer",
-      "address": "Prikazna točka v Logu - Dragomerju",
-      "lat": 46.0086,
-      "lng": 14.3831,
-      "types": [
-        "papir",
-        "steklo",
-        "embalaza",
-        "baterije"
-      ]
-    },
-    {
-      "id": 6,
-      "name": "Primer zbiralnice · Sinja Gorica",
-      "area": "Sinja Gorica",
-      "address": "Prikazna točka v Sinji Gorici",
-      "lat": 45.977,
-      "lng": 14.3186,
-      "types": [
-        "papir",
-        "steklo",
-        "embalaza",
-        "tekstil"
-      ]
-    },
-    {
-      "id": 7,
-      "name": "Primer javnega koša · park",
-      "area": "Vrhnika",
-      "address": "Prikazni koš za drobne odpadke s sprehoda",
-      "lat": 45.9609,
-      "lng": 14.2972,
-      "types": [
-        "public"
-      ]
-    },
-    {
-      "id": 8,
-      "name": "Primer javnega koša · sprehajališče",
-      "area": "Vrhnika",
-      "address": "Prikazna točka ob sprehajališču",
-      "lat": 45.9665,
-      "lng": 14.2991,
-      "types": [
-        "public"
-      ]
     }
   ],
   "wasteItems": [
@@ -622,7 +3415,7 @@
         "Približna prostornina, če jo poznate; če ne, to zapišite.",
         "Kje je pokrov in ali je do njega mogoč dostop za vozilo."
       ],
-      "note": "Pred izvedbo je treba preveriti pogoje in uskladiti termin. V predstavitvi se shrani samo povpraševanje.",
+      "note": "Pred izvedbo je treba preveriti pogoje in uskladiti termin. Oddaja povpraševanja še ne potrjuje izvedbe.",
       "placeholder": "Npr. greznica približno 6 m³, pokrov na dvorišču, od ceste oddaljen okoli 10 m. Dostop za vozilo je mogoč …"
     },
     {
@@ -633,7 +3426,7 @@
       "prepare": [
         "Naslov objekta in kratek opis, kaj želite urediti.",
         "Ali gre za nov priključek, obstoječi priključek, vodomer ali drugo vprašanje.",
-        "Številka odjemnega mesta, če jo poznate; za preizkus uporabite izmišljene podatke."
+        "Številka odjemnega mesta, če jo poznate."
       ],
       "note": "Povpraševanje ni prijava nujne okvare. Za trenutno motnjo oskrbe najprej preverite obvestila ali pokličite dežurno službo.",
       "placeholder": "Npr. zanima me ureditev priključka za obstoječi objekt. Naslov in trenutno stanje sta …"
@@ -648,20 +3441,14 @@
         "Obseg dela ali druge okoliščine, ki jih poznate.",
         "Želeni termin, če je pomemben; vnos datuma ni obvezen."
       ],
-      "note": "Najprej je treba preveriti, ali storitev sodi v dejavnost podjetja. Ta preizkus ne potrdi naročila.",
+      "note": "Najprej je treba preveriti, ali storitev sodi v dejavnost podjetja. Oddaja še ne potrjuje naročila.",
       "placeholder": "Npr. potrebujem informacije o … Lokacija je … Urediti želim …"
     }
   ],
   "rates": {
-    "wasteBase": 6.5,
-    "wastePerson": 1.8,
-    "bio": 4.2,
-    "waterBase": 5,
-    "waterPerM3": 0.95,
-    "drainagePerM3": 1.25,
-    "marketStandard": 12,
-    "marketFood": 24,
-    "marketCraft": 15
+    "marketStandard": 9.3,
+    "marketFood": 8.8,
+    "marketCraft": 9.3
   },
   "market": {
     "dates": [],
@@ -673,1568 +3460,7 @@
       "height": 760,
       "imageUrl": null
     },
-    "graves": [
-      {
-        "id": "A-01-01",
-        "section": "A",
-        "row": 1,
-        "number": 1,
-        "x": 144,
-        "y": 123,
-        "people": [
-          {
-            "name": "Ana Novak",
-            "born": "1920-01-01",
-            "died": "2008-04-04"
-          },
-          {
-            "name": "Franc Novak",
-            "born": "1935-03-03",
-            "died": "2018-06-06"
-          }
-        ]
-      },
-      {
-        "id": "A-01-02",
-        "section": "A",
-        "row": 1,
-        "number": 2,
-        "x": 190,
-        "y": 123,
-        "people": [
-          {
-            "name": "Ana Kovač",
-            "born": "1927-02-02",
-            "died": "2009-05-05"
-          }
-        ]
-      },
-      {
-        "id": "A-01-03",
-        "section": "A",
-        "row": 1,
-        "number": 3,
-        "x": 236,
-        "y": 123,
-        "people": [
-          {
-            "name": "Ana Horvat",
-            "born": "1934-03-03",
-            "died": "2010-06-06"
-          }
-        ]
-      },
-      {
-        "id": "A-01-04",
-        "section": "A",
-        "row": 1,
-        "number": 4,
-        "x": 282,
-        "y": 123,
-        "people": [
-          {
-            "name": "Ana Krajnc",
-            "born": "1941-04-04",
-            "died": "2011-07-07"
-          }
-        ]
-      },
-      {
-        "id": "A-01-05",
-        "section": "A",
-        "row": 1,
-        "number": 5,
-        "x": 328,
-        "y": 123,
-        "people": [
-          {
-            "name": "Ana Zupan",
-            "born": "1948-05-05",
-            "died": "2012-08-08"
-          },
-          {
-            "name": "Franc Zupan",
-            "born": "1939-07-07",
-            "died": "2022-10-10"
-          }
-        ]
-      },
-      {
-        "id": "A-01-06",
-        "section": "A",
-        "row": 1,
-        "number": 6,
-        "x": 374,
-        "y": 123,
-        "people": [
-          {
-            "name": "Ana Potočnik",
-            "born": "1955-06-06",
-            "died": "2013-09-09"
-          }
-        ]
-      },
-      {
-        "id": "A-02-01",
-        "section": "A",
-        "row": 2,
-        "number": 1,
-        "x": 144,
-        "y": 172,
-        "people": [
-          {
-            "name": "Ana Vidmar",
-            "born": "1962-07-07",
-            "died": "2014-10-10"
-          }
-        ]
-      },
-      {
-        "id": "A-02-02",
-        "section": "A",
-        "row": 2,
-        "number": 2,
-        "x": 190,
-        "y": 172,
-        "people": [
-          {
-            "name": "Ana Kos",
-            "born": "1969-08-08",
-            "died": "2015-11-11"
-          }
-        ]
-      },
-      {
-        "id": "A-02-03",
-        "section": "A",
-        "row": 2,
-        "number": 3,
-        "x": 236,
-        "y": 172,
-        "people": [
-          {
-            "name": "Ana Mlakar",
-            "born": "1976-09-09",
-            "died": "2016-12-12"
-          },
-          {
-            "name": "Franc Mlakar",
-            "born": "1943-11-11",
-            "died": "2019-02-14"
-          }
-        ]
-      },
-      {
-        "id": "A-02-04",
-        "section": "A",
-        "row": 2,
-        "number": 4,
-        "x": 282,
-        "y": 172,
-        "people": [
-          {
-            "name": "Ana Rozman",
-            "born": "1923-10-10",
-            "died": "2017-01-13"
-          }
-        ]
-      },
-      {
-        "id": "A-02-05",
-        "section": "A",
-        "row": 2,
-        "number": 5,
-        "x": 328,
-        "y": 172,
-        "people": [
-          {
-            "name": "Ana Turk",
-            "born": "1930-11-11",
-            "died": "2018-02-14"
-          }
-        ]
-      },
-      {
-        "id": "A-02-06",
-        "section": "A",
-        "row": 2,
-        "number": 6,
-        "x": 374,
-        "y": 172,
-        "people": [
-          {
-            "name": "Ana Kralj",
-            "born": "1937-12-12",
-            "died": "2019-03-15"
-          }
-        ]
-      },
-      {
-        "id": "A-03-01",
-        "section": "A",
-        "row": 3,
-        "number": 1,
-        "x": 144,
-        "y": 221,
-        "people": [
-          {
-            "name": "Jože Novak",
-            "born": "1944-01-13",
-            "died": "2020-04-16"
-          },
-          {
-            "name": "Ivana Novak",
-            "born": "1947-03-15",
-            "died": "2023-06-18"
-          }
-        ]
-      },
-      {
-        "id": "A-03-02",
-        "section": "A",
-        "row": 3,
-        "number": 2,
-        "x": 190,
-        "y": 221,
-        "people": [
-          {
-            "name": "Jože Kovač",
-            "born": "1951-02-14",
-            "died": "2021-05-17"
-          }
-        ]
-      },
-      {
-        "id": "A-03-03",
-        "section": "A",
-        "row": 3,
-        "number": 3,
-        "x": 236,
-        "y": 221,
-        "people": [
-          {
-            "name": "Jože Horvat",
-            "born": "1958-03-15",
-            "died": "2022-06-18"
-          }
-        ]
-      },
-      {
-        "id": "A-03-04",
-        "section": "A",
-        "row": 3,
-        "number": 4,
-        "x": 282,
-        "y": 221,
-        "people": [
-          {
-            "name": "Jože Krajnc",
-            "born": "1965-04-16",
-            "died": "2023-07-19"
-          }
-        ]
-      },
-      {
-        "id": "A-03-05",
-        "section": "A",
-        "row": 3,
-        "number": 5,
-        "x": 328,
-        "y": 221,
-        "people": [
-          {
-            "name": "Jože Zupan",
-            "born": "1972-05-17",
-            "died": "2024-08-20"
-          },
-          {
-            "name": "Ivana Zupan",
-            "born": "1951-07-19",
-            "died": "2020-10-22"
-          }
-        ]
-      },
-      {
-        "id": "A-03-06",
-        "section": "A",
-        "row": 3,
-        "number": 6,
-        "x": 374,
-        "y": 221,
-        "people": [
-          {
-            "name": "Jože Potočnik",
-            "born": "1979-06-18",
-            "died": "2008-09-21"
-          }
-        ]
-      },
-      {
-        "id": "A-04-01",
-        "section": "A",
-        "row": 4,
-        "number": 1,
-        "x": 144,
-        "y": 270,
-        "people": [
-          {
-            "name": "Jože Vidmar",
-            "born": "1926-07-19",
-            "died": "2009-10-22"
-          }
-        ]
-      },
-      {
-        "id": "A-04-02",
-        "section": "A",
-        "row": 4,
-        "number": 2,
-        "x": 190,
-        "y": 270,
-        "people": [
-          {
-            "name": "Jože Kos",
-            "born": "1933-08-20",
-            "died": "2010-11-23"
-          }
-        ]
-      },
-      {
-        "id": "A-04-03",
-        "section": "A",
-        "row": 4,
-        "number": 3,
-        "x": 236,
-        "y": 270,
-        "people": [
-          {
-            "name": "Jože Mlakar",
-            "born": "1940-09-21",
-            "died": "2011-12-24"
-          },
-          {
-            "name": "Ivana Mlakar",
-            "born": "1955-11-23",
-            "died": "2024-02-26"
-          }
-        ]
-      },
-      {
-        "id": "A-04-04",
-        "section": "A",
-        "row": 4,
-        "number": 4,
-        "x": 282,
-        "y": 270,
-        "people": [
-          {
-            "name": "Jože Rozman",
-            "born": "1947-10-22",
-            "died": "2012-01-25"
-          }
-        ]
-      },
-      {
-        "id": "A-04-05",
-        "section": "A",
-        "row": 4,
-        "number": 5,
-        "x": 328,
-        "y": 270,
-        "people": [
-          {
-            "name": "Jože Turk",
-            "born": "1954-11-23",
-            "died": "2013-02-26"
-          }
-        ]
-      },
-      {
-        "id": "A-04-06",
-        "section": "A",
-        "row": 4,
-        "number": 6,
-        "x": 374,
-        "y": 270,
-        "people": [
-          {
-            "name": "Jože Kralj",
-            "born": "1961-12-24",
-            "died": "2014-03-27"
-          }
-        ]
-      },
-      {
-        "id": "B-01-01",
-        "section": "B",
-        "row": 1,
-        "number": 1,
-        "x": 574,
-        "y": 123,
-        "people": [
-          {
-            "name": "Marija Novak",
-            "born": "1968-01-25",
-            "died": "2015-04-01"
-          },
-          {
-            "name": "Anton Novak",
-            "born": "1959-03-27",
-            "died": "2021-06-03"
-          }
-        ]
-      },
-      {
-        "id": "B-01-02",
-        "section": "B",
-        "row": 1,
-        "number": 2,
-        "x": 620,
-        "y": 123,
-        "people": [
-          {
-            "name": "Marija Kovač",
-            "born": "1975-02-26",
-            "died": "2016-05-02"
-          }
-        ]
-      },
-      {
-        "id": "B-01-03",
-        "section": "B",
-        "row": 1,
-        "number": 3,
-        "x": 666,
-        "y": 123,
-        "people": [
-          {
-            "name": "Marija Horvat",
-            "born": "1922-03-27",
-            "died": "2017-06-03"
-          }
-        ]
-      },
-      {
-        "id": "B-01-04",
-        "section": "B",
-        "row": 1,
-        "number": 4,
-        "x": 712,
-        "y": 123,
-        "people": [
-          {
-            "name": "Marija Krajnc",
-            "born": "1929-04-01",
-            "died": "2018-07-04"
-          }
-        ]
-      },
-      {
-        "id": "B-01-05",
-        "section": "B",
-        "row": 1,
-        "number": 5,
-        "x": 758,
-        "y": 123,
-        "people": [
-          {
-            "name": "Marija Zupan",
-            "born": "1936-05-02",
-            "died": "2019-08-05"
-          },
-          {
-            "name": "Anton Zupan",
-            "born": "1963-07-04",
-            "died": "2018-10-07"
-          }
-        ]
-      },
-      {
-        "id": "B-01-06",
-        "section": "B",
-        "row": 1,
-        "number": 6,
-        "x": 804,
-        "y": 123,
-        "people": [
-          {
-            "name": "Marija Potočnik",
-            "born": "1943-06-03",
-            "died": "2020-09-06"
-          }
-        ]
-      },
-      {
-        "id": "B-02-01",
-        "section": "B",
-        "row": 2,
-        "number": 1,
-        "x": 574,
-        "y": 172,
-        "people": [
-          {
-            "name": "Marija Vidmar",
-            "born": "1950-07-04",
-            "died": "2021-10-07"
-          }
-        ]
-      },
-      {
-        "id": "B-02-02",
-        "section": "B",
-        "row": 2,
-        "number": 2,
-        "x": 620,
-        "y": 172,
-        "people": [
-          {
-            "name": "Marija Kos",
-            "born": "1957-08-05",
-            "died": "2022-11-08"
-          }
-        ]
-      },
-      {
-        "id": "B-02-03",
-        "section": "B",
-        "row": 2,
-        "number": 3,
-        "x": 666,
-        "y": 172,
-        "people": [
-          {
-            "name": "Marija Mlakar",
-            "born": "1964-09-06",
-            "died": "2023-12-09"
-          },
-          {
-            "name": "Anton Mlakar",
-            "born": "1967-11-08",
-            "died": "2022-02-11"
-          }
-        ]
-      },
-      {
-        "id": "B-02-04",
-        "section": "B",
-        "row": 2,
-        "number": 4,
-        "x": 712,
-        "y": 172,
-        "people": [
-          {
-            "name": "Marija Rozman",
-            "born": "1971-10-07",
-            "died": "2024-01-10"
-          }
-        ]
-      },
-      {
-        "id": "B-02-05",
-        "section": "B",
-        "row": 2,
-        "number": 5,
-        "x": 758,
-        "y": 172,
-        "people": [
-          {
-            "name": "Marija Turk",
-            "born": "1978-11-08",
-            "died": "2008-02-11"
-          }
-        ]
-      },
-      {
-        "id": "B-02-06",
-        "section": "B",
-        "row": 2,
-        "number": 6,
-        "x": 804,
-        "y": 172,
-        "people": [
-          {
-            "name": "Marija Kralj",
-            "born": "1925-12-09",
-            "died": "2009-03-12"
-          }
-        ]
-      },
-      {
-        "id": "B-03-01",
-        "section": "B",
-        "row": 3,
-        "number": 1,
-        "x": 574,
-        "y": 221,
-        "people": [
-          {
-            "name": "Franc Novak",
-            "born": "1932-01-10",
-            "died": "2010-04-13"
-          },
-          {
-            "name": "Marta Novak",
-            "born": "1935-03-12",
-            "died": "2019-06-15"
-          }
-        ]
-      },
-      {
-        "id": "B-03-02",
-        "section": "B",
-        "row": 3,
-        "number": 2,
-        "x": 620,
-        "y": 221,
-        "people": [
-          {
-            "name": "Franc Kovač",
-            "born": "1939-02-11",
-            "died": "2011-05-14"
-          }
-        ]
-      },
-      {
-        "id": "B-03-03",
-        "section": "B",
-        "row": 3,
-        "number": 3,
-        "x": 666,
-        "y": 221,
-        "people": [
-          {
-            "name": "Franc Horvat",
-            "born": "1946-03-12",
-            "died": "2012-06-15"
-          }
-        ]
-      },
-      {
-        "id": "B-03-04",
-        "section": "B",
-        "row": 3,
-        "number": 4,
-        "x": 712,
-        "y": 221,
-        "people": [
-          {
-            "name": "Franc Krajnc",
-            "born": "1953-04-13",
-            "died": "2013-07-16"
-          }
-        ]
-      },
-      {
-        "id": "B-03-05",
-        "section": "B",
-        "row": 3,
-        "number": 5,
-        "x": 758,
-        "y": 221,
-        "people": [
-          {
-            "name": "Franc Zupan",
-            "born": "1960-05-14",
-            "died": "2014-08-17"
-          },
-          {
-            "name": "Marta Zupan",
-            "born": "1939-07-16",
-            "died": "2023-10-19"
-          }
-        ]
-      },
-      {
-        "id": "B-03-06",
-        "section": "B",
-        "row": 3,
-        "number": 6,
-        "x": 804,
-        "y": 221,
-        "people": [
-          {
-            "name": "Franc Potočnik",
-            "born": "1967-06-15",
-            "died": "2015-09-18"
-          }
-        ]
-      },
-      {
-        "id": "B-04-01",
-        "section": "B",
-        "row": 4,
-        "number": 1,
-        "x": 574,
-        "y": 270,
-        "people": [
-          {
-            "name": "Franc Vidmar",
-            "born": "1974-07-16",
-            "died": "2016-10-19"
-          }
-        ]
-      },
-      {
-        "id": "B-04-02",
-        "section": "B",
-        "row": 4,
-        "number": 2,
-        "x": 620,
-        "y": 270,
-        "people": [
-          {
-            "name": "Franc Kos",
-            "born": "1921-08-17",
-            "died": "2017-11-20"
-          }
-        ]
-      },
-      {
-        "id": "B-04-03",
-        "section": "B",
-        "row": 4,
-        "number": 3,
-        "x": 666,
-        "y": 270,
-        "people": [
-          {
-            "name": "Franc Mlakar",
-            "born": "1928-09-18",
-            "died": "2018-12-21"
-          },
-          {
-            "name": "Marta Mlakar",
-            "born": "1943-11-20",
-            "died": "2020-02-23"
-          }
-        ]
-      },
-      {
-        "id": "B-04-04",
-        "section": "B",
-        "row": 4,
-        "number": 4,
-        "x": 712,
-        "y": 270,
-        "people": [
-          {
-            "name": "Franc Rozman",
-            "born": "1935-10-19",
-            "died": "2019-01-22"
-          }
-        ]
-      },
-      {
-        "id": "B-04-05",
-        "section": "B",
-        "row": 4,
-        "number": 5,
-        "x": 758,
-        "y": 270,
-        "people": [
-          {
-            "name": "Franc Turk",
-            "born": "1942-11-20",
-            "died": "2020-02-23"
-          }
-        ]
-      },
-      {
-        "id": "B-04-06",
-        "section": "B",
-        "row": 4,
-        "number": 6,
-        "x": 804,
-        "y": 270,
-        "people": [
-          {
-            "name": "Franc Kralj",
-            "born": "1949-12-21",
-            "died": "2021-03-24"
-          }
-        ]
-      },
-      {
-        "id": "C-01-01",
-        "section": "C",
-        "row": 1,
-        "number": 1,
-        "x": 144,
-        "y": 405,
-        "people": [
-          {
-            "name": "Ivana Novak",
-            "born": "1956-01-22",
-            "died": "2022-04-25"
-          },
-          {
-            "name": "Janez Novak",
-            "born": "1947-03-24",
-            "died": "2024-06-27"
-          }
-        ]
-      },
-      {
-        "id": "C-01-02",
-        "section": "C",
-        "row": 1,
-        "number": 2,
-        "x": 190,
-        "y": 405,
-        "people": [
-          {
-            "name": "Ivana Kovač",
-            "born": "1963-02-23",
-            "died": "2023-05-26"
-          }
-        ]
-      },
-      {
-        "id": "C-01-03",
-        "section": "C",
-        "row": 1,
-        "number": 3,
-        "x": 236,
-        "y": 405,
-        "people": [
-          {
-            "name": "Ivana Horvat",
-            "born": "1970-03-24",
-            "died": "2024-06-27"
-          }
-        ]
-      },
-      {
-        "id": "C-01-04",
-        "section": "C",
-        "row": 1,
-        "number": 4,
-        "x": 282,
-        "y": 405,
-        "people": [
-          {
-            "name": "Ivana Krajnc",
-            "born": "1977-04-25",
-            "died": "2008-07-01"
-          }
-        ]
-      },
-      {
-        "id": "C-01-05",
-        "section": "C",
-        "row": 1,
-        "number": 5,
-        "x": 328,
-        "y": 405,
-        "people": [
-          {
-            "name": "Ivana Zupan",
-            "born": "1924-05-26",
-            "died": "2009-08-02"
-          },
-          {
-            "name": "Janez Zupan",
-            "born": "1951-07-01",
-            "died": "2021-10-04"
-          }
-        ]
-      },
-      {
-        "id": "C-01-06",
-        "section": "C",
-        "row": 1,
-        "number": 6,
-        "x": 374,
-        "y": 405,
-        "people": [
-          {
-            "name": "Ivana Potočnik",
-            "born": "1931-06-27",
-            "died": "2010-09-03"
-          }
-        ]
-      },
-      {
-        "id": "C-02-01",
-        "section": "C",
-        "row": 2,
-        "number": 1,
-        "x": 144,
-        "y": 454,
-        "people": [
-          {
-            "name": "Ivana Vidmar",
-            "born": "1938-07-01",
-            "died": "2011-10-04"
-          }
-        ]
-      },
-      {
-        "id": "C-02-02",
-        "section": "C",
-        "row": 2,
-        "number": 2,
-        "x": 190,
-        "y": 454,
-        "people": [
-          {
-            "name": "Ivana Kos",
-            "born": "1945-08-02",
-            "died": "2012-11-05"
-          }
-        ]
-      },
-      {
-        "id": "C-02-03",
-        "section": "C",
-        "row": 2,
-        "number": 3,
-        "x": 236,
-        "y": 454,
-        "people": [
-          {
-            "name": "Ivana Mlakar",
-            "born": "1952-09-03",
-            "died": "2013-12-06"
-          },
-          {
-            "name": "Janez Mlakar",
-            "born": "1955-11-05",
-            "died": "2018-02-08"
-          }
-        ]
-      },
-      {
-        "id": "C-02-04",
-        "section": "C",
-        "row": 2,
-        "number": 4,
-        "x": 282,
-        "y": 454,
-        "people": [
-          {
-            "name": "Ivana Rozman",
-            "born": "1959-10-04",
-            "died": "2014-01-07"
-          }
-        ]
-      },
-      {
-        "id": "C-02-05",
-        "section": "C",
-        "row": 2,
-        "number": 5,
-        "x": 328,
-        "y": 454,
-        "people": [
-          {
-            "name": "Ivana Turk",
-            "born": "1966-11-05",
-            "died": "2015-02-08"
-          }
-        ]
-      },
-      {
-        "id": "C-02-06",
-        "section": "C",
-        "row": 2,
-        "number": 6,
-        "x": 374,
-        "y": 454,
-        "people": [
-          {
-            "name": "Ivana Kralj",
-            "born": "1973-12-06",
-            "died": "2016-03-09"
-          }
-        ]
-      },
-      {
-        "id": "C-03-01",
-        "section": "C",
-        "row": 3,
-        "number": 1,
-        "x": 144,
-        "y": 503,
-        "people": [
-          {
-            "name": "Anton Novak",
-            "born": "1920-01-07",
-            "died": "2017-04-10"
-          },
-          {
-            "name": "Ana Novak",
-            "born": "1959-03-09",
-            "died": "2022-06-12"
-          }
-        ]
-      },
-      {
-        "id": "C-03-02",
-        "section": "C",
-        "row": 3,
-        "number": 2,
-        "x": 190,
-        "y": 503,
-        "people": [
-          {
-            "name": "Anton Kovač",
-            "born": "1927-02-08",
-            "died": "2018-05-11"
-          }
-        ]
-      },
-      {
-        "id": "C-03-03",
-        "section": "C",
-        "row": 3,
-        "number": 3,
-        "x": 236,
-        "y": 503,
-        "people": [
-          {
-            "name": "Anton Horvat",
-            "born": "1934-03-09",
-            "died": "2019-06-12"
-          }
-        ]
-      },
-      {
-        "id": "C-03-04",
-        "section": "C",
-        "row": 3,
-        "number": 4,
-        "x": 282,
-        "y": 503,
-        "people": [
-          {
-            "name": "Anton Krajnc",
-            "born": "1941-04-10",
-            "died": "2020-07-13"
-          }
-        ]
-      },
-      {
-        "id": "C-03-05",
-        "section": "C",
-        "row": 3,
-        "number": 5,
-        "x": 328,
-        "y": 503,
-        "people": [
-          {
-            "name": "Anton Zupan",
-            "born": "1948-05-11",
-            "died": "2021-08-14"
-          },
-          {
-            "name": "Ana Zupan",
-            "born": "1963-07-13",
-            "died": "2019-10-16"
-          }
-        ]
-      },
-      {
-        "id": "C-03-06",
-        "section": "C",
-        "row": 3,
-        "number": 6,
-        "x": 374,
-        "y": 503,
-        "people": [
-          {
-            "name": "Anton Potočnik",
-            "born": "1955-06-12",
-            "died": "2022-09-15"
-          }
-        ]
-      },
-      {
-        "id": "C-04-01",
-        "section": "C",
-        "row": 4,
-        "number": 1,
-        "x": 144,
-        "y": 552,
-        "people": [
-          {
-            "name": "Anton Vidmar",
-            "born": "1962-07-13",
-            "died": "2023-10-16"
-          }
-        ]
-      },
-      {
-        "id": "C-04-02",
-        "section": "C",
-        "row": 4,
-        "number": 2,
-        "x": 190,
-        "y": 552,
-        "people": [
-          {
-            "name": "Anton Kos",
-            "born": "1969-08-14",
-            "died": "2024-11-17"
-          }
-        ]
-      },
-      {
-        "id": "C-04-03",
-        "section": "C",
-        "row": 4,
-        "number": 3,
-        "x": 236,
-        "y": 552,
-        "people": [
-          {
-            "name": "Anton Mlakar",
-            "born": "1976-09-15",
-            "died": "2008-12-18"
-          },
-          {
-            "name": "Ana Mlakar",
-            "born": "1967-11-17",
-            "died": "2023-02-20"
-          }
-        ]
-      },
-      {
-        "id": "C-04-04",
-        "section": "C",
-        "row": 4,
-        "number": 4,
-        "x": 282,
-        "y": 552,
-        "people": [
-          {
-            "name": "Anton Rozman",
-            "born": "1923-10-16",
-            "died": "2009-01-19"
-          }
-        ]
-      },
-      {
-        "id": "C-04-05",
-        "section": "C",
-        "row": 4,
-        "number": 5,
-        "x": 328,
-        "y": 552,
-        "people": [
-          {
-            "name": "Anton Turk",
-            "born": "1930-11-17",
-            "died": "2010-02-20"
-          }
-        ]
-      },
-      {
-        "id": "C-04-06",
-        "section": "C",
-        "row": 4,
-        "number": 6,
-        "x": 374,
-        "y": 552,
-        "people": [
-          {
-            "name": "Anton Kralj",
-            "born": "1937-12-18",
-            "died": "2011-03-21"
-          }
-        ]
-      },
-      {
-        "id": "D-01-01",
-        "section": "D",
-        "row": 1,
-        "number": 1,
-        "x": 574,
-        "y": 405,
-        "people": [
-          {
-            "name": "Marta Novak",
-            "born": "1944-01-19",
-            "died": "2012-04-22"
-          },
-          {
-            "name": "Jože Novak",
-            "born": "1935-03-21",
-            "died": "2020-06-24"
-          }
-        ]
-      },
-      {
-        "id": "D-01-02",
-        "section": "D",
-        "row": 1,
-        "number": 2,
-        "x": 620,
-        "y": 405,
-        "people": [
-          {
-            "name": "Marta Kovač",
-            "born": "1951-02-20",
-            "died": "2013-05-23"
-          }
-        ]
-      },
-      {
-        "id": "D-01-03",
-        "section": "D",
-        "row": 1,
-        "number": 3,
-        "x": 666,
-        "y": 405,
-        "people": [
-          {
-            "name": "Marta Horvat",
-            "born": "1958-03-21",
-            "died": "2014-06-24"
-          }
-        ]
-      },
-      {
-        "id": "D-01-04",
-        "section": "D",
-        "row": 1,
-        "number": 4,
-        "x": 712,
-        "y": 405,
-        "people": [
-          {
-            "name": "Marta Krajnc",
-            "born": "1965-04-22",
-            "died": "2015-07-25"
-          }
-        ]
-      },
-      {
-        "id": "D-01-05",
-        "section": "D",
-        "row": 1,
-        "number": 5,
-        "x": 758,
-        "y": 405,
-        "people": [
-          {
-            "name": "Marta Zupan",
-            "born": "1972-05-23",
-            "died": "2016-08-26"
-          },
-          {
-            "name": "Jože Zupan",
-            "born": "1939-07-25",
-            "died": "2024-10-01"
-          }
-        ]
-      },
-      {
-        "id": "D-01-06",
-        "section": "D",
-        "row": 1,
-        "number": 6,
-        "x": 804,
-        "y": 405,
-        "people": [
-          {
-            "name": "Marta Potočnik",
-            "born": "1979-06-24",
-            "died": "2017-09-27"
-          }
-        ]
-      },
-      {
-        "id": "D-02-01",
-        "section": "D",
-        "row": 2,
-        "number": 1,
-        "x": 574,
-        "y": 454,
-        "people": [
-          {
-            "name": "Marta Vidmar",
-            "born": "1926-07-25",
-            "died": "2018-10-01"
-          }
-        ]
-      },
-      {
-        "id": "D-02-02",
-        "section": "D",
-        "row": 2,
-        "number": 2,
-        "x": 620,
-        "y": 454,
-        "people": [
-          {
-            "name": "Marta Kos",
-            "born": "1933-08-26",
-            "died": "2019-11-02"
-          }
-        ]
-      },
-      {
-        "id": "D-02-03",
-        "section": "D",
-        "row": 2,
-        "number": 3,
-        "x": 666,
-        "y": 454,
-        "people": [
-          {
-            "name": "Marta Mlakar",
-            "born": "1940-09-27",
-            "died": "2020-12-03"
-          },
-          {
-            "name": "Jože Mlakar",
-            "born": "1943-11-02",
-            "died": "2021-02-05"
-          }
-        ]
-      },
-      {
-        "id": "D-02-04",
-        "section": "D",
-        "row": 2,
-        "number": 4,
-        "x": 712,
-        "y": 454,
-        "people": [
-          {
-            "name": "Marta Rozman",
-            "born": "1947-10-01",
-            "died": "2021-01-04"
-          }
-        ]
-      },
-      {
-        "id": "D-02-05",
-        "section": "D",
-        "row": 2,
-        "number": 5,
-        "x": 758,
-        "y": 454,
-        "people": [
-          {
-            "name": "Marta Turk",
-            "born": "1954-11-02",
-            "died": "2022-02-05"
-          }
-        ]
-      },
-      {
-        "id": "D-02-06",
-        "section": "D",
-        "row": 2,
-        "number": 6,
-        "x": 804,
-        "y": 454,
-        "people": [
-          {
-            "name": "Marta Kralj",
-            "born": "1961-12-03",
-            "died": "2023-03-06"
-          }
-        ]
-      },
-      {
-        "id": "D-03-01",
-        "section": "D",
-        "row": 3,
-        "number": 1,
-        "x": 574,
-        "y": 503,
-        "people": [
-          {
-            "name": "Janez Novak",
-            "born": "1968-01-04",
-            "died": "2024-04-07"
-          },
-          {
-            "name": "Marija Novak",
-            "born": "1947-03-06",
-            "died": "2018-06-09"
-          }
-        ]
-      },
-      {
-        "id": "D-03-02",
-        "section": "D",
-        "row": 3,
-        "number": 2,
-        "x": 620,
-        "y": 503,
-        "people": [
-          {
-            "name": "Janez Kovač",
-            "born": "1975-02-05",
-            "died": "2008-05-08"
-          }
-        ]
-      },
-      {
-        "id": "D-03-03",
-        "section": "D",
-        "row": 3,
-        "number": 3,
-        "x": 666,
-        "y": 503,
-        "people": [
-          {
-            "name": "Janez Horvat",
-            "born": "1922-03-06",
-            "died": "2009-06-09"
-          }
-        ]
-      },
-      {
-        "id": "D-03-04",
-        "section": "D",
-        "row": 3,
-        "number": 4,
-        "x": 712,
-        "y": 503,
-        "people": [
-          {
-            "name": "Janez Krajnc",
-            "born": "1929-04-07",
-            "died": "2010-07-10"
-          }
-        ]
-      },
-      {
-        "id": "D-03-05",
-        "section": "D",
-        "row": 3,
-        "number": 5,
-        "x": 758,
-        "y": 503,
-        "people": [
-          {
-            "name": "Janez Zupan",
-            "born": "1936-05-08",
-            "died": "2011-08-11"
-          },
-          {
-            "name": "Marija Zupan",
-            "born": "1951-07-10",
-            "died": "2022-10-13"
-          }
-        ]
-      },
-      {
-        "id": "D-03-06",
-        "section": "D",
-        "row": 3,
-        "number": 6,
-        "x": 804,
-        "y": 503,
-        "people": [
-          {
-            "name": "Janez Potočnik",
-            "born": "1943-06-09",
-            "died": "2012-09-12"
-          }
-        ]
-      },
-      {
-        "id": "D-04-01",
-        "section": "D",
-        "row": 4,
-        "number": 1,
-        "x": 574,
-        "y": 552,
-        "people": [
-          {
-            "name": "Janez Vidmar",
-            "born": "1950-07-10",
-            "died": "2013-10-13"
-          }
-        ]
-      },
-      {
-        "id": "D-04-02",
-        "section": "D",
-        "row": 4,
-        "number": 2,
-        "x": 620,
-        "y": 552,
-        "people": [
-          {
-            "name": "Janez Kos",
-            "born": "1957-08-11",
-            "died": "2014-11-14"
-          }
-        ]
-      },
-      {
-        "id": "D-04-03",
-        "section": "D",
-        "row": 4,
-        "number": 3,
-        "x": 666,
-        "y": 552,
-        "people": [
-          {
-            "name": "Janez Mlakar",
-            "born": "1964-09-12",
-            "died": "2015-12-15"
-          },
-          {
-            "name": "Marija Mlakar",
-            "born": "1955-11-14",
-            "died": "2019-02-17"
-          }
-        ]
-      },
-      {
-        "id": "D-04-04",
-        "section": "D",
-        "row": 4,
-        "number": 4,
-        "x": 712,
-        "y": 552,
-        "people": [
-          {
-            "name": "Janez Rozman",
-            "born": "1971-10-13",
-            "died": "2016-01-16"
-          }
-        ]
-      },
-      {
-        "id": "D-04-05",
-        "section": "D",
-        "row": 4,
-        "number": 5,
-        "x": 758,
-        "y": 552,
-        "people": [
-          {
-            "name": "Janez Turk",
-            "born": "1978-11-14",
-            "died": "2017-02-17"
-          }
-        ]
-      },
-      {
-        "id": "D-04-06",
-        "section": "D",
-        "row": 4,
-        "number": 6,
-        "x": 804,
-        "y": 552,
-        "people": [
-          {
-            "name": "Janez Kralj",
-            "born": "1925-12-15",
-            "died": "2018-03-18"
-          }
-        ]
-      }
-    ]
+    "graves": []
   },
   "copy": [],
   "images": [],
@@ -2242,5 +3468,157 @@
     "pages": [],
     "navigation": []
   },
-  "links": []
+  "links": [],
+  "districts": [
+    {
+      "id": "vrhnika",
+      "name": "Občina Vrhnika",
+      "description": "Naslovi v občini Vrhnika.",
+      "active": true
+    },
+    {
+      "id": "borovnica",
+      "name": "Občina Borovnica",
+      "description": "Naslovi v občini Borovnica.",
+      "active": true
+    },
+    {
+      "id": "log-dragomer",
+      "name": "Občina Log - Dragomer",
+      "description": "Log, Dragomer in Lukovica pri Brezovici.",
+      "active": true
+    }
+  ],
+  "tariffs": {
+    "checkedOn": "2026-10-31",
+    "vatPercent": 9.5,
+    "municipalities": [
+      {
+        "id": "vrhnika",
+        "name": "Vrhnika",
+        "effectiveFrom": "2026-07-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_Vrhnika_01jul2o26.pdf",
+        "waterM3": 1.1644,
+        "waterNetwork": 5.4091,
+        "drainageM3": 0.6578,
+        "drainageNetwork": 5.9364,
+        "cleaningM3": 0.8648,
+        "cleaningNetwork": 4.5744
+      },
+      {
+        "id": "borovnica",
+        "name": "Borovnica",
+        "effectiveFrom": "2026-07-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_Borovnica_01jul2o26.pdf",
+        "waterM3": 1.1462,
+        "waterNetwork": 5.3623,
+        "drainageM3": 0.5244,
+        "drainageNetwork": 8.8417,
+        "cleaningM3": 1.2644,
+        "cleaningNetwork": 13.1313
+      },
+      {
+        "id": "log-dragomer",
+        "name": "Log - Dragomer",
+        "effectiveFrom": "2026-07-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_LogDragomer_01jul2o26.pdf",
+        "waterM3": 1.2866,
+        "waterNetwork": 7.5352,
+        "drainageM3": 1.0889,
+        "drainageNetwork": 16.2317,
+        "cleaningM3": 1.3089,
+        "cleaningNetwork": 10.8835
+      }
+    ],
+    "septic": {
+      "serviceM3": 0.6579,
+      "network": 1.2615,
+      "levySepticM3": 0.5283,
+      "levyTreatedM3": 0.0528
+    },
+    "waste": {
+      "effectiveFrom": "2026-07-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_Vrhnika_01jul2o26.pdf",
+      "annexUrl": "https://www.kpv.si/mCeniki/Datoteke/Priloga_cenikKomStoritev2o26d.pdf",
+      "collectionKgPerPerson": 15.0478,
+      "treatmentKgPerPerson": 4.5169,
+      "disposalKgPerPerson": 0.4517,
+      "bioKgPerPerson": 12.6954,
+      "collectionKg": 0.1738,
+      "collectionInfrastructureKg": 0.005,
+      "treatmentKg": 0.2297,
+      "treatmentInfrastructureKg": 0.0079,
+      "disposalKg": 0.1088,
+      "disposalInfrastructureKg": 0.1552,
+      "bioKg": 0.2328
+    },
+    "servicePrices": [
+      {
+        "id": "bulky-kg",
+        "category": "bulky",
+        "name": "Plačljivi prevzem kosovnih odpadkov",
+        "unit": "kg",
+        "priceWithVat": 0.3395,
+        "vatPercent": 9.5,
+        "effectiveFrom": "2025-11-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/mCpsrzo.html",
+        "note": "Cena ravnanja z odpadki po masi; prevoz ni vključen. Upravičenost do prevzema brez dodatnega plačila preverimo ob naročilu."
+      },
+      {
+        "id": "container-transport",
+        "category": "bulky",
+        "name": "Prevoz odpadkov s kontejnerjem",
+        "unit": "ura",
+        "priceWithVat": 72.27,
+        "vatPercent": 9.5,
+        "effectiveFrom": "2025-11-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/mCpsrzo.html",
+        "note": "Čas prevoza in obseg potrdi izvajalec. Ravnanje z odpadki in najem zabojnika se obračunata posebej."
+      },
+      {
+        "id": "container-rental",
+        "category": "bulky",
+        "name": "Najem 5 m³ zabojnika",
+        "unit": "dan",
+        "priceWithVat": 1.647,
+        "vatPercent": 22,
+        "effectiveFrom": "2025-11-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/mCpsrzo.html",
+        "note": "Najem brez prevoza in ravnanja z odpadki."
+      },
+      {
+        "id": "septic-extra",
+        "category": "septic",
+        "name": "Izredni prevzem grezničnega blata",
+        "unit": "m³",
+        "priceWithVat": 57.6,
+        "vatPercent": 9.5,
+        "effectiveFrom": "2025-03-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/mCpskan.html",
+        "note": "Izredna storitev. Redno storitev greznice/MKČN preverite v mesečnem obračunu; te cene ne prištevajte samodejno rednemu praznjenju."
+      },
+      {
+        "id": "septic-delivery",
+        "category": "septic",
+        "name": "Čiščenje blata na CČN – lastna dostava",
+        "unit": "m³",
+        "priceWithVat": 29.38,
+        "vatPercent": 9.5,
+        "effectiveFrom": "2025-03-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/mCpskan.html",
+        "note": "Samo čiščenje pri lastni dostavi po dogovoru; brez prevzema in prevoza."
+      },
+      {
+        "id": "camera",
+        "category": "other",
+        "name": "Pregled kanalizacijske cevi s TV-kamero",
+        "unit": "ura",
+        "priceWithVat": 57.6,
+        "vatPercent": 9.5,
+        "effectiveFrom": "2025-03-01",
+        "sourceUrl": "https://www.kpv.si/mCeniki/mCpskan.html",
+        "note": "Končni obseg, potreben čas in morebitne dodatne stroške potrdi izvajalec."
+      }
+    ]
+  }
 }

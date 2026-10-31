@@ -6,12 +6,11 @@ import {
   Check,
   Download,
   Info,
-  Repeat2,
   Smartphone,
   X,
 } from "lucide-react";
 import "./calendar.css";
-import AnimatedDisclosure from "./AnimatedDisclosure";
+import { publishedCalendarSeries } from "../../shared/calendar-series.js";
 
 export type CalendarCollectionEvent = {
   id: string;
@@ -41,54 +40,32 @@ const labelDate = (date: string) =>
 
 export function CalendarDialog({
   event,
+  events,
   address,
   onClose,
 }: {
   event: CalendarCollectionEvent;
+  events: CalendarCollectionEvent[];
   address: string;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const [calendar, setCalendar] = useState<CalendarChoice>(suggestedCalendar);
-  const [repeat, setRepeat] = useState(false);
-  const defaultInterval =
-    event.type === "bio"
-      ? 1
-      : event.type === "packaging" || event.type === "embalaza"
-        ? 2
-        : 3;
-  const [interval, setInterval] = useState(defaultInterval);
-  const [countInput, setCountInput] = useState(
-    String(Math.floor(13 / defaultInterval) + 1),
-  );
   const [action, setAction] = useState<"google" | "file" | null>(null);
-  const count = Number(countInput);
-  const validCount = Number.isInteger(count) && count >= 2 && count <= 52;
-  const valid = !repeat || validCount;
-  const params = new URLSearchParams({
-    address,
-    eventId: event.id,
-    repeat: repeat ? "weekly" : "once",
-  });
-  if (repeat && validCount) {
-    params.set("interval", String(interval));
-    params.set("count", String(count));
-  }
+  const [repeat,setRepeat] = useState<'once'|'published'>('once');
+  const series = publishedCalendarSeries(events,event.id);
+  const directGoogle = calendar === 'google' && repeat === 'once';
+  const params = new URLSearchParams({ address, eventId: event.id, date:event.date, repeat });
   const icsUrl = `/api/calendar?${params}`;
   const googleParams = new URLSearchParams({
     action: "TEMPLATE",
-    text: `PRIMER – odvoz: ${event.label}`,
+    text: `Odvoz: ${event.label}`,
     dates: `${event.date.replaceAll("-", "")}/${endDate(event.date, 1).replaceAll("-", "")}`,
     details:
-      "Vzorčni termin KPV. To ni uradni urnik. Ponavljanje je vaša izbira, ne potrjen razpored odvoza. Dejanske datume preverite na https://www.kpv.si/.",
+      "Objavljeni termin odvoza KPV. Uvoženi dogodek se ne posodobi samodejno. Pred odvozom preverite morebitna obvestila o spremembah na https://kpv.jakobtominc.com/odpadki/urnik.",
     location: address,
   });
-  if (repeat && validCount)
-    googleParams.set(
-      "recur",
-      `RRULE:FREQ=WEEKLY;INTERVAL=${interval};COUNT=${count}`,
-    );
   const googleUrl = `https://calendar.google.com/calendar/render?${googleParams}`;
 
   useEffect(() => {
@@ -161,7 +138,7 @@ export function CalendarDialog({
         </header>
         <div className="calendar-content">
           <p id="calendar-description" className="calendar-lead">
-            Izberite ponavljanje in koledar. Dodajanje boste potrdili v svoji
+            Izberite koledar. Dodajanje boste potrdili v svoji
             koledarski aplikaciji.
           </p>
           <div className="calendar-event-summary">
@@ -173,111 +150,25 @@ export function CalendarDialog({
             </div>
           </div>
           <fieldset className="calendar-fieldset">
-            <legend>
-              <span>1</span>Enkrat ali s ponavljanjem?
-            </legend>
+            <legend>Kaj želite shraniti?</legend>
             <div className="calendar-repeat-options">
-              <label className={!repeat ? "selected" : ""}>
-                <input
-                  name="calendar-repeat"
-                  type="radio"
-                  checked={!repeat}
-                  onChange={() => {
-                    setRepeat(false);
-                    setAction(null);
-                  }}
-                />
-                <CalendarDays size={19} />
-                <span>
-                  <strong>Samo ta odvoz</strong>
-                  <small>En dogodek na izbrani datum</small>
-                </span>
-                {!repeat && <Check size={17} />}
+              <label className={repeat==='once'?'selected':''}>
+                <input type="radio" name="calendar-repeat" checked={repeat==='once'} onChange={()=>{setRepeat('once');setAction(null);}}/>
+                <span><strong>Samo ta datum</strong><small>{labelDate(event.date)}</small></span>
               </label>
-              <label className={repeat ? "selected" : ""}>
-                <input
-                  name="calendar-repeat"
-                  type="radio"
-                  checked={repeat}
-                  onChange={() => {
-                    setRepeat(true);
-                    setAction(null);
-                  }}
-                />
-                <Repeat2 size={19} />
-                <span>
-                  <strong>Ponavljajoči se dogodek</strong>
-                  <small>Sami določite razmik in konec</small>
-                </span>
-                {repeat && <Check size={17} />}
+              <label className={repeat==='published'?'selected':''}>
+                <input type="radio" name="calendar-repeat" checked={repeat==='published'} disabled={series.length<2} onChange={()=>{setRepeat('published');setAction(null);}}/>
+                <span><strong>Ponavljajoči se odvozi te vrste</strong><small>{series.length<2?'Za to vrsto je objavljen samo ta prihodnji datum.':`${series.length} objavljenih odvozov od ${labelDate(event.date)} do ${labelDate(series.at(-1)!.date)}.`}</small></span>
               </label>
             </div>
-            <AnimatedDisclosure open={repeat}>
-              <div className="calendar-recurrence">
-                <div className="calendar-rule-inputs">
-                  <label className="field">
-                    Ponovi vsakih
-                    <select
-                      value={interval}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setInterval(value);
-                        setCountInput(String(Math.floor(13 / value) + 1));
-                        setAction(null);
-                      }}
-                    >
-                      {Array.from({ length: 8 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {i + 1}{" "}
-                          {i === 0
-                            ? "teden"
-                            : i === 1
-                              ? "tedna"
-                              : i < 4
-                                ? "tedne"
-                                : "tednov"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    Število terminov
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={2}
-                      max={52}
-                      step={1}
-                      value={countInput}
-                      onChange={(e) => {
-                        setCountInput(e.target.value);
-                        setAction(null);
-                      }}
-                      aria-invalid={!validCount}
-                      aria-describedby="calendar-count-help"
-                    />
-                  </label>
-                </div>
-                <p
-                  id="calendar-count-help"
-                  className={
-                    !validCount ? "calendar-invalid" : "calendar-rule-summary"
-                  }
-                >
-                  {validCount
-                    ? `${count} terminov, vključno z izbranim datumom. Zadnji: ${labelDate(endDate(event.date, (count - 1) * interval * 7))}.`
-                    : "Vnesite celo število od 2 do 52."}
-                </p>
-                <small>
-                  Začetna nastavitev zajame približno tri mesece. To ponavljanje
-                  ni uradni razpored; prazniki in spremembe niso upoštevani.
-                </small>
-              </div>
-            </AnimatedDisclosure>
+            {repeat==='published'&&<div className="calendar-recurrence">
+              <p className="calendar-rule-summary">Datumi sledijo objavljenemu urniku in potrjenim izjemam. Po zadnjem datumu se ponavljanje konča.</p>
+              <details><summary>Preveri vseh {series.length} datumov</summary><ul className="calendar-date-list">{series.map(item=><li key={item.id}><time dateTime={item.date}>{labelDate(item.date)}</time></li>)}</ul></details>
+            </div>}
           </fieldset>
           <fieldset className="calendar-fieldset">
             <legend>
-              <span>2</span>Kateri koledar uporabljate?
+              Kateri koledar uporabljate?
             </legend>
             <div className="calendar-destinations">
               {[
@@ -326,42 +217,34 @@ export function CalendarDialog({
           <div className="calendar-demo-note">
             <Info size={17} />
             <p>
-              <strong>Vzorčni podatki.</strong> Vsi dogodki imajo oznako
-              »PRIMER«. Uvoz ustvari kopijo, ki se ne posodablja samodejno. Ob
-              spremembi urnika star dogodek uredite ali izbrišite v koledarju.
+              Uvoz ustvari kopijo {repeat==='once'?'izbranega termina':'prikazanih datumov'}, ki se ne posodablja samodejno. Ob
+              spremembi urnika stare dogodke uredite ali izbrišite v koledarju in uvozite popravljene datume.
               Čas opozorila nastavite v svoji koledarski aplikaciji.
             </p>
           </div>
-          {calendar !== "google" && (
+          {!directGoogle && (
             <details className="calendar-help">
-              <summary>Kako odprem datoteko .ics?</summary>
+              <summary>{calendar==='google'?'Kako shranim ponavljanje v Google Koledar?':'Kako odprem datoteko .ics?'}</summary>
               <p>
-                {calendar === "apple"
+                {calendar==='google'
+                  ? 'Prenesite datoteko .ics. Na računalniku odprite Google Koledar → Nastavitve → Uvoz in izvoz → Izberite datoteko iz računalnika. Izberite preneseno datoteko in koledar ter potrdite Uvozi. Mobilna aplikacija ne podpira tega uvoza; posamezni datum lahko odprete neposredno z izbiro »Samo ta datum«.'
+                  : calendar === "apple"
                   ? "Brskalnik odpre predogled ali prenese datoteko. V aplikaciji Koledar potrdite dodajanje. Če iPhone pokaže le predogled, lahko datoteko odprete iz e-poštne priloge ali tukaj izberete Google Koledar. Na Macu datoteko odprite z aplikacijo Koledar."
                   : "Odprite preneseno datoteko v koledarski aplikaciji. V Outlooku v spletu izberite Dodaj koledar → Naloži iz datoteke in potrdite uvoz. Google Koledar datoteke uvaža na računalniku; za telefon tukaj izberite možnost Google Koledar."}
               </p>
             </details>
           )}
+          {calendar==='google'&&repeat==='published'&&<p className="calendar-rule-summary">Za več datumov prenesite datoteko in jo uvozite v Google Koledar na računalniku. <a href="https://support.google.com/calendar/answer/37118?hl=sl" target="_blank" rel="noreferrer">Navodila za uvoz</a></p>}
         </div>
         <footer className="calendar-footer">
           <a
             className="button calendar-primary"
-            href={
-              valid ? (calendar === "google" ? googleUrl : icsUrl) : undefined
-            }
-            target={calendar === "google" ? "_blank" : undefined}
-            rel={calendar === "google" ? "noreferrer" : undefined}
-            aria-disabled={!valid}
-            tabIndex={valid ? 0 : -1}
-            onClick={(e) => {
-              if (!valid) {
-                e.preventDefault();
-                return;
-              }
-              setAction(calendar === "google" ? "google" : "file");
-            }}
+            href={directGoogle ? googleUrl : icsUrl}
+            target={directGoogle ? "_blank" : undefined}
+            rel={directGoogle ? "noreferrer" : undefined}
+            onClick={() => setAction(directGoogle ? "google" : "file")}
           >
-            {calendar === "google" ? (
+            {directGoogle ? (
               <>
                 <CalendarDays size={19} />
                 Odpri Google Koledar
@@ -370,14 +253,14 @@ export function CalendarDialog({
             ) : (
               <>
                 <Download size={19} />
-                Prenesi za {calendar === "apple" ? "Apple Koledar" : "koledar"}
+                {repeat==='published'?'Prenesi ponavljajoče se odvoze (.ics)':`Prenesi za ${calendar === "apple" ? "Apple Koledar" : "koledar"}`}
                 <ArrowUpRight size={18} />
               </>
             )}
           </a>
           <p className="calendar-action-note" role="status">
             {action === "google"
-              ? "Odprli smo Google Koledar. Preverite ponavljanje in tam pritisnite Shrani."
+              ? "Odprli smo Google Koledar. Preverite datum in tam pritisnite Shrani."
               : action === "file"
                 ? "Po prenosu odprite datoteko .ics in potrdite uvoz. Dogodek še ni samodejno shranjen."
                 : "Brez dostopa do vašega računa. Dogodek shranite šele s potrditvijo v koledarju."}

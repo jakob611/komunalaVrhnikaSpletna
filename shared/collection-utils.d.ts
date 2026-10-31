@@ -26,6 +26,11 @@ export function matchCollectionRoute(
   candidates: CollectionRoute[];
 };
 export function shiftCollectionDate(value: string, days: number): string;
+export function matchCollectionSchedule(address: string, routes: CollectionRoute[]): {
+  matches: Record<CollectionType, ReturnType<typeof matchCollectionRoute>>;
+  incompleteTypes: CollectionType[];
+  ambiguousTypes: CollectionType[];
+};
 export function generateCollectionEvents(options: {
   type: CollectionType;
   start: string;

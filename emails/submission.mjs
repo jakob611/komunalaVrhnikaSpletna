@@ -6,7 +6,7 @@ const h = React.createElement;
 export default function SubmissionEmail() {
   return h(Html, { lang: 'sl' }, h(Head),
     h(Body, { lang: 'sl', style: { margin: 0, backgroundColor: '#f1f5f2', fontFamily: 'Arial, Helvetica, sans-serif' } },
-      h(Preview, null, 'Nova oddaja iz predstavitvenega portala KPV.'),
+      h(Preview, null, 'Nova oddaja s portala Komunala Vrhnika.'),
       h(Container, { style: { maxWidth: '600px', padding: '24px 16px' } },
         h(Section, { style: { backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px' } },
           h(Text, { style: { fontSize: '14px', color: '#176445', fontWeight: 'bold' } }, 'KPV · PREDSTAVITVENI PORTAL'),
@@ -14,7 +14,7 @@ export default function SubmissionEmail() {
           h(Text, { style: { fontSize: '16px', lineHeight: '26px', color: '#243b30', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, 'KPV_DETAILS_TOKEN'),
           h(Button, { href: 'KPV_ADMIN_LINK_TOKEN', style: { backgroundColor: '#194f3a', color: '#ffffff', padding: '14px 18px', borderRadius: '8px', fontSize: '15px', boxSizing: 'border-box', textDecoration: 'none' } }, 'Odpri v skrbniški konzoli'),
           h(Text, { style: { fontSize: '13px', lineHeight: '21px', color: '#51635a' } },
-            'To je oddaja na preizkusnem portalu. Ne pomeni uradnega naročila, rezervacije ali plačila pri podjetju KPV. Z odgovorom na to e-pošto se obrnete na pošiljatelja obrazca.'),
+            'Oddaja še ne potrjuje izvedbe, rezervacije ali plačila. Z odgovorom na to e-pošto se obrnete na pošiljatelja obrazca.'),
         ),
       ),
     ),

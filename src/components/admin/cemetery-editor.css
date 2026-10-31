@@ -1,0 +1,173 @@
+.cem-editor-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.cem-editor-structure {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.cem-editor-card {
+  padding: 22px;
+  min-width: 0;
+}
+.cem-editor-card h3 {
+  margin: 0 0 16px;
+}
+.cem-editor-card h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cem-editor-card p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.cem-editor-inline,
+.cem-editor-add,
+.cem-editor-actions,
+.cem-editor-heading {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cem-editor-inline .admin-field {
+  flex: 1;
+  min-width: 130px;
+}
+.cem-editor-add .admin-field {
+  flex: 1;
+  min-width: 130px;
+}
+.cem-editor-heading {
+  justify-content: space-between;
+  align-items: center;
+}
+.cem-editor-delete {
+  border: 0;
+  background: transparent;
+  color: #974837;
+  padding: 10px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.cem-editor-delete:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.cem-editor-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: 380px;
+  overflow: auto;
+  margin-top: 16px;
+}
+.cem-editor-plot {
+  border: 1px solid #d8e2d6;
+  border-radius: 9px;
+  background: #fff;
+  text-align: left;
+  padding: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cem-editor-plot.is-selected {
+  background: #eaf2e5;
+  border-color: #19543d;
+}
+.cem-editor-plot strong,
+.cem-editor-plot span,
+.cem-editor-plot small {
+  display: block;
+}
+.cem-editor-plot span {
+  font-size: 13px;
+  margin: 5px 0;
+}
+.cem-editor-plot small {
+  font-size: 11px;
+  color: #596e5b;
+}
+.cem-editor-person {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.5fr) 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  border-top: 1px solid #e1e8de;
+  padding: 14px 0;
+}
+.cem-editor-person .admin-field {
+  margin: 0;
+}
+.cem-editor-plan {
+  margin: 18px 0;
+  max-height: 650px;
+  overflow: auto;
+  border: 1px solid #d8e2d6;
+  border-radius: 12px;
+  background: #edf1e7;
+}
+.cem-editor-plan svg {
+  display: block;
+  width: 100%;
+  min-width: 650px;
+  touch-action: pan-y;
+}
+.cem-editor-upload {
+  cursor: pointer;
+}
+.cem-editor-upload input {
+  display: none;
+}
+.cem-editor-message {
+  padding: 14px;
+  background: #edf4e7;
+  border-radius: 9px;
+}
+.cem-editor-actions {
+  align-items: center;
+}
+.cem-editor details {
+  margin-top: 14px;
+}
+.cem-editor summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 0;
+}
+@media (max-width: 900px) {
+  .cem-editor-structure {
+    grid-template-columns: 1fr;
+  }
+  .cem-editor-person {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cem-editor-person .admin-field:first-child {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 540px) {
+  .cem-editor-card {
+    padding: 16px;
+  }
+  .cem-editor-person {
+    grid-template-columns: 1fr;
+  }
+  .cem-editor-inline,
+  .cem-editor-add {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .cem-editor-actions .admin-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,8 +1,10 @@
-import { notices, getCollection, ljubljanaDate, addDays } from "./seed.js";
+import { ljubljanaDate, addDays } from "./seed.js";
 import { BotError, verifyBot } from "./bot-protection.js";
 import { emailEnabled, outboxInsert, processEmail } from "./email.js";
 import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
 import { managedCollection } from "./managed-collection.js";
+import { requestSubscription, subscriptionAction, processCampaigns } from "./subscriptions.js";
+import { publishedCalendarSeries, publishedRecurrence } from "../shared/calendar-series.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -132,7 +134,7 @@ function storage(env) {
         JSON.stringify(record.payload),
       );
       if (emailEnabled(env))
-        await env.DB.batch([submission, outboxInsert(env.DB, record, env)]);
+        await env.DB.batch([submission, await outboxInsert(env.DB, record, env)]);
       else await submission.run();
     },
     async putPhoto(key, bytes, type) {
@@ -186,33 +188,34 @@ export function calendar(schedule, options = {}) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//KPV demo//Urnik odvoza//SL",
+    "PRODID:-//KPV//Urnik odvoza//SL",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:KPV – prikazni urnik",
+    "X-WR-CALNAME:KPV – urnik odvoza",
   ];
-  const events = options.eventId
+  const series = options.repeat === 'published' ? publishedCalendarSeries(schedule.events, options.eventId) : null;
+  const events = series ? series.slice(0,1) : options.eventId
     ? schedule.events.filter((event) => event.id === options.eventId)
     : schedule.events;
   for (const event of events) {
-    const recurrence =
+    const recurrence = series ? publishedRecurrence(series.map(event=>event.date)) :
       options.repeat === "weekly"
-        ? `RRULE:FREQ=WEEKLY;INTERVAL=${options.interval};COUNT=${options.count}`
-        : null;
-    const uidSuffix = recurrence
+        ? [`RRULE:FREQ=WEEKLY;INTERVAL=${options.interval};COUNT=${options.count}`]
+        : [];
+    const uidSuffix = series ? '-published' : recurrence.length
       ? `-repeat-${options.interval}-${options.count}`
       : "";
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${event.id}-${event.date}${uidSuffix}@kpv-demo.local`,
+      `UID:${event.id}${uidSuffix}@kpv.jakobtominc.com`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${event.date.replace(/-/g, "")}`,
       `DTEND;VALUE=DATE:${addDays(event.date, 1).replace(/-/g, "")}`,
-      `SUMMARY:${safeICS(`PRIMER – ${event.label}`)}`,
+      `SUMMARY:${safeICS(event.label)}`,
       `LOCATION:${safeICS(schedule.address)}`,
-      `DESCRIPTION:${safeICS("Prikazni urnik. Ne uporabljajte za dejanski odvoz. Uradne termine preverite na https://www.kpv.si/." + (recurrence ? " Ponavljanje ste izbrali sami; ne upošteva praznikov ali sprememb odvoza." : ""))}`,
+      `DESCRIPTION:${safeICS("Urnik odvoza KPV. Uvoženi koledar se ne posodablja samodejno; spremembe preverite na https://kpv.jakobtominc.com/odpadki/urnik." + (recurrence.length ? " Ponavljanje vsebuje samo objavljene datume, vključno s potrjenimi izjemami." : ""))}`,
     );
-    if (recurrence) lines.push(recurrence);
+    lines.push(...recurrence);
     lines.push("END:VEVENT");
   }
   lines.push("END:VCALENDAR");
@@ -222,13 +225,13 @@ export function calendar(schedule, options = {}) {
 function calendarOptions(params, schedule) {
   const eventId = params.get("eventId");
   const repeat = params.get("repeat") || "once";
-  if (!["once", "weekly"].includes(repeat))
+  if (!["once", "published", "weekly"].includes(repeat))
     throw new ApiError(
       400,
-      "Izberite enkraten dogodek ali tedensko ponavljanje.",
+      "Izberite posamezni datum ali ponavljanje po objavljenem urniku.",
     );
   if (!eventId) {
-    if (repeat === "weekly")
+    if (repeat !== "once")
       throw new ApiError(
         400,
         "Za ponavljanje najprej izberite posamezen odvoz.",
@@ -241,7 +244,9 @@ function calendarOptions(params, schedule) {
       404,
       "Izbranega odvoza ni več v prikazanem urniku. Osvežite urnik in izberite nov termin.",
     );
-  if (repeat === "once") return { eventId, repeat };
+  if (params.has('date') && params.get('date') !== event.date)
+    throw new ApiError(409, 'Datum odvoza se je spremenil. Osvežite urnik in ponovno izberite datum.');
+  if (repeat === "once" || repeat === "published") return { eventId, repeat };
   const defaults = { bio: 1, packaging: 2, residual: 3 };
   const intervalText =
     params.get("interval") ?? String(defaults[event.type] || 1);
@@ -256,6 +261,13 @@ function calendarOptions(params, schedule) {
       400,
       "Ponavljanje je mogoče na 1 do 8 tednov, za 2 do 52 odvozov.",
     );
+  // Legacy interval links are accepted only when every occurrence is published.
+  // Otherwise an assumed cycle could reintroduce cancelled/past-holiday dates.
+  for(let index=0;index<Number(countText);index++) {
+    const date=addDays(event.date,index*Number(intervalText)*7);
+    if(!schedule.events.some(item=>item.type===event.type&&item.date===date))
+      throw new ApiError(400, 'Zahtevano ponavljanje vključuje nepotrjen datum. Izberite ponavljanje po objavljenem urniku.');
+  }
   return {
     eventId,
     repeat,
@@ -353,11 +365,12 @@ export async function handleRequest(request, env = {}, ctx) {
   if (!route.startsWith("/api/")) {
     if (env.ASSETS) {
       const response = await env.ASSETS.fetch(request);
-      if (route !== "/admin" && route !== "/admin/") return response;
+      if (route !== "/admin" && route !== "/admin/" && route !== "/obvestila/narocnina") return response;
       const headers = new Headers(response.headers);
       headers.set("X-Robots-Tag", "noindex, nofollow");
       headers.set("Cache-Control", "no-store");
       headers.set("X-Frame-Options", "DENY");
+      headers.set("Referrer-Policy", "no-referrer");
       return new Response(response.body, { status: response.status, headers });
     }
     return new Response(
@@ -366,13 +379,19 @@ export async function handleRequest(request, env = {}, ctx) {
     );
   }
   try {
+    const subscriptionResponse = await subscriptionAction(request, env, { json, readJson, readDistricts: () => readPublished(env, "districts") });
+    if (subscriptionResponse) return subscriptionResponse;
     const adminResponse = await handleAdmin(request, env);
-    if (adminResponse) return adminResponse;
+    if (adminResponse) {
+      if (route === '/api/admin/notice-delivery' && adminResponse.ok && ctx?.waitUntil)
+        ctx.waitUntil(processCampaigns(env).then(()=>processEmail(env,{limit:1})).catch(()=>console.error(JSON.stringify({event:'campaign_queue_unavailable'}))));
+      return adminResponse;
+    }
     if (request.method === "GET") {
       if (route === "/api/health")
         return json({
           ok: true,
-          demo: true,
+          demo: false,
           storage: env.LOCAL_STORAGE
             ? env.DB
               ? "local-sqlite"
@@ -381,7 +400,7 @@ export async function handleRequest(request, env = {}, ctx) {
               ? "d1"
               : "unavailable",
           email: emailEnabled(env) ? "resend" : "not-configured",
-          payments: "demo-only",
+          payments: "not-enabled",
           botProtection: env.LOCAL_STORAGE
             ? "local-demo"
             : env.TURNSTILE_SECRET && env.TURNSTILE_SITE_KEY
@@ -400,7 +419,7 @@ export async function handleRequest(request, env = {}, ctx) {
       if (route === "/api/notices")
         return json({
           notices: await readPublished(env, "notices"),
-          demo: true,
+          demo: false,
         });
       if (route === "/api/collection" || route === "/api/calendar") {
         const address = field(
@@ -410,15 +429,11 @@ export async function handleRequest(request, env = {}, ctx) {
           250,
         );
         const configured = await readPublished(env, "collection");
-        const schedule = configured.routes.length
-          ? managedCollection(address, configured)
-          : getCollection(address);
+        const schedule = managedCollection(address, configured);
         if (!schedule)
           throw new ApiError(
             422,
-            configured.routes.length
-              ? "Za ta naslov še ni objavljenega urnika. Preverite zapis naslova ali se obrnite na podjetje."
-              : "Prikazni urnik je na voljo za Vrhniko, Borovnico in Log - Dragomer. Dodajte kraj v naslov.",
+            "Za ta naslov ni mogoče zanesljivo določiti urnika. Vnesite ulico, hišno številko in kraj. Urnik preverite tudi na https://www.kpv.si/mDejavnosti/rzo/rzoUrnik.html.",
           );
         if (route === "/api/calendar")
           return new Response(
@@ -428,7 +443,7 @@ export async function handleRequest(request, env = {}, ctx) {
                 ...securityHeaders,
                 "Content-Type": "text/calendar; charset=utf-8",
                 "Content-Disposition":
-                  'attachment; filename="kpv-prikazni-urnik.ics"',
+                  'attachment; filename="kpv-urnik.ics"',
               },
             },
           );
@@ -506,6 +521,7 @@ export async function handleRequest(request, env = {}, ctx) {
           ...person,
           address: field(data, "address", 3, 250),
           topics: [...new Set(data.topics)],
+          districtId: field(data, "districtId", 1, 80),
         };
       } else if (route === "/api/requests") {
         payload = {
@@ -543,6 +559,11 @@ export async function handleRequest(request, env = {}, ctx) {
       }
     }
     await verifyBot(request, env, token, route.slice(5), honeypot);
+    if (route === "/api/subscriptions") {
+      const data = await requestSubscription(env, { ...payload, districtId: payload.districtId, consent: true }, await readPublished(env, "districts"), request.headers.get("cf-connecting-ip") || "local");
+      if (ctx?.waitUntil) ctx.waitUntil(processEmail(env,{limit:1}));
+      return json(data, 201);
+    }
     const id = `KPV-${crypto.randomUUID()}`;
     const record = {
       id,
@@ -564,17 +585,17 @@ export async function handleRequest(request, env = {}, ctx) {
       {
         id,
         status: "demo-saved",
-        demo: true,
+        demo: false,
         emailStatus: queued ? "queued" : "disabled",
         message: queued
-          ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za upravljavca predstavitvenega portala. To ni uradna oddaja podjetju KPV, rezervacija ali plačilo."
-          : "Prikazna oddaja je shranjena. E-pošta ni vključena. To ni uradna oddaja podjetju KPV, rezervacija ali plačilo.",
+          ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za skrbnika portala. Za povpraševanja in prijave na tržnico je potrebna ločena potrditev izvedbe oziroma termina."
+          : "Oddaja je shranjena za obravnavo. E-poštna obvestila trenutno niso vključena.",
       },
       201,
     );
   } catch (error) {
-    if (error instanceof ApiError || error instanceof BotError)
-      return json({ error: error.message, demo: true }, error.status);
+    if (error instanceof ApiError || error instanceof BotError || Number.isInteger(error?.status))
+      return json({ error: error.message, demo: false }, error.status);
     // Never log submitted personal data or request bodies.
     console.error(
       JSON.stringify({
@@ -586,7 +607,7 @@ export async function handleRequest(request, env = {}, ctx) {
     return json(
       {
         error: "Oddaje ni bilo mogoče shraniti. Poskusite znova pozneje.",
-        demo: true,
+        demo: false,
       },
       503,
     );
@@ -596,6 +617,8 @@ export async function handleRequest(request, env = {}, ctx) {
 export default {
   fetch: handleRequest,
   async scheduled(_controller, env) {
+    try { await processCampaigns(env); } catch { console.error(JSON.stringify({event:'campaign_queue_unavailable'})); }
     await Promise.all([processEmail(env), cleanupAdmin(env)]);
+    await env.DB?.prepare('DELETE FROM subscription_limits WHERE window<?').bind(Math.floor(Date.now()/3600000)-48).run();
   },
 };

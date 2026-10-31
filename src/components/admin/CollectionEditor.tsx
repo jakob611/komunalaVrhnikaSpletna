@@ -11,7 +11,7 @@ import {
 import {
   COLLECTION_TYPES,
   generateCollectionEvents,
-  matchCollectionRoute,
+  matchCollectionSchedule,
   mergeCollectionEvents,
   moveCollectionEvents,
   normalizedAddress,
@@ -62,6 +62,8 @@ export default function CollectionEditor({
   disabled = false,
 }: Props) {
   const [selected, setSelected] = useState(value.routes[0]?.id || "");
+  const [step, setStep] = useState(1);
+  const [areaSearch, setAreaSearch] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [testAddress, setTestAddress] = useState("");
@@ -107,7 +109,7 @@ export default function CollectionEditor({
     }
   }, [gen]);
   const match = testAddress.trim()
-    ? matchCollectionRoute(testAddress, value.routes)
+    ? matchCollectionSchedule(testAddress, value.routes)
     : null;
   const filtered = useMemo(
     () =>
@@ -133,11 +135,12 @@ export default function CollectionEditor({
     const owners = new Map<string, string>(),
       conflicts: string[] = [];
     for (const item of value.routes)
+      for (const type of new Set(item.events.map((event) => event.type)))
       for (const pattern of item.addresses) {
-        const key = normalizedAddress(pattern);
+        const key = `${type}:${normalizedAddress(pattern)}`;
         if (key && owners.has(key))
           conflicts.push(
-            `»${pattern}« je večkrat vpisan: ${owners.get(key)} / ${item.name}.`,
+            `${COLLECTION_TYPES[type]}: »${pattern}« je v več območjih: ${owners.get(key)} / ${item.name}.`,
           );
         if (key) owners.set(key, item.name);
       }
@@ -184,6 +187,7 @@ export default function CollectionEditor({
   }
   function updateEvent(id: string, change: Partial<CollectionEvent>) {
     if (!route) return;
+    if (change.date !== undefined) shiftCollectionDate(change.date, 0);
     const events = route.events.map((event) =>
       event.id === id ? { ...event, ...change } : event,
     );
@@ -216,13 +220,21 @@ export default function CollectionEditor({
       <div className="collection-intro">
         <CalendarDays size={24} />
         <div>
-          <h2>Od območja do točnih datumov</h2>
+          <h2>Urejanje urnikov odvoza</h2>
           <p>
-            1. Določite območje in naslove. 2. Pripravite termine. 3. Preverite
-            naslov in objavite. Spremembe spodaj so osnutek.
+            Izberite območje na levi. Nato uredite naslove ali datume in preverite,
+            kaj bo za svoj naslov videl občan. Spremembe postanejo javne šele z gumbom »Shrani in objavi«.
           </p>
+          <p>Občan lahko v koledar shrani en datum ali vse naslednje odvoze iste vrste. Ponavljanje uporablja samo tukaj objavljene datume, tudi praznične izjeme. Že prenesenega koledarja poznejši popravek ne posodobi.</p>
         </div>
       </div>
+      <nav className="collection-steps" aria-label="Koraki urejanja urnikov">
+        {[[1,"Območje in naslovi"],[2,"Termini odvozov"],[3,"Preveri naslov"]].map(([number,label]) =>
+          <button key={number} type="button" aria-current={step===number ? "step" : undefined}
+            className={step===number ? "selected" : ""} onClick={()=>setStep(Number(number))}>
+            <span>{number}</span>{label}
+          </button>)}
+      </nav>
       {error && (
         <p className="collection-alert error" role="alert">
           {error}
@@ -233,15 +245,16 @@ export default function CollectionEditor({
           {notice}
         </p>
       )}
-      {duplicateRules.length > 0 && (
-        <div className="collection-alert error" role="alert">
-          <strong>Popravite podvojena pravila naslovov pred objavo.</strong>
-          {duplicateRules.slice(0, 5).map((text, index) => (
+      {duplicateRules.length > 0 && step === 1 && (
+        <details className="collection-alert">
+          <summary>Naslovi, ki potrebujejo natančnejšo razmejitev ({duplicateRules.length})</summary>
+          <p>Za isto vrsto odpadkov se pravila nekaterih območij prekrivajo. Portal teh datumov ne dodeli samodejno. To je lahko posledica delitve med običajno in malo vozilo. Različne vrste odpadkov smejo uporabljati isti naslov.</p>
+          {duplicateRules.slice(0, 8).map((text, index) => (
             <p key={index}>{text}</p>
           ))}
-        </div>
+        </details>
       )}
-      <div className="collection-layout">
+      <div className="collection-layout" hidden={step===3}>
         <aside className="collection-areas" aria-label="Odvozna območja">
           <div className="collection-section-title">
             <h3>Območja</h3>
@@ -256,14 +269,17 @@ export default function CollectionEditor({
             <Plus size={16} />
             Dodaj območje
           </button>
+          <label className="collection-area-search">Poišči območje
+            <input value={areaSearch} onChange={(event)=>setAreaSearch(event.target.value)} placeholder="Ime, ulica ali oznaka …" />
+          </label>
           {!value.routes.length && (
             <p>
               Začnite z enim dejanskim območjem. Dokler ni objavljene nobene
-              poti, portal uporablja prikazni urnik.
+              poti, portal ne prikazuje datumov za gospodinjstva.
             </p>
           )}
           <div className="collection-area-list">
-            {value.routes.map((item) => (
+            {value.routes.filter((item)=>normalizedAddress(`${item.name} ${item.addresses.join(" ")}`).includes(normalizedAddress(areaSearch))).map((item) => (
               <button
                 type="button"
                 key={item.id}
@@ -273,8 +289,8 @@ export default function CollectionEditor({
               >
                 <strong>{item.name || "Neimenovano območje"}</strong>
                 <span>
-                  {item.addresses.filter((x) => x.trim()).length} pravil ·{" "}
-                  {item.events.length} terminov
+                  {item.addresses.filter((x) => x.trim()).length} naslovnih pravil ·{" "}
+                  {item.events.filter((event)=>event.date>=today()).length} prihodnjih terminov
                 </span>
               </button>
             ))}
@@ -283,7 +299,7 @@ export default function CollectionEditor({
         <div className="collection-detail">
           {route ? (
             <>
-              <section className="collection-card" aria-label="Podatki območja">
+              <section className="collection-card" aria-label="Podatki območja" hidden={step!==1}>
                 <div className="collection-section-title">
                   <h3>1. Območje in naslovi</h3>
                   <button
@@ -342,8 +358,11 @@ export default function CollectionEditor({
                 <p className="collection-help">
                   Celotno naselje vključite samo, če zanj velja isti urnik.
                   Natančnejši naslov ima prednost. Številka 1 ne vključuje 12
-                  ali 1a. Šumniki, velike črke in ločila ne vplivajo na iskanje.
-                  Kadar se ime ulice ponovi v več krajih, dodajte kraj.
+                  ali 1a. Šumniki in velike črke ne vplivajo na iskanje.
+                  Ulici dodajte kraj za vejico, da je ne zamenjamo z enako
+                  poimenovano ulico drugje. Za celotno naselje zadostuje ime naselja.
+                  Območja za BIO, embalažo in mešane odpadke se lahko razlikujejo;
+                  za vsako vrsto lahko pripravite ločeno območje.
                 </p>
                 {!route.addresses.some((text) => text.trim()) && (
                   <p className="collection-alert error">
@@ -359,12 +378,15 @@ export default function CollectionEditor({
                   <Copy size={15} />
                   Kopiraj termine v novo območje
                 </button>
+                <div className="collection-step-next"><button type="button" className="collection-action" onClick={()=>setStep(2)}>Nadaljuj na termine <ArrowRight size={16}/></button></div>
               </section>
-              <section
+              <details
                 className="collection-card"
                 aria-label="Priprava ponavljajočih se terminov"
+                hidden={step!==2}
+                open={route.events.length===0}
               >
-                <h3>2. Pripravite redne odvoze</h3>
+                <summary>Dodaj redne odvoze s ponavljanjem</summary>
                 <p>
                   Izberite eno vrsto odpadkov in obdobje. Ponavljanje se začne
                   na prvi izbrani dan v obdobju. V urnik se shranijo točni
@@ -470,11 +492,13 @@ export default function CollectionEditor({
                   <Plus size={16} />
                   Dodaj predogledane termine v osnutek
                 </button>
-              </section>
-              <section
+              </details>
+              <details
                 className="collection-card"
                 aria-label="Posamezni in praznični termini"
+                hidden={step!==2}
               >
+                <summary>Dodaj enkratni odvoz ali pripravi izjemo</summary>
                 <div className="collection-section-title">
                   <h3>Izjeme in enkratni odvozi</h3>
                   <span>{route.events.length}/500</span>
@@ -536,12 +560,14 @@ export default function CollectionEditor({
                   <Plus size={16} />
                   Dodaj posamezni termin
                 </button>
-              </section>
-              <section className="collection-card" aria-label="Termini območja">
+              </details>
+              <section className="collection-card" aria-label="Termini območja" hidden={step!==2}>
                 <div className="collection-section-title">
                   <h3>Termini: {route.name}</h3>
                   <span>{filtered.length} zadetkov</span>
                 </div>
+                <p>{route.events.filter((event)=>event.date>=today()).length} prihodnjih terminov od {route.events.length} vpisanih.
+                  {route.events.length>0 && !route.events.some((event)=>event.date>=today()) ? " Vsi datumi so pretekli; občanu se ne bo prikazal noben prihodnji odvoz." : ""}</p>
                 <div className="collection-grid three">
                   <label>
                     Filter vrste
@@ -580,6 +606,7 @@ export default function CollectionEditor({
                     />
                   </label>
                 </div>
+                {(filters.type || filters.start || filters.end) && <button type="button" className="collection-link" onClick={()=>setFilters({type:"",start:"",end:""})}>Počisti filtre</button>}
                 {route.events.length > 0 && (
                   <div className="collection-bulk">
                     <label className="collection-check">
@@ -739,9 +766,9 @@ export default function CollectionEditor({
                             value={event.label}
                             maxLength={250}
                             onChange={(input) =>
-                              updateEvent(event.id, {
+                              action(() => updateEvent(event.id, {
                                 label: input.target.value,
-                              })
+                              }))
                             }
                           />
                         </label>
@@ -789,6 +816,7 @@ export default function CollectionEditor({
                     </button>
                   </div>
                 )}
+                <div className="collection-step-next"><button type="button" className="collection-action" onClick={()=>setStep(3)}>Preveri naslov <ArrowRight size={16}/></button></div>
               </section>
             </>
           ) : (
@@ -805,6 +833,7 @@ export default function CollectionEditor({
       <section
         className="collection-card collection-test"
         aria-label="Preverjanje naslova"
+        hidden={step!==3}
       >
         <Search size={20} />
         <div>
@@ -820,22 +849,26 @@ export default function CollectionEditor({
           {match && (
             <p
               role="status"
-              className={
-                match.route ? "collection-match" : "collection-alert error"
-              }
+              className={match.incompleteTypes.length ? "collection-alert error" : "collection-match"}
             >
-              {match.route
-                ? `Naslov spada v »${match.route.name}« · ${match.route.events.length} vpisanih terminov.`
-                : match.ambiguous
-                  ? `Naslov se enako natančno ujema z več območji: ${match.candidates.map((item) => item.name).join(", ")}. Zožite pravila naslovov; javni portal ne bo ugibal.`
-                  : "Za ta naslov ni območja. Dodajte ustrezno pravilo; ob objavljenih območjih javni portal za nepokrite naslove ne ustvarja prikaznih datumov."}
+              {match.incompleteTypes.length
+                ? `Urnik za ta naslov je delni. Potrebno je preverjanje: ${match.incompleteTypes.map((type)=>COLLECTION_TYPES[type]).join(", ")}.`
+                : "Naslov je razporejen za vse tri vrste odpadkov. Preverite tudi prihajajoče datume spodaj."}
             </p>
           )}
+          {match && <div className="collection-test-results">{types.map(([type,label])=>{
+            const result=match.matches[type];
+            const events=(result.route?.events || []).filter((event)=>event.type===type && event.date>=today()).sort((a,b)=>a.date.localeCompare(b.date));
+            return <div key={type}><strong>{label}</strong>{result.route ? <><p>{result.route.name} · {events.length} prihodnjih terminov</p>
+              <p>{events.length ? events.slice(0,4).map((event)=>displayDate(event.date)).join(" · ") : "Ni prihodnjih datumov. Dodajte potrjene termine pred objavo."}</p></>
+              : <p>{result.ambiguous ? `Naslov se ujema z več območji: ${result.candidates.map((item)=>item.name).join(" / ")}. Portal za to vrsto ne bo ugibal.` : "Ni ustreznega naslovnega pravila za to vrsto odpadkov."}</p>}</div>;
+          })}</div>}
           <p className="collection-help">
             Preverjanje uporablja isti način iskanja kot javni urnik.
             Uporabljajo se natančno vpisani datumi; ponavljanja so pripomoček za
             pripravo, ne samodejno podaljševanje urnika.
           </p>
+          <a href="https://www.kpv.si/mDejavnosti/rzo/rzoUrnik.html" target="_blank" rel="noreferrer" className="collection-link">Odpri izvirne urnike KPV</a>
         </div>
       </section>
     </fieldset>

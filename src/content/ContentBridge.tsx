@@ -33,6 +33,8 @@ export default function ContentBridge() {
       { original: string; originalSrc: string; alt: string; applied: string }
     >();
     let frame = 0;
+    let selectedBlock = "";
+    let selectionChanged = false;
     let highlighted: Element | null = null;
     const pageFor = (element: Element) =>
       element.closest(".site-header,.utility-bar,footer") ? "*" : pathname;
@@ -106,6 +108,13 @@ export default function ContentBridge() {
           !!slot.style.backgroundImage,
         );
       }
+      root!.querySelectorAll(".cms-block-selected").forEach(node => node.classList.remove("cms-block-selected"));
+      const selected = Array.from(root!.querySelectorAll<HTMLElement>("[data-cms-block-id]")).find(node => node.dataset.cmsBlockId === selectedBlock);
+      if (selected) {
+        selected.classList.add("cms-block-selected");
+        if (selectionChanged) selected.scrollIntoView({ block: "center", behavior: "auto" });
+      }
+      selectionChanged = false;
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(scan);
@@ -125,6 +134,10 @@ export default function ContentBridge() {
         event.data?.type !== "kpv-cms-update"
       )
         return;
+      if (Object.hasOwn(event.data, "selectedBlock")) {
+        selectionChanged = selectedBlock !== event.data.selectedBlock;
+        selectedBlock = event.data.selectedBlock;
+      }
       if (Array.isArray(event.data.copy)) copy = event.data.copy;
       if (Array.isArray(event.data.images)) images = event.data.images;
       if (event.data.mode === "edit" || event.data.mode === "interact")
@@ -161,6 +174,14 @@ export default function ContentBridge() {
       event.preventDefault();
       event.stopImmediatePropagation();
       const target = raw.closest("svg") ? raw.closest("a,button") || raw : raw;
+      if (target.closest(".brand,.footer-brand .cms-brand-image")) {
+        window.parent.postMessage({type: "kpv-cms-brand-select"}, location.origin);
+        return;
+      }
+      if (tool !== "layout" && target.closest("[data-cms-custom-block]")) {
+        window.parent.postMessage({type: "kpv-cms-block-select", id: target.closest<HTMLElement>("[data-cms-block-id]")?.dataset.cmsBlockId}, location.origin);
+        return;
+      }
       if (tool === "layout") {
         const block = target.closest<HTMLElement>("[data-cms-block-id]");
         if (block)
@@ -269,7 +290,7 @@ export default function ContentBridge() {
       highlighted =
         mode === "interact" || event.target.closest(ignored)
           ? null
-          : event.target;
+          : tool === "layout" ? event.target.closest("[data-cms-block-id]") : event.target;
       highlighted?.classList.add("cms-inspect-target");
     };
     const stopSubmit = (event: Event) => {

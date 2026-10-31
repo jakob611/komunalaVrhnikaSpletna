@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   addressRuleMatches,
   matchCollectionRoute,
+  matchCollectionSchedule,
   generateCollectionEvents,
   mergeCollectionEvents,
   moveCollectionEvents,
@@ -42,6 +43,8 @@ test("district rules use whole words and house numbers, normalize diacritics and
     addressRuleMatches("Tržaška cesta 1a, Vrhnika", "Tržaška cesta 1"),
     false,
   );
+  assert.equal(addressRuleMatches("Tržaška cesta 1 a, Vrhnika", "Tržaška cesta 1"), false);
+  assert.equal(addressRuleMatches("Tržaška cesta 1 a, Vrhnika", "Tržaška cesta 1a"), true);
   assert.equal(addressRuleMatches("Podvrhnika 1", "Vrhnika"), false);
   assert.equal(addressRuleMatches("Verd 1, Vrhnika", ""), false);
   assert.equal(
@@ -76,6 +79,25 @@ test("house-specific routes beat qualified streets and identical best matches fa
   ]);
   assert.equal(conflict.route, null);
   assert.equal(conflict.ambiguous, true);
+});
+
+test("compound municipality names cannot override the primary settlement", () => {
+  const routes=[route("log",["Log"]),route("dragomer",["Dragomer"])];
+  for (const address of ["Log 12, občina Log - Dragomer","Log 12, Log - Dragomer","Log 12 občina Log - Dragomer"])
+    assert.equal(matchCollectionRoute(address,routes).route.id,"log");
+  assert.equal(addressRuleMatches("Log 12, občina Log - Dragomer","Dragomer"),false);
+  assert.equal(addressRuleMatches("Lukovica pri Domžalah 12","Lukovica"),false);
+  assert.equal(addressRuleMatches("Janezova vas 12, Vrhnika","Vas, Vrhnika"),false);
+  assert.equal(matchCollectionRoute("Verd 12, Vrhnika",[route("verd",["Verd"]),route("vrhnika",["Vrhnika"])]).route.id,"verd");
+});
+
+test("declared municipality qualifiers prevent bare aliases accepting contradictory addresses", () => {
+  const routes=[route("verd",["Verd","Verd, Vrhnika"])];
+  assert.equal(matchCollectionRoute("Verd 12",routes).route.id,"verd");
+  assert.equal(matchCollectionRoute("Verd 12, Vrhnika",routes).route.id,"verd");
+  assert.equal(matchCollectionRoute("Verd 12 Vrhnika",routes).route.id,"verd");
+  assert.equal(matchCollectionRoute("Verd 12, Ljubljana",routes).route,null);
+  assert.equal(matchCollectionRoute("Verd 12 Ljubljana",routes).route,null);
 });
 
 test("recurrences generate inclusive date-only schedules across DST and leap years", () => {
@@ -170,7 +192,7 @@ test("holiday changes are atomic, retain calendar IDs and reject same-fraction c
   assert.equal(moved.find((x) => x.id === "three").date, "2027-01-05");
 });
 
-test("publishing rejects duplicate dates and overlapping normalized ownership rules", () => {
+test("publishing rejects duplicate dates and invalid rules, but permits independent fractions and vehicle splits", () => {
   assert.throws(() =>
     validateSection("collection", { routes: [route("one", [])] }),
   );
@@ -191,7 +213,7 @@ test("publishing rejects duplicate dates and overlapping normalized ownership ru
       ],
     }),
   );
-  assert.throws(() =>
+  assert.doesNotThrow(() =>
     validateSection("collection", {
       routes: [
         route("one", ["Tržaška cesta"]),
@@ -208,4 +230,19 @@ test("publishing rejects duplicate dates and overlapping normalized ownership ru
     }).routes.length,
     2,
   );
+});
+
+test("schedule matching considers each fraction independently and retains vehicle ambiguity", () => {
+  const routes = [route("bio",["Verd"],[event("2027-01-05","bio")]),
+    route("emb",["Verd"],[event("2027-01-06","packaging")]),
+    route("mko",["Verd"],[event("2027-01-07","residual")])];
+  const match = matchCollectionSchedule("Verd 12", routes);
+  assert.equal(match.matches.bio.route.id,"bio");
+  assert.equal(match.matches.packaging.route.id,"emb");
+  assert.equal(match.matches.residual.route.id,"mko");
+  assert.deepEqual(match.incompleteTypes,[]);
+  const split = matchCollectionSchedule("Verd 12", [...routes,route("small",["Verd"],[event("2027-01-08","residual")])]);
+  assert.deepEqual(split.incompleteTypes,["residual"]);
+  assert.deepEqual(split.ambiguousTypes,["residual"]);
+  assert.equal(split.matches.bio.route.id,"bio");
 });

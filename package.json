@@ -9,11 +9,14 @@
     "dev:web": "vite --host 127.0.0.1",
     "build": "node scripts/build-email.mjs && tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test server/*.test.mjs shared/*.test.mjs",
+    "test": "npm run test:unit && npm run test:ui",
     "test:api": "node --test server/*.test.mjs shared/*.test.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "cf:dev": "wrangler dev",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "test:unit": "node --test server/*.test.mjs shared/*.test.mjs",
+    "test:ui": "vitest run",
+    "check": "npm test && npm run build"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
@@ -27,14 +30,17 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
+    "@testing-library/react": "^16.3.3",
     "@types/leaflet": "^1.9.20",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.1",
+    "jsdom": "^29.1.1",
     "react-email": "^6.11.5",
     "typescript": "^5.9.3",
     "vite": "^7.1.0",
+    "vitest": "^5.0.5",
     "wrangler": "latest"
   }
 }

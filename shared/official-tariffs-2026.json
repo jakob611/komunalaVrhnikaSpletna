@@ -1,0 +1,132 @@
+{
+  "checkedOn": "2026-10-31",
+  "vatPercent": 9.5,
+  "municipalities": [
+    {
+      "id": "vrhnika",
+      "name": "Vrhnika",
+      "effectiveFrom": "2026-07-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_Vrhnika_01jul2o26.pdf",
+      "waterM3": 1.1644,
+      "waterNetwork": 5.4091,
+      "drainageM3": 0.6578,
+      "drainageNetwork": 5.9364,
+      "cleaningM3": 0.8648,
+      "cleaningNetwork": 4.5744
+    },
+    {
+      "id": "borovnica",
+      "name": "Borovnica",
+      "effectiveFrom": "2026-07-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_Borovnica_01jul2o26.pdf",
+      "waterM3": 1.1462,
+      "waterNetwork": 5.3623,
+      "drainageM3": 0.5244,
+      "drainageNetwork": 8.8417,
+      "cleaningM3": 1.2644,
+      "cleaningNetwork": 13.1313
+    },
+    {
+      "id": "log-dragomer",
+      "name": "Log - Dragomer",
+      "effectiveFrom": "2026-07-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_LogDragomer_01jul2o26.pdf",
+      "waterM3": 1.2866,
+      "waterNetwork": 7.5352,
+      "drainageM3": 1.0889,
+      "drainageNetwork": 16.2317,
+      "cleaningM3": 1.3089,
+      "cleaningNetwork": 10.8835
+    }
+  ],
+  "septic": {
+    "serviceM3": 0.6579,
+    "network": 1.2615,
+    "levySepticM3": 0.5283,
+    "levyTreatedM3": 0.0528
+  },
+  "waste": {
+    "effectiveFrom": "2026-07-01",
+    "sourceUrl": "https://www.kpv.si/mCeniki/Datoteke/Cenik_GJS_Vrhnika_01jul2o26.pdf",
+    "annexUrl": "https://www.kpv.si/mCeniki/Datoteke/Priloga_cenikKomStoritev2o26d.pdf",
+    "collectionKgPerPerson": 15.0478,
+    "treatmentKgPerPerson": 4.5169,
+    "disposalKgPerPerson": 0.4517,
+    "bioKgPerPerson": 12.6954,
+    "collectionKg": 0.1738,
+    "collectionInfrastructureKg": 0.005,
+    "treatmentKg": 0.2297,
+    "treatmentInfrastructureKg": 0.0079,
+    "disposalKg": 0.1088,
+    "disposalInfrastructureKg": 0.1552,
+    "bioKg": 0.2328
+  },
+  "servicePrices": [
+    {
+      "id": "bulky-kg",
+      "category": "bulky",
+      "name": "Plačljivi prevzem kosovnih odpadkov",
+      "unit": "kg",
+      "priceWithVat": 0.3395,
+      "vatPercent": 9.5,
+      "effectiveFrom": "2025-11-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/mCpsrzo.html",
+      "note": "Cena ravnanja z odpadki po masi; prevoz ni vključen. Upravičenost do prevzema brez dodatnega plačila preverimo ob naročilu."
+    },
+    {
+      "id": "container-transport",
+      "category": "bulky",
+      "name": "Prevoz odpadkov s kontejnerjem",
+      "unit": "ura",
+      "priceWithVat": 72.27,
+      "vatPercent": 9.5,
+      "effectiveFrom": "2025-11-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/mCpsrzo.html",
+      "note": "Čas prevoza in obseg potrdi izvajalec. Ravnanje z odpadki in najem zabojnika se obračunata posebej."
+    },
+    {
+      "id": "container-rental",
+      "category": "bulky",
+      "name": "Najem 5 m³ zabojnika",
+      "unit": "dan",
+      "priceWithVat": 1.647,
+      "vatPercent": 22,
+      "effectiveFrom": "2025-11-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/mCpsrzo.html",
+      "note": "Najem brez prevoza in ravnanja z odpadki."
+    },
+    {
+      "id": "septic-extra",
+      "category": "septic",
+      "name": "Izredni prevzem grezničnega blata",
+      "unit": "m³",
+      "priceWithVat": 57.6,
+      "vatPercent": 9.5,
+      "effectiveFrom": "2025-03-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/mCpskan.html",
+      "note": "Izredna storitev. Redno storitev greznice/MKČN preverite v mesečnem obračunu; te cene ne prištevajte samodejno rednemu praznjenju."
+    },
+    {
+      "id": "septic-delivery",
+      "category": "septic",
+      "name": "Čiščenje blata na CČN – lastna dostava",
+      "unit": "m³",
+      "priceWithVat": 29.38,
+      "vatPercent": 9.5,
+      "effectiveFrom": "2025-03-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/mCpskan.html",
+      "note": "Samo čiščenje pri lastni dostavi po dogovoru; brez prevzema in prevoza."
+    },
+    {
+      "id": "camera",
+      "category": "other",
+      "name": "Pregled kanalizacijske cevi s TV-kamero",
+      "unit": "ura",
+      "priceWithVat": 57.6,
+      "vatPercent": 9.5,
+      "effectiveFrom": "2025-03-01",
+      "sourceUrl": "https://www.kpv.si/mCeniki/mCpskan.html",
+      "note": "Končni obseg, potreben čas in morebitne dodatne stroške potrdi izvajalec."
+    }
+  ]
+}

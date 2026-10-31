@@ -1,5 +1,8 @@
 import template from './email-template.generated.js';
 import { Buffer } from 'node:buffer';
+import { notificationRecipient } from './notification-settings.js';
+import { subscriberDeliveryAllowed } from './subscriptions.js';
+import {mapPointUrl,mapAddressUrl} from '../shared/location.js';
 
 export function emailEnabled(env) {
   // File-backed development and automated tests never send real email.
@@ -8,7 +11,7 @@ export function emailEnabled(env) {
 }
 
 const kinds = { contact: 'Kontaktno sporočilo', reports: 'Prijava poškodbe',
-  requests: 'Povpraševanje za storitev', market: 'Prijava na tržnico', subscriptions: 'Izbira obvestil (preizkus)' };
+  requests: 'Povpraševanje za storitev', market: 'Prijava na tržnico', subscriptions: 'Naročilo obvestil' };
 const labels = { name: 'Ime in priimek', email: 'E-pošta', phone: 'Telefon', address: 'Naslov / lokacija',
   category: 'Področje', subcategory: 'Podkategorija', subject: 'Zadeva', message: 'Sporočilo',
   service: 'Storitev', preferredDate: 'Želeni datum', date: 'Datum', stallType: 'Vrsta stojnice',
@@ -27,6 +30,7 @@ export function notification(record, env) {
   if (!title) throw new Error('Unknown email kind');
   const lines = [`Referenca: ${record.id}`, `Oddano: ${record.createdAt}`, ''];
   for (const [key, label] of Object.entries(labels)) {
+    if(['latitude','longitude'].includes(key))continue;
     const value = record.payload[key];
     if (value == null || value === '') continue;
     const display = choiceFields.has(key)
@@ -34,43 +38,61 @@ export function notification(record, env) {
       : value;
     lines.push(`${label}: ${display}`);
   }
+  const mapUrl=mapPointUrl(record.payload.latitude,record.payload.longitude)||mapAddressUrl(record.payload.address);
+  if(mapUrl)lines.push(`Lokacija na zemljevidu: ${mapUrl}`);
   if (record.payload.photoKey) lines.push('Fotografija: v priponki.');
-  if (record.kind === 'subscriptions') lines.push('', 'Izbira je prikazna. Samodejna obvestila o motnjah še niso vključena.');
+  if (record.kind === 'subscriptions') lines.push('', 'Preverite izbrane teme in zabeležite obravnavo naročila v konzoli.');
   const details = lines.join('\n');
+  const detailsHtml = lines.map(line=>mapUrl&&line===`Lokacija na zemljevidu: ${mapUrl}`
+    ? `Lokacija na zemljevidu: <a href="${escapeHtml(mapUrl)}">Odpri lokacijo v Google Zemljevidih</a>`
+    : escapeHtml(line)).join('<br/>');
   const adminUrl = `https://kpv.jakobtominc.com/admin?case=${encodeURIComponent(record.id)}`;
   return {
     from: env.EMAIL_FROM, to: [env.EMAIL_TO], reply_to: record.payload.email,
-    subject: `[KPV preizkus] ${title} · ${record.id.slice(0, 12)}`,
-    html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => escapeHtml(details).replace(/\n/g, '<br/>')).replace('KPV_ADMIN_LINK_TOKEN', escapeHtml(adminUrl)),
-    text: `${title}\n\n${details}\n\nObravnava v skrbniški konzoli (potrebna je prijava): ${adminUrl}\n\nPreizkusni portal; oddaja ne pomeni uradnega naročila, rezervacije ali plačila pri KPV.`,
+    subject: `[KPV] ${title} · ${record.id.slice(0, 12)}`,
+    html: template.replace('KPV_TITLE_TOKEN', escapeHtml(title)).replace('KPV_DETAILS_TOKEN', () => detailsHtml).replace('KPV_ADMIN_LINK_TOKEN', escapeHtml(adminUrl)),
+    text: `${title}\n\n${details}\n\nObravnava v skrbniški konzoli (potrebna je prijava): ${adminUrl}\n\nOddaja je evidentirana. Termin storitve ali rezervacijo mora potrditi pristojna služba.`,
   };
 }
 
 // Keep the exact JSON stable across retries (Resend idempotency keys last 24h).
-export function outboxInsert(db, record, env) {
+export async function outboxInsert(db, record, env) {
+  const recipient = await notificationRecipient({ ...env, DB: db });
   return db.prepare(`INSERT INTO email_outbox (id, created_at, next_attempt, message, photo_key)
     VALUES (?, ?, ?, ?, ?)`).bind(record.id, Date.parse(record.createdAt), Date.parse(record.createdAt),
-      JSON.stringify(notification(record, env)), record.payload.photoKey || null);
+      JSON.stringify(notification(record, { ...env, EMAIL_TO: recipient })), record.payload.photoKey || null);
 }
 
-export async function deliverPending(env, { id = null, fetcher = fetch, now = Date.now() } = {}) {
+export async function deliverPending(env, { id = null, fetcher = fetch, now = Date.now(), limit = 20 } = {}) {
   if (!emailEnabled(env)) return;
   // Stop uncertain retries before the provider's 24h deduplication window expires.
   await env.DB.prepare(`UPDATE email_outbox SET status = 'failed', last_error = 'retry_window_expired'
-    WHERE status = 'pending' AND created_at < ?`).bind(now - 20 * 60 * 60 * 1000).run();
+    WHERE status = 'pending' AND EXISTS(SELECT 1 FROM email_delivery_windows w WHERE w.outbox_id=email_outbox.id AND w.started_at < ?)`).bind(now - 20 * 60 * 60 * 1000).run();
   const { results } = await env.DB.prepare(`SELECT id FROM email_outbox
     WHERE status = 'pending' AND next_attempt <= ? AND (? IS NULL OR id = ?)
-    ORDER BY next_attempt LIMIT 5`).bind(now, id, id).all();
-  for (const candidate of results) {
+    ORDER BY CASE WHEN id LIKE 'subscriber-confirm-%' THEN 0 WHEN id LIKE 'subscriber-notice-%' THEN 2 ELSE 1 END,next_attempt,id LIMIT ?`).bind(now, id, id, Math.max(1,Math.min(20,Math.floor(limit)||20))).all();
+  if(!results.length)return;
+  const claimed=await env.DB.batch(results.flatMap(candidate=>[
+    env.DB.prepare(`INSERT OR IGNORE INTO email_delivery_windows(outbox_id,started_at) SELECT id,CASE WHEN attempts>0 THEN created_at ELSE ? END FROM email_outbox WHERE id=?`).bind(now,candidate.id),
+    env.DB.prepare(`UPDATE email_outbox SET next_attempt=?,attempts=attempts+1 WHERE id=? AND status='pending' AND next_attempt<=? AND EXISTS(SELECT 1 FROM email_delivery_windows w WHERE w.outbox_id=email_outbox.id AND w.started_at>=?) RETURNING *`).bind(now+360000,candidate.id,now,now-20*60*60*1000)
+  ]));
+  const leases=claimed.filter((_,index)=>index%2===1);
+  const settlements=[];
+  let sentRequests=0;
+  for (const lease of leases) {
     // A conditional lease prevents request and cron invocations from racing.
-    const row = await env.DB.prepare(`UPDATE email_outbox SET next_attempt = ?, attempts = attempts + 1
-      WHERE id = ? AND status = 'pending' AND next_attempt <= ? RETURNING *`)
-      .bind(now + 120000, candidate.id, now).first();
+    const row=lease.results?.[0];
     if (!row) continue;
+    if (!await subscriberDeliveryAllowed(env,row.id,now)) {
+      settlements.push(env.DB.prepare("UPDATE email_outbox SET status='failed',last_error='subscription_inactive' WHERE id=?").bind(row.id));
+      continue;
+    }
     let failure = 'network';
     let transient = true;
     try {
       const message = JSON.parse(row.message);
+      // Stay below the provider's standard two requests/second; mocks do not sleep.
+      if(fetcher===fetch&&sentRequests++)await new Promise(resolve=>setTimeout(resolve,600));
       if (row.photo_key) {
         const object = await env.PHOTOS?.get(row.photo_key);
         if (!object) throw new Error('Photo unavailable');
@@ -85,8 +107,8 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
       if (response.ok) {
         const data = await response.json();
         if (!data.id) throw new Error('Missing provider receipt');
-        await env.DB.prepare(`UPDATE email_outbox SET status = 'sent', provider_id = ?, last_error = NULL
-          WHERE id = ?`).bind(data.id, row.id).run();
+        settlements.push(env.DB.prepare(`UPDATE email_outbox SET status = 'sent', provider_id = ?, last_error = NULL
+          WHERE id = ?`).bind(data.id, row.id));
         continue;
       }
       failure = `http_${response.status}`;
@@ -97,10 +119,11 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
     }
     const status = transient && row.attempts < 8 ? 'pending' : 'failed';
     const next = now + Math.min(60, 5 * 2 ** (row.attempts - 1)) * 60000;
-    await env.DB.prepare(`UPDATE email_outbox SET status = ?, next_attempt = ?, last_error = ? WHERE id = ?`)
-      .bind(status, next, failure, row.id).run();
+    settlements.push(env.DB.prepare(`UPDATE email_outbox SET status = ?, next_attempt = ?, last_error = ? WHERE id = ?`)
+      .bind(status, next, failure, row.id));
     console.warn(JSON.stringify({ event: 'email_delivery', status, reason: failure }));
   }
+  if(settlements.length)await env.DB.batch(settlements);
 }
 
 export async function processEmail(env, options) {

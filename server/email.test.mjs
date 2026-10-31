@@ -13,10 +13,11 @@ function database() {
     run: async () => sql.prepare(query).run(...bindings),
     all: async () => ({ results: sql.prepare(query).all(...bindings) }),
     first: async () => sql.prepare(query).get(...bindings) || null,
+    execute: () => ({results:sql.prepare(query).all(...bindings)}),
   });
   return { sql, prepare: wrap, async batch(statements) {
     sql.exec('BEGIN');
-    try { for (const stmt of statements) await stmt.run(); sql.exec('COMMIT'); }
+    try { const results=statements.map(stmt=>stmt.execute()); sql.exec('COMMIT'); return results; }
     catch (error) { sql.exec('ROLLBACK'); throw error; }
   } };
 }
@@ -27,7 +28,7 @@ const record = { id: 'KPV-test', kind: 'contact', createdAt: new Date(now).toISO
   payload: { name: '<script>unsafe</script>', email: 'person@example.com', category: 'other',
     subject: 'Vprašanje', message: 'Besedilo z znakom & in $& brez sprememb.' } };
 const row = e => e.DB.sql.prepare('SELECT * FROM email_outbox').get();
-async function enqueue(e, value = record) { await outboxInsert(e.DB, value, e).run(); }
+async function enqueue(e, value = record) { await (await outboxInsert(e.DB, value, e)).run(); }
 
 test('notification fixes recipient, sets reply-to, escapes HTML and preserves plain text', () => {
   const email = notification(record, env());
@@ -39,6 +40,16 @@ test('notification fixes recipient, sets reply-to, escapes HTML and preserves pl
   assert.ok(!email.html.includes('KPV_DETAILS_TOKEN'));
   assert.ok(email.html.includes('https://kpv.jakobtominc.com/admin?case=KPV-test'));
   assert.ok(email.text.includes('/admin?case=KPV-test'));
+});
+
+test('report email includes a usable exact-point map link instead of a coordinate-only location',()=>{
+ const message=notification({...record,kind:'reports',payload:{...record.payload,address:'Verd 12, Vrhnika',latitude:45.963,longitude:14.298}},env());
+ assert.match(message.text,/https:\/\/www.google.com\/maps\/search\/\?api=1&query=45.963,14.298/);
+ assert.match(message.html,/<a href="https:\/\/www.google.com\/maps\/search\/\?api=1&amp;query=45.963,14.298">Odpri lokacijo v Google Zemljevidih<\/a>/);
+ assert.ok(!message.text.includes('Zemljepisna širina:'));
+ const addressOnly=notification({...record,payload:{...record.payload,address:'Verd 12, Vrhnika',latitude:null,longitude:null}},env());
+ assert.ok(addressOnly.text.includes('query=Verd%2012%2C%20Vrhnika'));
+ assert.ok(!addressOnly.text.includes('query=0,0'));
 });
 
 test('local file storage cannot enable real email even when credentials are present', async () => {
@@ -85,6 +96,7 @@ test('permanent provider rejection stops retries and stale queues never resend',
   assert.equal(row(e).status, 'failed');
   assert.equal(row(e).last_error, 'http_403');
   const stale = env(); await enqueue(stale);
+  await deliverPending(stale,{now,fetcher:async()=>new Response('',{status:429})});
   await deliverPending(stale, { now: now + 21 * 3600000, fetcher: () => assert.fail('expired') });
   assert.equal(row(stale).last_error, 'retry_window_expired');
 });

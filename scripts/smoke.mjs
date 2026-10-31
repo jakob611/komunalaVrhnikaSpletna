@@ -4,26 +4,36 @@ const base = (process.argv[2] || "http://127.0.0.1:5173").replace(/\/$/, "");
 const person = {
   name: "Test portala",
   email: "portal-test@example.com",
-  address: "Tržaška cesta 1, Vrhnika",
+  address: "Verd 12, Vrhnika",
   phone: "040000000",
   consent: true,
 };
 const testDate = new Date();
 testDate.setUTCDate(testDate.getUTCDate() + 30);
+const publicContent = await fetch(`${base}/api/content`).then(r=>r.json());
+const market = publicContent.sections.market;
+const today = new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Ljubljana',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+let testMarketDate = market.dates.length ? [...market.dates].sort().find(day=>day>=today&&!market.closedDates.includes(day)) : undefined;
+if(!market.dates.length) for(let i=0;i<90;i++) {
+  const day=testDate.toISOString().slice(0,10);
+  if(!market.closedDates.includes(day)){testMarketDate=day;break;}
+  testDate.setUTCDate(testDate.getUTCDate()+1);
+}
 const health = await fetch(`${base}/api/health`).then((r) => r.json());
 assert.equal(health.ok, true);
 assert.notEqual(health.storage, "unavailable");
 const schedule = await fetch(
   `${base}/api/collection?address=${encodeURIComponent(person.address)}`,
 ).then((r) => r.json());
-assert.equal(schedule.demo, true);
+assert.equal(schedule.demo, false);
+assert.equal(schedule.complete, true);
 assert.ok(schedule.events.length > 0);
-const calendar = await fetch(`${base}/api/calendar?address=Vrhnika`).then((r) =>
+const calendar = await fetch(`${base}/api/calendar?address=${encodeURIComponent(person.address)}`).then((r) =>
   r.text(),
 );
-assert.ok(calendar.includes("BEGIN:VCALENDAR") && calendar.includes("PRIMER"));
+assert.ok(calendar.includes("BEGIN:VCALENDAR") && calendar.includes("BEGIN:VEVENT") && !calendar.includes("PRIMER"));
 const checks = [
-  ["/api/subscriptions", { ...person, topics: ["water", "roads"] }],
+  ["/api/subscriptions", { ...person, topics: ["water", "roads"], districtId: "vrhnika" }],
   [
     "/api/requests",
     {
@@ -47,13 +57,14 @@ const checks = [
     "/api/market",
     {
       ...person,
-      date: testDate.toISOString().slice(0, 10),
+      date: testMarketDate,
       stallType: "standard",
       products: "Predstavitveni izdelki za preizkus prijave.",
     },
   ],
 ];
 for (const [route, body] of checks) {
+  if(route==='/api/market'&&!testMarketDate){console.log('SKIP /api/market · no future published market date');continue;}
   const response = await fetch(base + route, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: base },
@@ -67,7 +78,7 @@ for (const [route, body] of checks) {
     );
   } else {
     assert.equal(response.status, 201, JSON.stringify(result));
-    assert.equal(result.status, "demo-saved");
+    assert.equal(result.status, route === "/api/subscriptions" ? "confirmation-required" : "demo-saved");
     assert.ok(result.id.startsWith("KPV-"));
     console.log(`PASS ${route} · stored local demo receipt`);
   }

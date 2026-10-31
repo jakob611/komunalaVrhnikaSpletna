@@ -1,50 +1,32 @@
-# Storitve in stroški predstavitve KPV
+# Infrastruktura in e-pošta KPV
 
-Stanje: 29. oktober 2026. Noben plačljiv paket ni bil dodan ali nadgrajen. Spletna stran ostaja predstavitev z vzorčnimi operativnimi podatki. Obrazci pošiljajo obvestila skrbniku predstavitve prek Resend; plačila so izključena.
+Stanje: 30. oktober 2026. Obstoječi Cloudflare Worker `kpv-portal`, D1, zasebni R2 in preverjena Resend domena `kpv.jakobtominc.com`. Plačil ni; prenova ne zahteva nadgradnje paketa.
 
-| Storitev                               | Namen                                                      | Stanje                                                       |
-| -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
-| Cloudflare Workers + statične datoteke | Spletna stran in API                                       | Že objavljeno na kpv.jakobtominc.com                         |
-| Cloudflare D1                          | Obrazci, vsebine, skrbniške seje in delovni nalogi           | Že povezano; EU, baza kpv-portal                             |
-| Cloudflare R2 Standard                 | Zasebne fotografije prijav in uredniške slike               | Že povezano; javne slike se strežejo ločeno prek API          |
-| Cloudflare Turnstile Managed           | Zaščita obrazcev in skrbniške prijave pred boti             | Nameščeno; tiho preverjanje ali potrditveno polje po potrebi |
-| Resend                                | Obvestilo skrbniku o oddaji katerega koli obrazca           | Integrirano z Workerjem in zasebno čakalno vrsto D1           |
+## Sprememba prejemnika
 
-## Brezplačne omejitve
+Lastnik odpre `/admin` → **E-poštna obvestila**, vnese en predal in izbere **Shrani prejemnika**. Začetna vrednost je `tomincjakob@gmail.com`. Sprememba ne zahteva nove objave. Nastavitev je v zasebni tabeli D1 `notification_settings`; javni API je ne objavi in uredniki nimajo dostopa.
 
-- Workers Free: 100.000 dinamičnih zahtev na dan; 10 ms procesorskega časa na zahtevo. Statične datoteke imajo brezplačne in neomejene zahteve. [Uradne cene](https://developers.cloudflare.com/workers/platform/pricing/).
-- D1 Free: 5 milijonov prebranih vrstic na dan, 100.000 zapisanih vrstic na dan in 5 GB skupne shrambe. [Uradne cene](https://developers.cloudflare.com/d1/platform/pricing/).
-- R2 Standard: 10 GB-mesec shrambe, 1 milijon operacij razreda A in 10 milijonov razreda B na mesec; izhodni promet je brezplačen. Nad brezplačno vključeno porabo se R2 obračunava po uporabi, zato brezplačne porabe ni mogoče zagotavljati ne glede na količino. Omejitve veljajo na račun, tudi za druge njegove projekte. [Uradne cene](https://developers.cloudflare.com/r2/pricing/).
-- Turnstile Free: neomejeno preverjanj, do 20 gradnikov in 10 gostiteljev na gradnik. Način Managed lahko po potrebi zahteva klik, ne uporablja slikovnih ugank. [Paketi](https://developers.cloudflare.com/turnstile/plans/) in [načini](https://developers.cloudflare.com/turnstile/concepts/widget/).
+Velja za prihodnje oddaje. Že ustvarjena obvestila ohranijo prejšnjega prejemnika. Prijavne kode in povabila skrbnikov ostanejo vezani na njihov osebni račun. Vrnitev začetnega predala izključi preglasitev in uporabi `EMAIL_TO`.
 
-Za običajno majhno testno uporabo niso potrebne nadgradnje. Spremljajte skupno porabo računa, predvsem R2. Rešitve ne predstavljamo kot neomejeno brezplačne shrambe. Posamezna fotografija ima omejitev 5 MB; fotografije prijav ostanejo zasebne, uredniške slike pa se objavljajo prek ločenih naslovov API.
+## Nastavitve Workerja
 
-## Dostop skrbnikov
+- `EMAIL_ENABLED`: vklop obvestil o oddajah.
+- `EMAIL_FROM`: pošiljatelj na preverjeni domeni Resend.
+- `EMAIL_TO`: začetni prejemnik, preglasljiv v konzoli.
+- `ADMIN_OWNER_EMAIL`: začetni lastniški račun.
+- Skrivnosti `RESEND_API_KEY`, `ADMIN_PASSWORD_HASH` in `TURNSTILE_SECRET` ostanejo v Cloudflare, nikoli v Gitu ali javnih podatkih. Geslo je soljen PBKDF2-SHA256 izpeljan ključ.
+- `TURNSTILE_SITE_KEY` in `TURNSTILE_HOSTNAMES`: javni ključ in omejitev na natančna javna gostiteljska imena.
 
-Konzola uporablja e-pošto, osebno geslo in enkratno e-poštno kodo. Prijavne kode in povabila pošilja obstoječi Resend in porabljajo njegovo običajno kvoto. Cloudflare Access ni potreben za ta način prijave in ni bil dodatno vklopljen. Kot morebitna dodatna zaščita ima Cloudflare One brezplačni paket do 50 uporabnikov; za strožje zahteve je mogoče pozneje dodati prijavo z varnostnim ključem ali drug preverjen drugi dejavnik. [Paketi Cloudflare](https://www.cloudflare.com/plans/), [Access OTP](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/). E-poštna koda ni zaščita pred vsemi oblikami lažnega predstavljanja.
+Oddaja in obvestilo se atomarno shranita v D1. Fotografija se pripne iz zasebnega R2. Odgovor na prejeto obvestilo je naslovljen na pošiljatelja obrazca. Prijava na e-obvestila pošlje potrditveno povezavo; šele potrjena naročnina lahko prejema ciljana obvestila. Ostali obrazci uporabnikom ne pošiljajo samodejnih odgovorov.
 
-## Nastavitev e-pošte Resend
+Cron vsako minuto ponovi začasno neuspešne dostave, največ osemkrat oziroma 20 ur od prvega poskusa, ne od uvrstitve v vrsto. Potrditve imajo prednost, en prehod pošlje do 20 sporočil s primernim razmikom. Isti idempotentni ključ in vsebina preprečujeta podvajanje. Trajna napaka ne izbriše oddaje: ostane v nalogih. Potrdilo oddaje ne zagotavlja dostave v predal.
 
-Javna predstavitev po uspešni oddaji najprej shrani zapis in obvestilo v D1. Worker obvestilo pošlje skrbniku na `tomincjakob@gmail.com` s pošiljateljem `KPV predstavitev <obvestila@kpv.jakobtominc.com>`. Odgovor na prejeto obvestilo je naslovljen na e-pošto, vneseno v obrazec. Podjetju KPV se sporočila ne posredujejo. Vsaka oddaja ustvari eno obvestilo; obrazci uporabnikom ne pošiljajo samodejnih potrdil. Fotografija prijave se priloži e-pošti iz zasebne shrambe R2, brez javne povezave.
+## Dostop in selitev
 
-Nastavitve Workerja:
+Fotografije prijav in oddaje zahtevajo prijavo. Uredniške slike imajo ločen javni API ter preverjanje podpisa; največ 5 MB. Prijava zahteva e-pošto, geslo, kodo in v produkciji Turnstile. Spremembe preverjajo izvor, CSRF in revizijo.
 
-- Skrivnost `RESEND_API_KEY`: ključ se vnese v Cloudflare Worker → Settings → Variables and Secrets oziroma prek `wrangler secret put`. Ne sodi v Git, odjemalsko kodo ali javne nastavitve API.
-- Spremenljivka `EMAIL_ENABLED`: `"true"` vklopi pošiljanje, `"false"` ga izklopi.
-- Spremenljivka `EMAIL_FROM`: pošiljatelj na domeni, preverjeni pri Resend.
-- Spremenljivka `EMAIL_TO`: izbrani predal skrbnika predstavitve.
-- Shema D1 vključuje trajno čakalno vrsto e-poštnih obvestil; ob selitvi uporabite posodobljeno `schema.sql`.
+Običajna objava ne potrebuje novih virov. Pri selitvi pripravite D1 s `schema.sql`, zasebni R2, vezave/domene v `wrangler.jsonc`, skrivnosti in preverjeno domeno pošiljatelja. Lokalni strežnik ne pošilja zunanje e-pošte; `KPV_DATA_DIR` omogoča ločeno podatkovno mapo. Vite blokira dostop do nje in do `.dev.vars`.
 
-Občasne napake pri dostavi ne izbrišejo oddaje. Ponovne poskuse izvaja Worker s sprožilcem Cron vsakih pet minut; ponavljanje je omejeno na največ 20 ur. Enolični ključ Resend za vsako obvestilo preprečuje podvojeno pošiljanje pri ponovnem poskusu. Potrdilo vmesnika pove, da je obvestilo v čakalni vrsti, ne zagotavlja dostave v predal. Trajne napake in izčrpane poskuse preverite v zasebni čakalni vrsti ter v Resend.
+Spremljajte porabo računa, dnevne omejitve pošiljanja in čakalno vrsto. Aktualni pogoji: [Workers](https://developers.cloudflare.com/workers/platform/pricing/), [D1](https://developers.cloudflare.com/d1/platform/pricing/), [R2](https://developers.cloudflare.com/r2/pricing/), [Resend](https://resend.com/pricing).
 
-Lokalni Node strežnik in samodejni testi e-pošte ne pošiljajo. `/api/health` sporoči `email: "resend"`, če je javno pošiljanje nastavljeno, sicer `"not-configured"`; `/api/config` razkrije samo, ali je vključeno. Ključ se prek API ne razkriva.
-
-Za preizkus ostane paket Resend brez nadgradnje. Spremljajte njegove dnevne in mesečne omejitve ter skupno porabo računa. [Cene](https://resend.com/pricing), [preverjanje domene](https://resend.com/docs/dashboard/domains/introduction).
-
-**Web3Forms ni potreben**, ker projekt že ima zaledje in zbirko podatkov. Njegov brezplačni paket ima 250 oddaj na mesec. Integracija Turnstile/reCAPTCHA in priponke so v plačljivih funkcijah; naša zaščita Turnstile deluje neposredno prek Workerja in ni vezana na Web3Forms. [Cene](https://web3forms.com/pricing).
-
-Naročnine na obvestila za gospodinjstva še vedno shranjujejo samo preizkusne nastavitve; o oddaji je obveščen skrbnik. Za dejanska redna obvestila so potrebni uradni vir motenj, potrditev e-poštnega naslova naročnika, odjava in obravnava nedostavljenih sporočil. Vzorčnih obvestil o motnjah samodejno ne razpošiljamo.
-
-## Kaj bo potrebno za uradno stran
-
-Uradni podatki o odvoznih poteh in terminih, register zbirnih mest, potrjen cenik, kontakti oddelkov ter pravila obravnave so potrebni neodvisno od izbire ponudnikov. Zaščitena konzola `/admin` že vključuje urejanje, osebne uporabniške račune in interno obravnavo vseh oddaj; navodila so v [ADMIN.md](ADMIN.md). E-poštna obvestila vsebujejo povezavo do naloga, ogled pa zahteva prijavo. Pred uradno uporabo uskladite pristojnosti zaposlenih, potrjevanje naročnin in odjavo ter rok hrambe podatkov. Prava plačila na tržnici zahtevajo ločeno pogodbo s ponudnikom plačil; za preizkus ostanejo izključena. Dodatna plačljiva storitev za zemljevide ni nujna.
+Naročnine, potrditve in generacije nastavitev so v `email_subscribers`; ciljana pošiljanja v `notification_campaigns` in `subscription_deliveries`. Nastavitve naročnikov niso javne. `SUBSCRIPTION_SIGNING_SECRET` je zasebna stabilna skrivnost za osebne povezave; nikoli je ne objavite ali zamenjajte ob običajni objavi. `email_delivery_windows` beleži začetek poskusov dostave. Sporočila, ki še čakajo na prvi poskus, zaradi dolžine vrste ne potečejo.

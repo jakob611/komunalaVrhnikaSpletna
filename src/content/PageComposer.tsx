@@ -16,9 +16,8 @@ import { useSiteContent, contentKey } from "./SiteContent";
 import type {
   CmsBlock,
   CmsLayoutData,
-  CmsLinkOverride,
 } from "../../shared/page-layout";
-import { safeDestination, safePicture } from "../../shared/page-layout";
+import { safeDestination, safePicture, mergeNativeBlocks } from "../../shared/page-layout";
 import "./page-composer.css";
 
 export const isCmsPreview = () =>
@@ -170,12 +169,13 @@ function CustomBlock({ block }: { block: CmsBlock }) {
     /* Invalid draft images never load. */
   }
   if (block.type === "spacer")
-    return <div className={`cms-spacer ${block.size}`} aria-hidden="true" />;
+    return <div className={`cms-spacer ${block.size}`} data-cms-block-id={block.id} data-cms-custom-block="true" aria-hidden="true" />;
   return (
     <section
       className={`cms-block cms-tone-${block.tone} cms-align-${block.align} cms-width-${block.width}`}
       data-motion-section
       data-cms-block-id={block.id}
+      data-cms-custom-block="true"
     >
       {block.type === "image" ? (
         picture && (
@@ -263,15 +263,16 @@ export function CmsLayout({ children }: { children: ReactNode }) {
   }, [pathname, signature]);
   const layout = preview || data.layout;
   const configuration = layout.pages.find((p) => p.path === pathname);
-  if (!configuration) return <>{children}</>;
+  if (!configuration && !isCmsPreview()) return <>{children}</>;
+  const effective = { blocks: mergeNativeBlocks(configuration?.blocks, native) };
   const used = new Set(
-    configuration.blocks
+    effective.blocks
       .filter((b) => b.type === "native")
       .map((b) => b.nativeId),
   );
   return (
     <>
-      {configuration.blocks.map((block) => {
+      {effective.blocks.map((block) => {
         if (block.hidden) return null;
         if (block.type !== "native")
           return <CustomBlock key={block.id} block={block} />;
