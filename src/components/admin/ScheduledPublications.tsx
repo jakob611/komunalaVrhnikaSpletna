@@ -89,7 +89,7 @@ export default function ScheduledPublications({
       });
       setRefresh((n) => n + 1);
       setNotice(
-        "Posnetek osnutka je načrtovan za objavo na izbrani slovenski datum. Poznejše urejanje ne spremeni tega posnetka.",
+        "Trenutni osnutek je shranjen za objavo na izbrani datum po slovenskem času. Poznejše spremembe osnutka ne spremenijo načrtovane vsebine.",
       );
     } catch (cause) {
       setError(
@@ -128,9 +128,8 @@ export default function ScheduledPublications({
     <details className="admin-panel" style={{ padding: 18, marginBottom: 18 }}>
       <summary>Načrtovana objava tega področja</summary>
       <p>
-        Osnutek lahko objavite na prihodnji datum po slovenskem času. Če drug
-        urednik prej spremeni javne podatke, se načrtovana objava ustavi za
-        pregled. Objava obvestila ne pošlje množične pošte.
+        Za prihodnjo objavo se shrani trenutna vsebina osnutka. Poznejši popravki vanjo niso vključeni. Datum velja po slovenskem času. Če drug
+        urednik prej spremeni objavljeno vsebino, se načrtovana objava ustavi in jo morate pregledati. Objava obvestila ne pošlje e-pošte naročnikom; pošiljanje potrdite posebej.
       </p>
       <button
         type="button"

@@ -121,7 +121,7 @@ export default function SubscriptionPage() {
       <header className="page-intro">
         <span className="eyebrow">E-OBVESTILA KPV</span>
         <h1>
-          {action === "confirm" ? "Potrdite naročnino." : "Vaša e-obvestila."}
+          {action === "confirm" ? "Potrditev naročnine" : action === "unsubscribe" ? "Odjava e-obvestil" : "Nastavitve e-obvestil"}
         </h1>
         <p>Povezava je osebna. Ne posredujte je drugim.</p>
       </header>
@@ -182,7 +182,7 @@ export default function SubscriptionPage() {
                   .join(", ")}
               </p>
               <p>
-                Po potrditvi boste prejemali izbrane teme za ta naslov.
+                Po potrditvi boste prejemali obvestila o izbranih temah za ta naslov.
                 Morebitno prejšnjo naročnino na tem e-poštnem naslovu
                 nadomestimo s temi nastavitvami.
               </p>

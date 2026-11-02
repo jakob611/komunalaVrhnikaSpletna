@@ -28,7 +28,7 @@ export default function NoticeCampaigns({
     <section className="admin-panel" style={{ padding: 24 }}>
       <h2>Pošiljanje objavljenih obvestil</h2>
       <p>
-        Izberite objavljeno obvestilo. Pred pošiljanjem preverite ciljna območja
+        Izberite objavljeno obvestilo. Pred pošiljanjem preverite območja
         in prejemnike. Spreminjanje besedila je na voljo uredniku vsebin.
       </p>
       <button type="button" className="admin-button" onClick={onRefresh}>
@@ -37,7 +37,7 @@ export default function NoticeCampaigns({
       {published.length ? (
         <>
           <label className="admin-field">
-            <span>Objavljeno obvestilo za dostavo</span>
+            <span>Obvestilo za pošiljanje</span>
             <select
               value={id}
               onChange={(event) => setSelected(event.target.value)}
@@ -59,7 +59,7 @@ export default function NoticeCampaigns({
           />
         </>
       ) : (
-        <p>Za dostavo še ni objavljenih obvestil.</p>
+        <p>Ni objavljenih obvestil za pošiljanje. Obvestilo mora najprej objaviti urednik vsebin.</p>
       )}
       <SubscriberOverview
         districts={districts}

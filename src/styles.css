@@ -331,6 +331,9 @@ p {
 .hero h1 span {
   color: #74935b;
 }
+.hero h1 > span {
+  margin-inline-start: 0.12em;
+}
 .hero-copy > p {
   font-size: 15px;
   line-height: 1.85;

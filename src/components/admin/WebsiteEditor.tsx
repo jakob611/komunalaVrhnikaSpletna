@@ -95,7 +95,7 @@ export default function WebsiteEditor({ value, onChange: onDraftChange, pages, m
     </div>
     <p className="website-help">Izberite stran in kliknite vsebino v predogledu. Med opravili lahko prehajate brez izgube sprememb. Ko končate, uporabite »Shrani in objavi«.</p>
     {tab === "layout" ? <LayoutEditor value={value.layout} onChange={layout => onChange({ ...latest.current.value, layout })} pages={pages} disabled={disabled} previewData={value} page={page} onPageChange={changePage} initialSelected={selectedBlock} onEditContent={() => setTab("content")} media={media} onUpload={onUpload} hasMoreMedia={hasMoreMedia} mediaLoading={mediaLoading} onMoreMedia={onMoreMedia} /> : tab === "brand" ? <section className="admin-panel website-brand">
-      <h2>Logotip KPV</h2><p>Ta logotip se prikaže v glavi in nogi vseh strani. Brez izbrane slike se prikaže besedilna oznaka podjetja.</p>
+      <h2>Logotip KPV</h2><p>Logotip je v glavi in nogi vseh strani. Če slike ne izberete, se prikaže ime podjetja.</p>
       <div className="website-logo-preview">{value.settings.logoUrl ? <img src={value.settings.logoUrl} alt={value.settings.logoAlt} /> : <strong>Komunala Vrhnika</strong>}</div>
       <fieldset disabled={disabled}><label className="admin-field"><span>Slika logotipa</span><input value={value.settings.logoUrl} placeholder="Izberite ali naložite sliko spodaj" onChange={e => onChange({ ...value, settings: { ...value.settings, logoUrl: e.target.value } })} /></label>
       <label className="admin-field"><span>Ime podjetja za bralnike zaslona</span><input value={value.settings.logoAlt} onChange={e => onChange({ ...value, settings: { ...value.settings, logoAlt: e.target.value } })} /></label>

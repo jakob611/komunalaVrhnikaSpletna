@@ -115,7 +115,7 @@ export function CalendarDialog({
             <CalendarDays size={23} />
           </span>
           <div>
-            <span className="eyebrow">ODVOZ V VAŠEM KOLEDARJU</span>
+            <span className="eyebrow">URNIK ODVOZA</span>
             <h2 id="calendar-title">Dodaj v koledar</h2>
           </div>
           <button
@@ -197,8 +197,8 @@ export function CalendarDialog({
               <strong>Vključi tudi prihodnje odvoze te vrste</strong>
               <small>
                 {repeat
-                  ? "Koledar bo spremljal objavljene termine in spremembe."
-                  : "Brez te izbire dodate samo zgornji datum."}
+                  ? "Dodana bo naročnina na objavljeni urnik odvozov."
+                  : "Če polja ne označite, dodate samo izbrani datum."}
               </small>
             </span>
           </label>
@@ -224,7 +224,7 @@ export function CalendarDialog({
             </p>
           </div>
           <details className="calendar-help">
-            <summary>Druga možnost dodajanja</summary>
+            <summary>Prenos datoteke za koledar</summary>
             <p>
               Če vaša aplikacija povezave ne odpre, lahko uporabite datoteko za
               koledar.
@@ -253,7 +253,7 @@ export function CalendarDialog({
           </a>
           <p className="calendar-action-note" role="status">
             {opened
-              ? "V koledarju potrdite dodajanje. Tukaj s klikom še ne shranimo ničesar v vaš račun."
+              ? "Dodajanje potrdite v izbranem koledarju. Odprtje povezave še ne shrani dogodka."
               : repeat
                 ? "Enkrat potrdite dodajanje koledarja s prihodnjimi odvozi."
                 : "Dogodek shranite s potrditvijo v svojem koledarju."}

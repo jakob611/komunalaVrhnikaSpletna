@@ -1990,16 +1990,12 @@ export default function AdminPage() {
               {active === "dashboard" && (
                 <>
                   <section className="admin-welcome">
-                    <span className="admin-kicker">VSE NA ENEM MESTU</span>
-                    <h2>
-                      Urejena stran.
-                      <br />
-                      <em>Urejene informacije.</em>
-                    </h2>
+                    <span className="admin-kicker">ZAČETNA STRAN</span>
+                    <h2>Urejanje portala</h2>
                     <p>
                       Posodobite podatke, zamenjajte fotografije ali preglejte
-                      nova sporočila. Spremembe objavite, ko ste z njimi
-                      zadovoljni.
+                      nova sporočila. Pred objavo preverite podatke in
+                      predogled strani.
                     </p>
                   </section>
                   <div className="admin-dashboard-grid">
@@ -2008,7 +2004,7 @@ export default function AdminPage() {
                       className="admin-dashboard-card"
                     >
                       <Copy size={25} />
-                      <h3>Uredite kar na strani</h3>
+                      <h3>Besedila, slike in povezave</h3>
                       <p>
                         V predogledu kliknite naslov ali odstavek in spremenite
                         besedilo.
@@ -2147,7 +2143,7 @@ export default function AdminPage() {
                       ) : (
                         <>
                           <Check size={16} />
-                          Vsebina je shranjena
+                          Prikazana je objavljena vsebina
                         </>
                       )}
                       <small>
@@ -2679,10 +2675,9 @@ export default function AdminPage() {
                   {!media.length && !loading && (
                     <div className="admin-panel admin-empty">
                       <ImagePlus size={34} />
-                      <h2>Pripravite prvo sliko.</h2>
+                      <h2>V knjižnici še ni slik</h2>
                       <p>
-                        Naložene slike bodo na voljo pri urejanju spletnih
-                        strani.
+                        Z gumbom »Naloži sliko« dodajte sliko za uporabo na spletni strani. Samo nalaganje slike še ne objavi.
                       </p>
                     </div>
                   )}
@@ -2874,8 +2869,8 @@ export default function AdminPage() {
           onClose={() => setAdvanced(false)}
         >
           <p className="admin-dialog-description">
-            Za množične popravke lahko uvozite ali uredite JSON. Spremembe se
-            najprej prenesejo v obrazec; javno se objavijo šele po shranjevanju.
+            Za več popravkov hkrati lahko uvozite ali uredite zapis JSON. Spremembe se
+            najprej prenesejo v obrazec. Na spletni strani se prikažejo šele, ko izberete »Shrani in objavi«.
           </p>
           <textarea
             className="admin-json"

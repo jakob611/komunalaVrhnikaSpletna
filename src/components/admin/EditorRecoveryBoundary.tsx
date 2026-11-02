@@ -19,8 +19,7 @@ export default class EditorRecoveryBoundary extends Component<
       <section className="admin-panel" role="alert">
         <h2>Urejevalnika ni mogoče prikazati.</h2>
         <p>
-          Osnutek je ohranjen. Pred ponovnim odpiranjem lahko kopirate spodnji
-          zapis.
+          Osnutek je še v tem oknu. Kopirajte spodnji zapis, preden znova odprete objavljeno vsebino: s tem boste zamenjali trenutni osnutek.
         </p>
         <label className="admin-field">
           <span>Varnostna kopija trenutnega osnutka</span>

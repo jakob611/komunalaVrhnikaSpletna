@@ -226,7 +226,7 @@ export default function CollectionEditor({
             Izberite območje na levi. Nato uredite naslove ali datume in preverite,
             kaj bo za svoj naslov videl občan. Spremembe postanejo javne šele z gumbom »Shrani in objavi«.
           </p>
-          <p>Občan lahko v koledar shrani en datum ali vse naslednje odvoze iste vrste. Ponavljanje uporablja samo tukaj objavljene datume, tudi praznične izjeme. Že prenesenega koledarja poznejši popravek ne posodobi.</p>
+          <p>Občan lahko v koledar prenese en termin ali vse prihodnje odvoze izbrane vrste. Koledar vsebuje samo objavljene datume, tudi praznične izjeme. Poznejši popravek urnika ne posodobi že prenesene datoteke.</p>
         </div>
       </div>
       <nav className="collection-steps" aria-label="Koraki urejanja urnikov">
@@ -249,7 +249,7 @@ export default function CollectionEditor({
       {duplicateRules.length > 0 && step === 1 && (
         <details className="collection-alert">
           <summary>Naslovi, ki potrebujejo natančnejšo razmejitev ({duplicateRules.length})</summary>
-          <p>Za isto vrsto odpadkov se pravila nekaterih območij prekrivajo. Portal teh datumov ne dodeli samodejno. To je lahko posledica delitve med običajno in malo vozilo. Različne vrste odpadkov smejo uporabljati isti naslov.</p>
+          <p>Isti naslov je za isto vrsto odpadkov naveden v več območjih. Zato portal zanj ne izbere urnika samodejno. Preverite, kateremu območju pripada; pri tem upoštevajte morebitno delitev med običajno in malo vozilo. Isti naslov je lahko v različnih območjih za različne vrste odpadkov.</p>
           {duplicateRules.slice(0, 8).map((text, index) => (
             <p key={index}>{text}</p>
           ))}

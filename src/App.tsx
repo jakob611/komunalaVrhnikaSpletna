@@ -118,7 +118,7 @@ const links = [
     label: "Storitve",
     to: "/storitve",
     items: [
-      ["Naročilo storitve", "/storitve"],
+      ["Povpraševanje za storitev", "/storitve"],
       ["Tržnica Vrhnika", "/trznica"],
       ["Ceniki in obračun", "/kalkulator"],
       ["DEPO – ponovna uporaba", "/depo"],
@@ -128,7 +128,7 @@ const links = [
     label: "O podjetju",
     to: "/o-podjetju",
     items: [
-      ["Spoznajte komunalo", "/o-podjetju"],
+      ["Predstavitev podjetja", "/o-podjetju"],
       ["Kontakti", "/kontakt"],
     ],
   },
@@ -142,7 +142,7 @@ const searchable = [
   ],
   [
     "Kam z odpadkom?",
-    "Čarovnik za pravilno ločevanje",
+    "Navodila za ločevanje in oddajo odpadkov",
     "/odpadki/kam-z-odpadki",
   ],
   [
@@ -158,7 +158,7 @@ const searchable = [
     "/prijavi",
   ],
   [
-    "Naročite storitev",
+    "Povpraševanje za storitev",
     "Kosovni odvoz, greznica in druge storitve",
     "/storitve",
   ],
@@ -172,7 +172,7 @@ const searchable = [
     "Preverite veljavne cene za svojo občino",
     "/kalkulator",
   ],
-  ["DEPO", "Predmeti z zgodbo in ponovna uporaba", "/depo"],
+  ["DEPO", "Trgovina z rabljenimi in predelanimi predmeti", "/depo"],
   ["Kontakt", "Telefoni, e-pošta in lokacija podjetja", "/kontakt"],
   [
     "Pokopališče",
@@ -380,7 +380,7 @@ function Header() {
     <>
       <div className="utility-bar">
         <div className="container utility-inner">
-          <span>Vaša komunala. Vaš vsakdan.</span>
+          <span>Vrhnika · Borovnica · Log – Dragomer</span>
           <div>
             <CmsAnchor href={`tel:${telephone(settings.phone)}`}>
               <Phone size={12} />
@@ -578,14 +578,14 @@ function Home() {
         <div className="hero-copy">
           <div className="eyebrow">
             <span className="status-dot" />
-            SKUPAJ ZA NAŠ KRAJ
+            KOMUNALA VRHNIKA
           </div>
           <h1>
-            <CmsText id="Home.h1-1">{"Čisto okolje."}</CmsText><br />
-            <CmsText id="Home.h1-2">{"Boljši "}</CmsText><span><CmsText id="Home.hero-emphasis">vsakdan.</CmsText></span>
+            <CmsText id="Home.h1-1">{"Odpadki, voda"}</CmsText><br />
+            <CmsText id="Home.h1-2">{"in "}</CmsText><span><CmsText id="Home.hero-emphasis">okolje.</CmsText></span>
           </h1>
           <p>
-            <CmsText id="Home.p-1">{"Za vse, kar vaš dom in naš kraj potrebujeta."}</CmsText><br className="desktop-break" /> <CmsText id="Home.p-2">{"Uredite preprosto, na enem mestu."}</CmsText></p>
+            <CmsText id="Home.p-1">{"Preverite odvoze, poiščite zbirno mesto ali oddajte povpraševanje."}</CmsText><br className="desktop-break" /> <CmsText id="Home.p-2">{"Tukaj najdete tudi obvestila in kontakte KPV."}</CmsText></p>
           <div className="hero-actions">
             <Link className="button" to="/odpadki/urnik">
               Moj urnik odvoza
@@ -600,7 +600,7 @@ function Home() {
             <span className="community-icon">
               <Trees size={18} />
             </span>
-            <span>Tu za Vrhniko, Borovnico in Log – Dragomer.</span>
+            <span>Za občane Vrhnike, Borovnice in Loga - Dragomerja.</span>
           </div>
         </div>
         <div className="hero-visual">
@@ -612,19 +612,19 @@ function Home() {
           <div className="image-grain" />
           <div className="hero-photo-label">
             <MapPin size={14} />
-            Naš kraj. Naša odgovornost.
+            Ljubljanica
           </div>
-          <div className="floating-eco">
+          <Link className="floating-eco" to="/odpadki/kam-z-odpadki">
             <span>
               <Sprout size={23} />
             </span>
             <div>
               <strong>
-                <CmsText id="Home.strong-1">{"Majhna dejanja."}</CmsText><br />
-                <CmsText id="Home.strong-2">{"Velike spremembe."}</CmsText></strong>
-              <small><CmsText id="Home.small-1">{"Za zeleno prihodnost naših krajev."}</CmsText></small>
+                <CmsText id="Home.strong-1">{"Kam z odpadkom?"}</CmsText><br />
+                <CmsText id="Home.strong-2">{"Preverite navodila."}</CmsText></strong>
+              <small><CmsText id="Home.small-1">{"Poiščite odpadek in način oddaje."}</CmsText></small>
             </div>
-          </div>
+          </Link>
           <CmsAnchor
             className="hero-circle"
             href="#opravila"
@@ -664,8 +664,8 @@ function Home() {
             <MapPin size={23} />
           </span>
           <div>
-            <h2><CmsText id="Home.h2-1">{"Vaš naslov. Vaše informacije."}</CmsText></h2>
-            <p><CmsText id="Home.p-3">{"Odvozi in obvestila, ki zadevajo vaš dom."}</CmsText></p>
+            <h2><CmsText id="Home.h2-1">{"Urnik za vaš naslov"}</CmsText></h2>
+            <p><CmsText id="Home.p-3">{"Vnesite naslov in preverite naslednje odvoze."}</CmsText></p>
           </div>
         </div>
         <form
@@ -700,7 +700,7 @@ function Home() {
       <section key={nativeSection("Home.notices")} className="container home-notices">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">DOBRO JE VEDETI</span>
+            <span className="eyebrow">OBVESTILA IN MOTNJE</span>
             <h2>
               <CmsText id="Home.h2-2">{"Aktualno v vašem kraju"}</CmsText></h2>
           </div>
@@ -753,10 +753,10 @@ function Home() {
           ) : (
             <div className="panel notice-unavailable">
               <Bell size={24} />
-              <h3><CmsText id="Home.h3-1">{"Obvestila za vaš kraj"}</CmsText></h3>
-              <p><CmsText id="Home.p-4">{"Preverite objavljena obvestila."}</CmsText></p>
-              <Link className="text-link" to="/obvestila">
-                Odpri obvestila
+              <h3><CmsText id="Home.h3-1">{"Trenutno ni objavljenih obvestil."}</CmsText></h3>
+              <p><CmsText id="Home.p-4">{"Prijavite se na e-obvestila za svoj naslov."}</CmsText></p>
+              <Link className="text-link" to="/obvestila#narocilo">
+                Prijava na e-obvestila
                 <ArrowRight size={16} />
               </Link>
             </div>
@@ -767,33 +767,33 @@ function Home() {
         <div className="container">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">VEDNO BLIZU VAS</span>
-              <h2><CmsText id="Home.h2-3">{"Vse za urejen dom in okolje."}</CmsText></h2>
+              <span className="eyebrow">PODROČJA DELA</span>
+              <h2><CmsText id="Home.h2-3">{"Komunalne storitve"}</CmsText></h2>
             </div>
             <p>
-              <CmsText id="Home.p-5">{"Prava pot do storitve."}</CmsText><br />
-              <CmsText id="Home.p-6">{"Brez odvečnega iskanja."}</CmsText></p>
+              <CmsText id="Home.p-5">{"Izberite področje za navodila,"}</CmsText><br />
+              <CmsText id="Home.p-6">{"cene in povpraševanja."}</CmsText></p>
           </div>
           <div className="service-overview-grid">
             {[
               {
                 icon: Recycle,
                 title: "Odpadki in ločevanje",
-                text: "Manj odpadkov. Več priložnosti za naš planet.",
+                text: "Urniki odvoza, navodila za ločevanje in zbirna mesta.",
                 to: "/odpadki",
                 links: "Urniki · Zbirna mesta · Ločevanje",
               },
               {
                 icon: Droplets,
                 title: "Voda in odvajanje",
-                text: "Skrb za vodo se začne z zanesljivo oskrbo.",
+                text: "Oskrba s pitno vodo, odpadna voda in praznjenje greznic.",
                 to: "/voda",
                 links: "Pitna voda · Greznice · Obvestila",
               },
               {
                 icon: Trees,
-                title: "Naš javni prostor",
-                text: "Urejene poti in varnejše ulice za vse.",
+                title: "Javni prostor",
+                text: "Dela in zapore cest ter prijava poškodb in nedelujočih svetilk.",
                 to: "/javni-prostor",
                 links: "Ceste · Razsvetljava · Prijava težav",
               },
@@ -816,18 +816,18 @@ function Home() {
           <span>
             depo<span>↗</span>
           </span>
-          <small><CmsText id="Home.small-2">{"NOVA ZGODBA. ISTI PREDMET."}</CmsText></small>
+          <small><CmsText id="Home.small-2">{"TRGOVINA PONOVNE UPORABE"}</CmsText></small>
           <div className="depo-ring" />
         </div>
         <div className="depo-copy">
           <span className="eyebrow">PONOVNA UPORABA</span>
           <h2>
-            <CmsText id="Home.h2-4">{"Nekomu odveč."}</CmsText><br />
-            <CmsText id="Home.h2-5">{"Vam ravno prav."}</CmsText></h2>
+            <CmsText id="Home.h2-4">{"Rabljeni predmeti"}</CmsText><br />
+            <CmsText id="Home.h2-5">{"v trgovini DEPO"}</CmsText></h2>
           <p>
-            <CmsText id="Home.p-7">{"Dobri predmeti si zaslužijo novo priložnost. Odkrijte DEPO, našo trgovino ponovne uporabe."}</CmsText></p>
+            <CmsText id="Home.p-7">{"V DEPO najdete rabljeno pohištvo, opremo in predelane izdelke. Preverite ponudbo, delovni čas in možnosti oddaje še uporabnih predmetov."}</CmsText></p>
           <Link className="text-link" to="/depo">
-            Spoznajte DEPO
+            Ponudba in delovni čas DEPO
             <ArrowUpRight size={17} />
           </Link>
         </div>
@@ -837,8 +837,8 @@ function Home() {
           <Phone size={23} />
         </span>
         <div>
-          <h2><CmsText id="Home.h2-6">{"Včasih je najlažje poklicati."}</CmsText></h2>
-          <p><CmsText id="Home.p-8">{"Tu smo, da skupaj najdemo odgovor."}</CmsText></p>
+          <h2><CmsText id="Home.h2-6">{"Potrebujete pomoč?"}</CmsText></h2>
+          <p><CmsText id="Home.p-8">{"Pokličite nas ali poiščite kontakt pristojne službe."}</CmsText></p>
         </div>
         <CmsAnchor className="text-link" href="tel:+38617502960">
           01 750 29 60
@@ -858,7 +858,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
   const data = {
     waste: {
       eyebrow: "ODPADKI IN LOČEVANJE",
-      title: "Vsak odpadek ima svoje mesto.",
+      title: "Zbiranje in odvoz odpadkov",
       intro:
         "Poiščite datum odvoza, najbližje zbirno mesto ali odgovor, kam odložiti odpadek.",
       icon: Recycle,
@@ -871,18 +871,18 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
         ],
         [
           "Kam z odpadkom?",
-          "Od baterije do embalaže. Poiščite pravo pot za svoj odpadek.",
+          "Poiščite navodila za ločevanje in oddajo odpadkov.",
           "/odpadki/kam-z-odpadki",
           Recycle,
         ],
         [
           "Zbirna mesta",
-          "Raziščite zemljevid in odprite pot v Google Zemljevidih.",
+          "Preverite lokacije in navodila za pot do zbirnega mesta.",
           "/odpadki/lokacije",
           MapPin,
         ],
         [
-          "Naročite kosovni odvoz",
+          "Kosovni odvoz",
           "Oddajte povpraševanje za odvoz večjih predmetov.",
           "/storitve?service=bulky",
           Truck,
@@ -891,9 +891,9 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
     },
     water: {
       eyebrow: "VODA IN ODVAJANJE",
-      title: "Za vodo, ki ji zaupamo.",
+      title: "Pitna in odpadna voda",
       intro:
-        "Informacije o oskrbi, odvajanje odpadne vode in storitve za vaše gospodinjstvo.",
+        "Preverite obvestila o oskrbi, podatke odjemnega mesta in možnosti praznjenja greznice.",
       icon: Droplets,
       cards: [
         [
@@ -924,9 +924,9 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
     },
     public: {
       eyebrow: "JAVNI PROSTOR",
-      title: "Lepši kraj se začne z nami.",
+      title: "Ceste, razsvetljava in javne površine",
       intro:
-        "Pregled del na cestah in preprosta prijava težav, ki jih opazite na poti.",
+        "Preverite dela in zapore ali sporočite poškodbo ceste, svetilke ali zabojnika.",
       icon: Trees,
       cards: [
         [
@@ -937,7 +937,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
         ],
         [
           "Prijavite poškodovano cesto",
-          "Priložite lokacijo in fotografijo opažene poškodbe.",
+          "Opišite poškodbo in njeno lokacijo. Fotografijo lahko dodate.",
           "/prijavi?category=roads",
           Trees,
         ],
@@ -949,7 +949,7 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
         ],
         [
           "Poškodovan zabojnik",
-          "Oddajte prijavo s fotografijo in opisom.",
+          "Opišite poškodbo in navedite, kje je zabojnik.",
           "/prijavi?category=bins",
           Recycle,
         ],
@@ -1089,7 +1089,7 @@ function MyHome() {
     <div className="container inner-page">
       <CmsLayout>
         <div key={nativeSection("MyHome.page-intro")} className="page-intro">
-          <span className="eyebrow">VAŠE OSEBNO IZHODIŠČE</span>
+          <span className="eyebrow">NASLOV IN ODVOZI</span>
           <h1><CmsText id="MyHome.h1-1">{"Moj dom."}</CmsText></h1>
           <p>
             <CmsText id="MyHome.p-1">{"Vaš naslov si zapomnimo v tem brskalniku. Prijava in uporabniški račun nista potrebna."}</CmsText></p>
@@ -1274,11 +1274,11 @@ function Footer() {
           </span>
         </div>
         <div>
-          <h3><CmsText global id="Footer.h3-1">{"Za vaš vsakdan"}</CmsText></h3>
+          <h3><CmsText global id="Footer.h3-1">{"Odpadki in storitve"}</CmsText></h3>
           <Link to="/odpadki/urnik">Urnik odvoza</Link>
           <Link to="/odpadki/kam-z-odpadki">Kam z odpadkom?</Link>
           <Link to="/odpadki/lokacije">Zbirna mesta</Link>
-          <Link to="/storitve">Naročite storitev</Link>
+          <Link to="/storitve">Povpraševanje za storitev</Link>
         </div>
         <div>
           <h3><CmsText global id="Footer.h3-2">{"Naš kraj"}</CmsText></h3>
@@ -1289,7 +1289,7 @@ function Footer() {
           <Link to="/pokopalisce">Pokopališče</Link>
         </div>
         <div>
-          <h3><CmsText global id="Footer.h3-3">{"Ostanimo povezani"}</CmsText></h3>
+          <h3><CmsText global id="Footer.h3-3">{"Kontakt"}</CmsText></h3>
           <CmsAnchor href={`tel:${telephone(settings.phone)}`}>
             {settings.phone}
             <ArrowUpRight size={13} />
@@ -1374,7 +1374,7 @@ export default function App() {
     const match = searchable.find((v) => v[2] === location.pathname);
     document.title =
       (location.pathname === "/"
-        ? "Skupaj za lepši vsakdan"
+        ? "Odpadki, voda in komunalne storitve"
         : location.pathname === "/admin"
           ? "Upravljanje portala"
           : location.pathname === "/obvestila/narocnina"

@@ -79,7 +79,7 @@ export default function NoticeDelivery({
       setResult(data);
       if (!preview)
         setMessage(
-          "Pošiljanje je uvrščeno v trajno čakalno vrsto. Dostavo spremljajte spodaj.",
+          "Pošiljanje je v čakalni vrsti. Stanje osvežite z gumbom »Preveri prejemnike in dostavo«.",
         );
     } catch (cause) {
       if (stillCurrent())
@@ -117,13 +117,13 @@ export default function NoticeDelivery({
       {result && (
         <div role="status">
           <p>
-            Ujemajoči potrjeni naročniki: <strong>{result.recipients}</strong>.
+            Potrjeni naročniki za to obvestilo: <strong>{result.recipients}</strong>.
           </p>
           {result.alreadyQueued ? (
             <>
               <p>
                 {result.status === "cancelled"
-                  ? "Priprava te različice je preklicana. Še neposlane kopije niso več na voljo za dostavo; ta različica se ne pošlje ponovno."
+                  ? "Pošiljanje te različice je preklicano. Neposlana sporočila ne bodo poslana; te različice ni mogoče poslati znova."
                   : "Ta različica je že uvrščena za pošiljanje; ponovno je ne pošljemo."}
               </p>
               {!!result.deliveries.failed && (
@@ -160,7 +160,7 @@ export default function NoticeDelivery({
           {!result.alreadyQueued && !result.recipients && (
             <p>
               Za izbrano temo, območja in naslove ni potrjenih prejemnikov.
-              Preverite ciljanje obvestila in potrjene naročnine, preden
+              Preverite izbrana območja, naslove in potrjene naročnine, preden
               poskusite znova.
             </p>
           )}

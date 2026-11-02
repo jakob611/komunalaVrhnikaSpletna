@@ -142,10 +142,10 @@ export function WasteMapPage() {
       <CmsLayout>
         <Intro key={nativeSection("WasteMapPage.introduction")}
           eyebrow="ODPADKI · ZBIRNA MESTA"
-          title="Pravo mesto za vsak odpadek."
+          title="Zbirna mesta za odpadke"
         >
-          Poiščite ekološki otok ali zbirni center in preverite, kaj lahko
-          oddate. Manj iskanja, več pravilnega ločevanja.
+          Poiščite zbirno mesto, preverite sprejete vrste odpadkov in odprite
+          navodila za pot.
         </Intro>
         <div key={nativeSection("WasteMapPage.notice")} className="notice waste-demo">
           <Info size={18} />
@@ -203,6 +203,7 @@ export function WasteMapPage() {
             {points.length === 0 ? (
               <div className="empty-state">
                 <Search />
+                {collectionPoints.length ? <>
                 <h3><CmsText id="WasteMapPage.h3-1">{"Ni najdenih lokacij"}</CmsText></h3>
                 <p><CmsText id="WasteMapPage.p-1">{"Poskusite drug kraj ali vrsto odpadka."}</CmsText></p>
                 <button
@@ -214,6 +215,11 @@ export function WasteMapPage() {
                 >
                   Počisti filtre
                 </button>
+                </> : <>
+                  <h3><CmsText id="WasteMapPage.empty-title">{"Zbirna mesta trenutno niso objavljena."}</CmsText></h3>
+                  <p><CmsText id="WasteMapPage.empty-description">{"Za najbližje zbirno mesto in pogoje oddaje odpadkov se obrnite na KPV."}</CmsText></p>
+                  <Link to="/kontakt" className="button secondary">Kontakti KPV <ArrowRight size={16}/></Link>
+                </>}
               </div>
             ) : (
               points.map((point) => (
@@ -336,7 +342,7 @@ export function WasteMapPage() {
             <Recycle size={24} />
             <span>
               <strong><CmsText id="WasteMapPage.strong-2">{"Niste prepričani, kam odložiti predmet?"}</CmsText></strong>
-              <p><CmsText id="WasteMapPage.p-3">{"Čarovnik za odpadke vam pomaga najti pravo frakcijo."}</CmsText></p>
+              <p><CmsText id="WasteMapPage.p-3">{"V iskalniku odpadkov preverite, v kateri zabojnik sodi predmet oziroma kje ga lahko oddate."}</CmsText></p>
             </span>
           </div>
           <Link className="button secondary" to="/odpadki/kam-z-odpadki">
@@ -360,16 +366,15 @@ export function WasteWizardPage() {
   return (
     <div className="waste-page">
       <CmsLayout>
-        <Intro key={nativeSection("WasteWizardPage.introduction")} eyebrow="ODPADKI · ČAROVNIK ZA LOČEVANJE" title="Kam gre pa to?">
-          Tetrapak, baterija ali stara igrača? Vpišite predmet in skupaj bomo
-          našli pravo mesto zanj.
+        <Intro key={nativeSection("WasteWizardPage.introduction")} eyebrow="ODPADKI · LOČEVANJE" title="Kam odložiti odpadek?">
+          Vpišite ime predmeta in preverite navodila za ločevanje ali oddajo.
         </Intro>
         <section key={nativeSection("WasteWizardPage.waste-wizard-hero")} className="waste-wizard-hero">
           <div className="waste-wizard-symbol">
             <Recycle size={35} strokeWidth={1.5} />
           </div>
-          <span className="eyebrow">MAJHNA ODLOČITEV. VELIKA RAZLIKA.</span>
-          <h2><CmsText id="WasteWizardPage.h2-1">{"Vsak odpadek ima svoje mesto."}</CmsText></h2>
+          <span className="eyebrow">ISKALNIK ODPADKOV</span>
+          <h2><CmsText id="WasteWizardPage.h2-1">{"Poiščite predmet"}</CmsText></h2>
           <label className="waste-search large">
             <Search size={23} />
             <input
@@ -385,7 +390,7 @@ export function WasteWizardPage() {
             )}
           </label>
           <div className="waste-suggestions">
-            <span>Pogosto iščemo:</span>
+            <span>Primeri iskanja:</span>
             {["Tetrapak", "Baterija", "Peki papir", "Plastenka"].map((v) => (
               <button
                 key={v}
@@ -433,13 +438,14 @@ export function WasteWizardPage() {
         {cmsNative(nativeSection("WasteWizardPage.results"), (results.length === 0 ? (
           <div className="panel empty-state">
             <Search size={32} />
+            {wasteItems.length ? <>
             <h3>
               {category !== "all" && findWasteItems(query, "all", wasteItems).length > 0
                 ? "Predmet je v drugi skupini odpadkov."
-                : "Tega predmeta še ne poznamo."}
+                : "Za izbrane pogoje ni zadetkov."}
             </h3>
             <p>
-              <CmsText id="WasteWizardPage.p-1">{"Poskusite drug izraz, npr. »embalaža« ali »telefon«. Če še vedno niste prepričani, preverite pri osebju zbirnega centra."}</CmsText></p>
+              <CmsText id="WasteWizardPage.p-1">{"Poskusite drug izraz, npr. »embalaža« ali »telefon«. Če navodila niso dovolj jasna, vprašajte osebje zbirnega centra."}</CmsText></p>
             <button
               className="button secondary"
               onClick={() => {
@@ -455,6 +461,11 @@ export function WasteWizardPage() {
                 ? "Išči v vseh skupinah"
                 : "Pokaži vse predmete"}
             </button>
+            </> : <>
+              <h3><CmsText id="WasteWizardPage.empty-title">{"Seznam odpadkov trenutno ni objavljen."}</CmsText></h3>
+              <p><CmsText id="WasteWizardPage.empty-description">{"Navodila poiščite v abecedniku odpadkov KPV ali vprašajte osebje zbirnega centra."}</CmsText></p>
+              <CmsAnchor href={wasteSources[4].url} target="_blank" rel="noreferrer" className="button secondary">Odpri abecednik odpadkov KPV <ExternalLink size={16}/></CmsAnchor>
+            </>}
           </div>
         ) : (
           <div className="waste-result-grid">
@@ -495,7 +506,7 @@ export function WasteWizardPage() {
         <div key={nativeSection("WasteWizardPage.notice")} className="notice waste-sources">
           <Info size={18} />
           <div>
-            <strong><CmsText id="WasteWizardPage.strong-1">{"Ločevanje po navodilih KPV."}</CmsText></strong>
+            <strong><CmsText id="WasteWizardPage.strong-1">{"Navodila za ločevanje"}</CmsText></strong>
             <p>
               <CmsText id="WasteWizardPage.p-2">{"Čarovnik išče po lokalnem seznamu izrazov. Pri sestavljenih, nevarnih ali nejasnih odpadkih preverite navodila osebja."}</CmsText>{" "}
               <CmsAnchor
@@ -617,10 +628,10 @@ export function CollectionPage() {
       <CmsLayout>
         <Intro key={nativeSection("CollectionPage.introduction")}
           eyebrow="ODPADKI · URNIK ODVOZA"
-          title="Vaš naslednji odvoz. Brez ugibanja."
+          title="Urnik odvoza odpadkov"
         >
-          Vpišite domači naslov, poglejte prihajajoče termine in jih dodajte v
-          svoj koledar.
+          Vpišite naslov za prikaz objavljenih datumov odvoza. Posamezne odvoze
+          lahko dodate v koledar.
         </Intro>
         <div key={nativeSection("CollectionPage.notice")} className="notice">
           <Info size={18} />
@@ -636,8 +647,8 @@ export function CollectionPage() {
               <MapPin size={24} />
             </span>
             <div>
-              <h2><CmsText id="CollectionPage.h2-1">{"Kje odlagate odpadke?"}</CmsText></h2>
-              <p><CmsText id="CollectionPage.p-1">{"Naslov si zapomnimo samo v tem brskalniku."}</CmsText></p>
+              <h2><CmsText id="CollectionPage.h2-1">{"Naslov za urnik odvoza"}</CmsText></h2>
+              <p><CmsText id="CollectionPage.p-1">{"Vneseni naslov se shrani v ta brskalnik za naslednji obisk."}</CmsText></p>
             </div>
           </div>
           <form onSubmit={lookup} aria-busy={loading}>
@@ -709,7 +720,7 @@ export function CollectionPage() {
               </CmsAnchor>}
             </div>
             <p className="waste-calendar-note">
-              <CmsText id="CollectionPage.p-2">{"Pri posameznem odvozu izberite »Dodaj v koledar«: določite lahko koledar svoje naprave in shranite samo izbrani datum ali ponavljajoče se odvoze te vrste po objavljenem urniku. Povezava zgoraj prenese vse prikazane potrjene datume. Uvoženi koledar se ne posodablja samodejno."}</CmsText></p>
+              <CmsText id="CollectionPage.p-2">{"Z gumbom »Dodaj v koledar« izberete posamezni odvoz ali naročnino na objavljene odvoze iste vrste. Zgornja povezava prenese datoteko z vsemi prikazanimi potrjenimi datumi. Datoteka se po uvozu ne posodablja samodejno."}</CmsText></p>
             {(schedule.incompleteTypes?.length || schedule.expiredTypes?.length) ? (
               <div className="notice" role="alert" style={{borderColor:"#d3a24a", background:"#fff7e7", marginBottom:20}}>
                 <Info size={22} />
@@ -797,7 +808,7 @@ export function CollectionPage() {
             <span>
               <CalendarDays size={38} strokeWidth={1.4} />
             </span>
-            <h2><CmsText id="CollectionPage.h2-2">{"Urnik po meri vašega doma."}</CmsText></h2>
+            <h2><CmsText id="CollectionPage.h2-2">{"Vpišite naslov za prikaz urnika"}</CmsText></h2>
             <p>
               <CmsText id="CollectionPage.p-10">{"Po vnosu naslova se bodo tu prikazali objavljeni odvozi"}</CmsText><br />
               <CmsText id="CollectionPage.p-11">{"mešanih, bioloških odpadkov in embalaže."}</CmsText></p>

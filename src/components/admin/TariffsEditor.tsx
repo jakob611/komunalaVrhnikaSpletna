@@ -107,7 +107,7 @@ export default function TariffsEditor({
       style={{ border: 0, padding: 0, minWidth: 0 }}
     >
       <div className="notice-editor-guide">
-        <h2>Cene z jasnim virom in datumom</h2>
+        <h2>Ceniki za izračun in posebne storitve</h2>
         <p>
           Tu spreminjate izračun na strani »Cenik« in prikazane cene posebnih
           storitev. Občinske tarife in redne storitve vpisujte{" "}
@@ -121,7 +121,7 @@ export default function TariffsEditor({
           še ne objavite: trenutni cenik ostane veljaven do uspešne objave.
           Za pripravo uporabite »Shrani osnutek« in »Načrtovana objava tega področja«.
           Začetek veljavnosti sam po sebi še ne načrtuje objave; izberite datum objave
-          ter preverite stanje načrtovanega preklopa.
+          ter preverite stanje načrtovane objave.
         </p>
       </div>
       <div className="admin-field-grid">

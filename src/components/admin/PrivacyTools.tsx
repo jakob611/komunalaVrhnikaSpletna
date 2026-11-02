@@ -79,8 +79,8 @@ export default function PrivacyTools({
     <section className="admin-panel" style={{ padding: 24 }}>
       <h2>Izbris osebnih podatkov</h2>
       <p>
-        Orodje za lastnika portala. Pred izbrisom preverite identiteto
-        vlagatelja, podlago in obseg zahteve. Vnesite e-poštni naslov za vse
+        Izbris lahko izvede samo lastnik portala. Pred izbrisom preverite identiteto
+        prosilca ter podlago in obseg zahteve. Vnesite e-poštni naslov za vse
         povezane oddaje in naročnino ali referenco KPV za posamezno oddajo.
       </p>
       <p>
@@ -130,8 +130,8 @@ export default function PrivacyTools({
           {hasRecords ? (
             <>
               <p>
-                Dejanje trajno odstrani navedene evidence iz portala. Potrditev
-                velja deset minut; sprememba obsega zahteva nov predogled.
+                Izbris trajno odstrani navedene evidence iz portala. Potrditev
+                velja deset minut. Če se podatki medtem spremenijo, morate znova preveriti obseg izbrisa.
               </p>
               <label className="admin-checkbox">
                 <input type="checkbox" required disabled={busy} />

@@ -71,7 +71,7 @@ describe("guest navigation and personal starting point", () => {
     fireEvent.click(screen.getByRole("button", { name: "Odpri meni" }));
     expect(screen.getByRole("button", { name: "Zapri meni" }).getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Glavna navigacija" })).getByRole("link", { name: /^O podjetju$/ }));
-    await screen.findByRole("heading", { level: 1, name: /Za okolje/ });
+    await screen.findByRole("heading", { level: 1, name: "O podjetju in spletni strani" });
     await waitFor(() => expect(document.querySelector(".menu-toggle")?.getAttribute("aria-expanded")).toBe("false"));
   });
   it("G04 general homepage announcements must not be labeled as waste notices", async () => {
@@ -120,7 +120,7 @@ describe("published information and self-service", () => {
     fireEvent.click(screen.getByRole("button", { name: "Vsa obvestila" }));
     await screen.findByRole("heading", { name: "Office opening announcement" });
     fireEvent.change(screen.getByLabelText("Poišči kraj ali obvestilo"), { target: { value: "no-matching-town" } });
-    expect(screen.getByText("Ni obvestil za izbrani filter.")).toBeTruthy();
+    expect(screen.getByText("Za izbrane pogoje ni obvestil.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Poišči kraj ali obvestilo"), { target: { value: "VERD" } });
     expect(screen.getByRole("heading", { name: "Water works" })).toBeTruthy();
   });
@@ -131,6 +131,27 @@ describe("published information and self-service", () => {
     expect(screen.queryByRole("heading", { name: "Water works" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Poskusi znova" }));
     await screen.findByRole("heading", { name: "Water works" });
+  });
+  it("an unpublished notices list offers subscription recovery instead of futile filter changes", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => response({ notices: [] })));
+    show(<NoticesPage/>, "/obvestila");
+    await screen.findByRole("heading", { name: "Trenutno ni objavljenih obvestil." });
+    expect(screen.queryByText("Počistite iskanje ali izberite drugo temo.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Pošlji potrditveno povezavo" })).toBeTruthy();
+  });
+  it("an unpublished collection-point list offers contact recovery without a futile filter reset", () => {
+    state.sections.wastePoints = [];
+    show(<WasteMapPage/>, "/odpadki/lokacije");
+    expect(screen.getByRole("heading", { name: "Zbirna mesta trenutno niso objavljena." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Kontakti KPV" }).getAttribute("href")).toBe("/kontakt");
+    expect(screen.queryByRole("button", { name: "Počisti filtre" })).toBeNull();
+  });
+  it("an unpublished dictionary offers the official alphabet instead of claiming the searched item is unknown", () => {
+    state.sections.wasteItems = [];
+    show(<WasteWizardPage/>, "/odpadki/kam-z-odpadki");
+    expect(screen.getByRole("heading", { name: "Seznam odpadkov trenutno ni objavljen." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Odpri abecednik odpadkov KPV" }).getAttribute("href")).toMatch(/^https:\/\/www\.kpv\.si\//);
+    expect(screen.queryByRole("button", { name: "Pokaži vse predmete" })).toBeNull();
   });
   it("G10 subscription signup explains confirmation and submits chosen topics/address only after choices", async () => {
     show(<SubscriptionForm/>, "/obvestila");

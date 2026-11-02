@@ -467,8 +467,8 @@ export default function CemeteryPage() {
   if (!graves.length) return <div className="cemetery-page"><CmsLayout>
     <header key={nativeSection("CemeteryPage.cemetery-intro")} className="cemetery-intro">
       <div><span className="eyebrow"><Flower2 size={16} /> POKOPALIŠČE VRHNIKA</span>
-        <h1>Informacije za obisk in urejanje groba.</h1>
-        <p>Za podatke o grobnem mestu in pokopaliških storitvah smo vam na voljo pri Komunali Vrhnika.</p>
+        <h1>Pokopališke storitve in obisk pokopališča</h1>
+        <p>Za podatke o grobnem mestu in pokopaliških storitvah se obrnite na Komunalo Vrhnika.</p>
       </div>
     </header>
     <section key="cemetery-contact-information" className="panel cemetery-help">
@@ -493,20 +493,20 @@ export default function CemeteryPage() {
               <Flower2 size={16} /> POKOPALIŠČE VRHNIKA
             </span>
             <h1>
-              <CmsText id="CemeteryPage.h1-1">{"Spomin ostane."}</CmsText><br />
-              <em><CmsText id="CemeteryPage.em-1">{"Pot naj bo preprosta."}</CmsText></em>
+              <CmsText id="CemeteryPage.h1-1">{"Pokopališče Vrhnika"}</CmsText><br />
+              <em><CmsText id="CemeteryPage.em-1">{"Iskanje grobov"}</CmsText></em>
             </h1>
             <p>
-              <CmsText id="CemeteryPage.p-1">{"Poiščite ime, izberite grob in si oglejte njegovo mesto na načrtu. Tudi ko prihajate od daleč."}</CmsText></p>
+              <CmsText id="CemeteryPage.p-1">{"Iščite po imenu pokojnika ali oznaki groba. Pri izbranem grobu so prikazani podatki in potrjeni položaj na načrtu, če je na voljo."}</CmsText></p>
           </div>
           <div className="cemetery-intro-art" aria-hidden="true">
             <div className="cemetery-flower-circle">
               <Flower2 strokeWidth={1} size={76} />
             </div>
             <span>
-              Prostor spomina.
+              Pokopališče
               <br />
-              Bližje vam.
+              Vrhnika
             </span>
           </div>
         </header>
@@ -518,7 +518,7 @@ export default function CemeteryPage() {
           <div className="cemetery-search-heading">
             <div>
               <span className="eyebrow">POIŠČITE SVOJE BLIŽNJE</span>
-              <h2 id="cemetery-search-title"><CmsText id="CemeteryPage.h2-1">{"Poiščite grobno mesto."}</CmsText></h2>
+              <h2 id="cemetery-search-title"><CmsText id="CemeteryPage.h2-1">{"Iskanje grobnega mesta"}</CmsText></h2>
             </div>
             <span className="cemetery-search-hint">
               <Compass size={17} /> Načrt · {sections.length} sektorjev
@@ -688,9 +688,9 @@ export default function CemeteryPage() {
               ) : (
                 <div className="cemetery-detail-empty">
                   <Flower2 size={35} strokeWidth={1.4} />
-                  <h2 id="cemetery-detail-title"><CmsText id="CemeteryPage.h2-3">{"Izberite grob."}</CmsText></h2>
+                  <h2 id="cemetery-detail-title"><CmsText id="CemeteryPage.h2-3">{"Izberite grob"}</CmsText></h2>
                   <p>
-                    <CmsText id="CemeteryPage.p-10">{"Kliknite na načrt ali ime na seznamu. Tukaj se pokažejo podatki in povezava za svojce."}</CmsText></p>
+                    <CmsText id="CemeteryPage.p-10">{"Izberite grob na načrtu ali seznamu za prikaz podatkov in povezave do groba."}</CmsText></p>
                 </div>
               )}
             </section>
@@ -787,7 +787,7 @@ export default function CemeteryPage() {
         <section key={nativeSection("CemeteryPage.cemetery-help")} className="cemetery-help" data-motion-section>
           <div>
             <span className="eyebrow">ZA OBISK IN INFORMACIJE</span>
-            <h2><CmsText id="CemeteryPage.h2-4">{"Ko potrebujete več kot načrt."}</CmsText></h2>
+            <h2><CmsText id="CemeteryPage.h2-4">{"Upravljanje pokopališča"}</CmsText></h2>
             <p>
               <CmsText id="CemeteryPage.p-14">{"KPV je upravljavec centralnega pokopališča Vrhnika. Za informacije o evidenci grobov in upravljanju se obrnite na podjetje."}</CmsText></p>
             <CmsAnchor

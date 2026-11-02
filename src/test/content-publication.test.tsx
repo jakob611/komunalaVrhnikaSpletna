@@ -100,7 +100,7 @@ describe("public operational content", () => {
   it("replaces an empty cemetery search with useful contact and visiting information", () => {
     render(<MemoryRouter initialEntries={["/pokopalisce"]}><CemeteryPage/></MemoryRouter>);
     expect(screen.queryByRole("searchbox")).toBeNull();
-    expect(screen.getByRole("heading", { name: "Informacije za obisk in urejanje groba." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Pokopališke storitve in obisk pokopališča" })).toBeTruthy();
     expect(screen.getByRole("link", { name: defaults.settings.phone }).getAttribute("href")).toContain("tel:");
     expect(screen.queryByText(/0 sektorjev/)).toBeNull();
   });

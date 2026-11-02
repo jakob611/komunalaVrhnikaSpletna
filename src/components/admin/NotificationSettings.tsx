@@ -105,7 +105,7 @@ export default function NotificationSettings({
     if (recovered.current) {
       recovered.current = false;
       setNotice(
-        "Neshranjeni prejemnik pred potekom seje je obnovljen. Če je bil medtem spremenjen na strežniku, bo shranjevanje zahtevalo nov pregled.",
+        "Neshranjeni naslov je obnovljen. Preverite ga pred shranjevanjem. Če je lastnik medtem shranil drug naslov, boste morali najprej naložiti nove nastavitve.",
       );
       return;
     }
@@ -179,7 +179,7 @@ export default function NotificationSettings({
       </h2>
       <p>
         Določite en predal, v katerega prejmete nove prijave težav, kontaktna
-        sporočila, povpraševanja in prijave na tržnico. Naslov lahko spremeni
+        sporočila, povpraševanja in prijave na tržnico. Te oddaje so dostopne tudi med delovnimi nalogi. Naslov lahko spremeni
         samo lastnik portala.
       </p>
       {loading ? (

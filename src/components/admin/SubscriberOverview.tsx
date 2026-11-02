@@ -76,8 +76,8 @@ export default function SubscriberOverview({
     <section className="admin-panel" style={{ padding: 20, marginTop: 24 }}>
       <h2>Naročniki po območjih</h2>
       <p>
-        Stari zapisi med delovnimi nalogi še niso potrjene naročnine. Tukaj so
-        nove prijave in njihove potrditve. Na strani je največ 50 prijav;
+        Tukaj preverite stanje naročnin in izbrane teme. Naročnina je potrjena
+        šele po potrditvi povezave iz e-pošte; zapis med delovnimi nalogi sam po sebi ni naročnina. Na strani je največ 50 prijav;
         starejše odprite z naslednjo stranjo ali poiščite po e-pošti oziroma
         naslovu.
       </p>
@@ -124,7 +124,7 @@ export default function SubscriberOverview({
           {error}
         </p>
       )}
-      {!data && !error && <p role="status">Nalagamo …</p>}
+      {!data && !error && <p role="status">Nalagamo naročnike …</p>}
       {data && (
         <>
           <p>

@@ -381,7 +381,7 @@ export default function WorkQueue({
     ) {
       recoveredCase.current = undefined;
       setCaseNotice(
-        "Neshranjena obravnava pred potekom seje je obnovljena. Pred shranjevanjem preverite spremembe; novejša strežniška različica bo zaščitena pred prepisom.",
+        "Neshranjene spremembe so obnovljene. Preverite jih pred shranjevanjem. Če je medtem kdo spremenil nalog, ga boste morali znova naložiti.",
       );
       return;
     }
@@ -552,11 +552,10 @@ export default function WorkQueue({
     <section className="work-queue" aria-label="Delovni nalogi">
       <div className="work-intro">
         <div>
-          <span className="eyebrow">OD PRIJAVE DO REŠITVE</span>
+          <span className="eyebrow">OBRAVNAVA ODDAJ</span>
           <h2>Delovni nalogi in prejeta sporočila</h2>
           <p>
-            Odprite nalog, preberite podatke in ga prevzemite v obravnavo.
-            Določite odgovorno osebo in rok, zapišite dogovor ter po opravljeni
+            Odprite prejeto oddajo ali ustvarite interni nalog. Določite odgovorno osebo in rok, zapišite dogovor ter po opravljeni
             obravnavi zaključite nalog.
           </p>
         </div>
@@ -1125,7 +1124,7 @@ export default function WorkQueue({
                       {
                         (
                           {
-                            sent: "posredovano storitvi Resend",
+                            sent: "sprejeto pri ponudniku e-pošte; prejem v predal ni potrjen",
                             pending: "čaka na pošiljanje",
                             failed: "pošiljanje ni uspelo",
                             "not-queued": "ni v čakalni vrsti",

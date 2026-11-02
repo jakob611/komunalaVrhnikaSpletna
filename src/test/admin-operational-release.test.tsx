@@ -197,7 +197,7 @@ it.each(["cancelled", "complete"])(
     ).toBeNull();
     if (status === "cancelled")
       expect(
-        screen.getByText(/Priprava te različice je preklicana/),
+        screen.getByText(/Pošiljanje te različice je preklicano/),
       ).toBeTruthy();
   },
 );

@@ -139,7 +139,7 @@ export default function CemeteryEditor({
       )
     ) {
       setError(
-        "Nekateri potrjeni grobovi bi segali zunaj novih mer. Izberite umik položajev ali večji načrt.",
+        "Nekateri grobovi s potrjenim položajem bi segali zunaj novih mer. Umaknite njihove položaje ali izberite večji načrt.",
       );
       return false;
     }
@@ -231,7 +231,7 @@ export default function CemeteryEditor({
       <div className="notice-editor-guide">
         <h2>Grobna mesta in osebe</h2>
         <p>
-          Dodajte sektor → vrsto → grobna mesta → osebe. Položaje določite na
+          Najprej dodajte sektor in vrsto, nato grobna mesta in osebe. Položaje določite na
           načrtu. Spremembe postanejo javne šele z »Shrani in objavi« na vrhu.
         </p>
         <p>

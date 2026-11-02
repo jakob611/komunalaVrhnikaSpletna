@@ -901,8 +901,7 @@ export default function LayoutEditor({
           </button>
         </div>
         <p>
-          Stran objavite s shranjevanjem. Da bo dosegljiva, dodajte povezavo v
-          meni ali gumb.
+          Stran objavite z gumbom »Shrani in objavi«. Da jo bodo obiskovalci lahko našli, dodajte povezavo v meni ali gumb.
         </p>
       </details>
     </div>

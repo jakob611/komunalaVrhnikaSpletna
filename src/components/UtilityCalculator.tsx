@@ -98,14 +98,14 @@ export default function UtilityCalculator() {
     <CmsLayout>
       <header key={nativeSection("UtilityCalculator.page-intro")} className="page-intro">
         <div className="eyebrow">CENIK IN MESEČNI STROŠKI</div>
-        <h1><CmsText id="UtilityCalculator.h1-1">{"Izračunajte strošek za svoj dom."}</CmsText></h1>
+        <h1><CmsText id="UtilityCalculator.h1-1">{"Informativni izračun komunalnih storitev"}</CmsText></h1>
         <p>
-          <CmsText id="UtilityCalculator.p-1">{"Izberite občino in prepišite porabo ter število oseb z računa. Videli boste posamezne postavke, omrežnino in DDV."}</CmsText></p>
+          <CmsText id="UtilityCalculator.p-1">{"Izberite občino in storitve ter vnesite podatke z računa. Izračun prikaže mesečni strošek po postavkah z omrežnino in DDV."}</CmsText></p>
       </header>
       <div key={nativeSection("UtilityCalculator.utility-workspace")} className="utility-workspace">
         <form className="panel utility-form" onSubmit={submit}>
           <h2>
-            <Calculator size={23} /> <CmsText id="UtilityCalculator.h2-1">{"Vaši podatki"}</CmsText></h2>
+            <Calculator size={23} /> <CmsText id="UtilityCalculator.h2-1">{"Podatki za izračun"}</CmsText></h2>
           <label className="field">
             <span>Občina odjemnega mesta</span>
             <select
@@ -234,7 +234,7 @@ export default function UtilityCalculator() {
                   ))}
                 </select>
                 <small>
-                  <CmsText id="UtilityCalculator.small-4">{"Za začetni izračun velja DN 15/20 (faktor 1). DN je premer, ne višina ali odčitek vodomera. Poiščite ga na računu pri omrežnini; za stanovanje brez svojega obračunskega vodomera se praviloma uporabi DN 20."}</CmsText></small>
+                  <CmsText id="UtilityCalculator.small-4">{"Začetna izbira je DN 15/20 (faktor 1). Premer vodomera (DN) poiščite na računu pri omrežnini. Za stanovanje brez svojega obračunskega vodomera se praviloma uporabi DN 20."}</CmsText></small>
               </label>
             )}
             <label className="field">
@@ -288,7 +288,7 @@ export default function UtilityCalculator() {
                 {result.deductionCents
                   ? "Po vnesenem znižanju."
                   : "Po polnem ceniku, z DDV."}{" "}
-                <CmsText id="UtilityCalculator.p-7">{"Vključeni DDV: "}</CmsText>{money(result.vatCents)}
+                <CmsText id="UtilityCalculator.p-7">{"Vključen DDV: "}</CmsText>{money(result.vatCents)}
                 {result.deductionCents ? " pred znižanjem" : ""}{"."}</p>
               <dl className="utility-input-summary" aria-label="Podatki in predpostavke izračuna">
                 <div><dt>Obseg</dt><dd>{submitted.scope === "waste" ? "Samo odpadki" : submitted.scope === "water"
@@ -342,7 +342,7 @@ export default function UtilityCalculator() {
                           <td>{money(result.beforeDeductionCents)}</td>
                         </tr>
                         <tr>
-                          <th colSpan={2}>Vaše vneseno znižanje</th>
+                          <th colSpan={2}>Vneseno znižanje</th>
                           <td>−{money(result.deductionCents)}</td>
                         </tr>
                       </>
@@ -381,7 +381,7 @@ export default function UtilityCalculator() {
             <div>
               <strong><CmsText id="UtilityCalculator.strong-1">{"Kaj vključuje ocena?"}</CmsText></strong>
               <p>
-                <CmsText id="UtilityCalculator.p-11">{"Izbrane redne storitve gospodinjstva za cel mesec. Odpadki uporabljajo obračunske količine na osebo iz uradne priloge, ne dejansko stehtanih odpadkov. Posebna dela, delitev skupnega računa, poračuni, oprostitve, padavinske vode in poslovni odjem niso vključeni."}</CmsText></p>
+                <CmsText id="UtilityCalculator.p-11">{"Izračun vključuje izbrane redne storitve gospodinjstva za cel mesec. Pri odpadkih se uporabijo obračunske količine na osebo iz uradne priloge, ne dejanska teža odpadkov. Posebna dela, delitev skupnega računa, poračuni, oprostitve, padavinske vode in poslovni odjem niso vključeni."}</CmsText></p>
               <p>
                 <CmsText id="UtilityCalculator.p-12">{"Pri greznici/MKČN sta vključena redna mesečna storitev in ustrezna dajatev; izrednega praznjenja ne prištevamo."}</CmsText></p>
             </div>

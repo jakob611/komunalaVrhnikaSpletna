@@ -38,7 +38,7 @@ export default function ServicePriceGuide({ service }: { service: string }) {
   );
   return (
     <div className="utility-service-price">
-      <h3>Kakšen strošek lahko pričakujete?</h3>
+      <h3>Cene in obračun storitve</h3>
       {service === "bulky" && (
         <p>
           Kosovne odpadke iz gospodinjstva lahko sami brezplačno pripeljete v
@@ -77,8 +77,8 @@ export default function ServicePriceGuide({ service }: { service: string }) {
           <details>
             <summary>Cene in pogoji</summary>
             <p>
-              Končni znesek je odvisen od količine in obsega. Tukaj preverite,
-              kaj se obračuna posebej.
+              Končni znesek je odvisen od količine in obsega del. Spodaj so
+              navedene posamezne postavke in pogoji obračuna.
             </p>
             <ul>
               {prices.map((price) => (

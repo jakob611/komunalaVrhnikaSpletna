@@ -105,7 +105,7 @@ export default function AdminUsers({
       setUsers((await api()).items);
       setScopeDrafts({});
       setNotice(
-        "Področje dostopa je spremenjeno. Aktivni urednik se mora ponovno prijaviti.",
+        "Dostop je spremenjen. Urednik se mora pred nadaljevanjem znova prijaviti.",
       );
     } catch (cause) {
       setError(
@@ -158,7 +158,7 @@ export default function AdminUsers({
       <header>
         <div>
           <p className="eyebrow">DOSTOP IN VARNOST</p>
-          <h2 id="admin-users-title">Vsak urednik ima svoj dostop.</h2>
+          <h2 id="admin-users-title">Uporabniki in dostopi</h2>
           <p>
             Samo lastnik upravlja povabila. Vsaka prijava zahteva osebno geslo
             in novo enkratno kodo iz e-pošte.
@@ -226,10 +226,10 @@ export default function AdminUsers({
         </button>
       </form>
       <p className="admin-users-help">
-        Povabilo velja 24 ur. Novi urednik v povezavi določi svoje geslo, dolgo
+        Povabilo velja 24 ur. Novi urednik odpre povezavo in določi geslo, dolgo
         vsaj 12 znakov. Dostop do vsebin ne omogoča vpogleda v zasebne oddaje in
         naslove naročnikov. Obstoječi uredniki ohranijo dosedanji dostop, dokler
-        ga lastnik ne spremeni. Dodajanje ljudi ostane lastniku.
+        ga lastnik ne spremeni. Nove urednike lahko povabi samo lastnik.
       </p>
       {busy && !loaded && <p role="status">Nalagam dostope …</p>}
       <ul className="admin-user-list">
@@ -247,7 +247,7 @@ export default function AdminUsers({
             </div>
             {person.role === "owner" ? (
               <span className="admin-owner-badge">
-                <ShieldCheck size={16} /> Zaščiten lastnik
+                <ShieldCheck size={16} /> Dostopa lastnika ni mogoče preklicati
               </span>
             ) : (
               <div className="admin-user-actions">
