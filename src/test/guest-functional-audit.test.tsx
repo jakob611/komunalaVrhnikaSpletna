@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import defaults from "../../shared/site-defaults.json";
@@ -198,6 +198,71 @@ describe("published information and self-service", () => {
 });
 
 describe("guest forms and remaining interactive pages", () => {
+  it.each(["contact", "report", "service"])("a late %s acknowledgement identifies the earlier values and preserves their reference", async kind => {
+    let finish!: (value: Response) => void;
+    const fetcher = vi.fn().mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }))
+      .mockResolvedValue(response({id:"current-values-receipt"}));
+    vi.stubGlobal("fetch", fetcher);
+    show(kind === "contact" ? <ContactPage/> : kind === "report" ? <ReportPage/> : <ServicesPage/>);
+    const field = document.querySelector<HTMLTextAreaElement>(`textarea[name="${kind === "report" ? "description" : "message"}"]`)!;
+    fireEvent.change(field, {target:{value:"Original values submitted for handling."}});
+    const form = field.closest("form")!;
+    fireEvent.submit(form);
+    fireEvent.change(field, {target:{value:"Changed while waiting; this has not been submitted."}});
+    await act(async () => finish(response({id:"original-values-receipt"})));
+    const acknowledgement = screen.getByText(kind === "contact" ? "Prejšnje sporočilo je shranjeno." : "Prejšnja oddaja je shranjena.").closest('[role="status"]')!;
+    expect(acknowledgement.textContent).toContain("original-values-receipt");
+    expect(acknowledgement.textContent).toContain("še niso oddane");
+    expect(field.value).toContain("Changed while waiting");
+    const requestId = (call: number) => {
+      const body = fetcher.mock.calls[call][1].body;
+      return body instanceof FormData ? body.get("requestId") : JSON.parse(body).requestId;
+    };
+    const originalId = requestId(0);
+    // Restoring the submitted intent recovers its receipt without another case.
+    fireEvent.change(field, {target:{value:"Original values submitted for handling."}});
+    fireEvent.submit(form);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Spremembe, ki ste jih vnesli med čakanjem/)).toBeNull();
+    // A changed intent remains independently submit-able after the earlier success.
+    fireEvent.change(field, {target:{value:"A new request with genuinely changed contents."}});
+    fireEvent.submit(form);
+    await screen.findByText(/current-values-receipt/);
+    expect(requestId(1)).not.toBe(originalId);
+  });
+  it("a lost response after editing names the earlier attempt and preserves its retry identity", async () => {
+    let fail!: (reason: Error) => void;
+    const fetcher = vi.fn().mockImplementationOnce(() => new Promise<Response>((_resolve, reject) => {fail=reject;}))
+      .mockResolvedValue(response({id:"recovered-receipt"}));
+    vi.stubGlobal("fetch", fetcher);
+    show(<ContactPage/>);
+    const field = screen.getByLabelText("Vaše sporočilo · obvezno");
+    const form = field.closest("form")!;
+    fireEvent.change(field, {target:{value:"Original submission that might have reached the server."}});
+    fireEvent.submit(form);
+    fireEvent.change(field, {target:{value:"Later unsubmitted values."}});
+    await act(async()=>fail(new TypeError("lost connection")));
+    expect(screen.getByRole("alert").textContent).toContain("Prejšnje oddaje nismo mogli potrditi");
+    expect(screen.getByRole("alert").textContent).toContain("Spremenjeni podatki še niso oddani");
+    fireEvent.change(field, {target:{value:"Original submission that might have reached the server."}});
+    fireEvent.submit(form);
+    await screen.findByText(/recovered-receipt/);
+    expect(JSON.parse(fetcher.mock.calls[1][1].body).requestId).toBe(JSON.parse(fetcher.mock.calls[0][1].body).requestId);
+  });
+  it("removing a photo during report submission also distinguishes the earlier acknowledgement", async () => {
+    let finish!: (value: Response) => void;
+    vi.stubGlobal("fetch",vi.fn(()=>new Promise<Response>(resolve=>{finish=resolve;})));
+    vi.stubGlobal("URL",Object.assign(URL,{createObjectURL:vi.fn(()=>"blob:earlier-photo"),revokeObjectURL:vi.fn()}));
+    show(<ReportPage/>);
+    fireEvent.change(document.querySelector('input[type="file"]')!,{target:{files:[new File(["jpeg bytes"],"photo.jpg",{type:"image/jpeg"})]}});
+    const form=document.querySelector('textarea[name="description"]')!.closest("form")!;
+    fireEvent.submit(form);
+    fireEvent.click(screen.getByRole("button",{name:"Odstrani fotografijo"}));
+    await act(async()=>finish(response({id:"photo-was-submitted"})));
+    expect(screen.getByText("Prejšnja oddaja je shranjena.")).toBeTruthy();
+    expect(screen.getByText(/photo-was-submitted/)).toBeTruthy();
+    expect(screen.queryByRole("img",{name:"Predogled fotografije prijavljene težave"})).toBeNull();
+  });
   it("G16 an invalid report photo is removable and GPS refusal does not require coordinates", async () => {
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition: (_ok: unknown, fail: (error: object) => void) => fail({ code: 1 }) } });
     show(<ReportPage/>, "/prijavi?category=lighting");

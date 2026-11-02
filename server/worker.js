@@ -559,7 +559,7 @@ export async function handleRequest(request, env = {}, ctx) {
       throw new ApiError(400, "Izberite veljaven današnji ali prihodnji datum.");
     if (route === "/api/market") {
       const market = await readPublished(env, "market");
-      if (market.closedDates.includes(payload.date) || (market.dates.length && !market.dates.includes(payload.date)))
+      if (market.closedDates.includes(payload.date) || !market.dates.includes(payload.date))
         throw new ApiError(400, "Izbrani termin ni na voljo. Izberite objavljen termin tržnice.");
     }
     await verifyBot(request, env, token, route.slice(5), honeypot);

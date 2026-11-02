@@ -177,6 +177,26 @@ test("document routing returns real 404, public CMS pages, robots and sitemap wi
   } finally { env.DB.close(); }
 });
 
+test("market requires an explicit published future date even when the published list is empty", async () => {
+  const env = environment();
+  const proposed = addDays(ljubljanaDate(), 10);
+  const unlisted = addDays(ljubljanaDate(), 11);
+  const body = date => ({ name: contact.name, email: contact.email, consent: true, requestId: crypto.randomUUID(), date, stallType: "standard", products: "Doma pridelana zelenjava", "cf-turnstile-response": "token" });
+  const publish = value => env.DB.prepare("INSERT OR REPLACE INTO cms_content(section,value,revision,updated_at,source) VALUES('market',?,1,?,'test')").bind(JSON.stringify(value), Date.now()).run();
+  try {
+    await publish({dates:[],closedDates:[]});
+    assert.equal((await handleRequest(post("/api/market",body(proposed)),env)).status,400);
+    await publish({dates:[proposed],closedDates:[]});
+    assert.equal((await handleRequest(post("/api/market",body(unlisted)),env)).status,400);
+    await withVerifier("market",async()=>{
+      assert.equal((await handleRequest(post("/api/market",body(proposed)),env)).status,201);
+    });
+    await publish({dates:[unlisted],closedDates:[proposed]});
+    assert.equal((await handleRequest(post("/api/market",body(proposed)),env)).status,400);
+    assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM submissions").first()).n,1);
+  } finally {env.DB.close();}
+});
+
 test("operational publication read failures cannot reopen a closed market date", async () => {
   const env = environment();
   const proposed = addDays(ljubljanaDate(), 10);

@@ -81,20 +81,20 @@ describe("market dates reflect published availability before submitting", () => 
       screen.getByLabelText("Datum prijave").closest("fieldset")?.disabled,
     ).toBe(true);
   });
-  it("keeps open-date requests but rejects closed and past dates before sending any network request", () => {
+  it("treats an empty published list as unavailable and never invents Saturday options", () => {
     clock();
     state.market = { dates: [], closedDates: ["2026-11-07"] };
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     show();
-    const field = screen.getByLabelText("Datum prijave") as HTMLInputElement;
-    expect(field.type).toBe("date");
-    fireEvent.change(field, { target: { value: "2026-11-07" } });
+    const field = screen.getByLabelText("Datum prijave") as HTMLSelectElement;
+    expect(field.tagName).toBe("SELECT");
+    expect([...field.options].map(option=>option.value)).toEqual([""]);
+    expect(field.matches(":disabled")).toBe(true);
+    expect(screen.getByRole("status").textContent).toContain("ni objavljenih prihodnjih terminov");
+    expect(screen.getByRole("link", {name:"Vprašajte nas"}).getAttribute("href")).toBe("/kontakt");
     fireEvent.submit(field.closest("form")!);
-    expect(screen.getByRole("alert").textContent).toContain("ni na voljo");
-    fireEvent.change(field, { target: { value: "2026-10-01" } });
-    fireEvent.submit(field.closest("form")!);
-    expect(screen.getByRole("alert").textContent).toContain("že pretekel");
+    expect(screen.getByRole("alert").textContent).toContain("veljaven datum");
     expect(fetcher).not.toHaveBeenCalled();
   });
 });

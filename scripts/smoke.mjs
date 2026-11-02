@@ -8,17 +8,10 @@ const person = {
   phone: "040000000",
   consent: true,
 };
-const testDate = new Date();
-testDate.setUTCDate(testDate.getUTCDate() + 30);
 const publicContent = await fetch(`${base}/api/content`).then(r=>r.json());
 const market = publicContent.sections.market;
 const today = new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Ljubljana',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-let testMarketDate = market.dates.length ? [...market.dates].sort().find(day=>day>=today&&!market.closedDates.includes(day)) : undefined;
-if(!market.dates.length) for(let i=0;i<90;i++) {
-  const day=testDate.toISOString().slice(0,10);
-  if(!market.closedDates.includes(day)){testMarketDate=day;break;}
-  testDate.setUTCDate(testDate.getUTCDate()+1);
-}
+const testMarketDate = [...market.dates].sort().find(day=>day>=today&&!market.closedDates.includes(day));
 const health = await fetch(`${base}/api/health`).then((r) => r.json());
 assert.equal(health.ok, true);
 assert.notEqual(health.storage, "unavailable");

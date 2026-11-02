@@ -189,7 +189,7 @@ const sectionInfo: Record<
   },
   market: {
     name: "Tržnica",
-    description: "Termini, stojnice in podatki za prijavo.",
+    description: "Prijave so mogoče samo za objavljene prihodnje termine. Če je seznam terminov prazen, prijave niso omogočene. Zaprti termini niso na voljo.",
     group: "Vsebine",
   },
   cemetery: {

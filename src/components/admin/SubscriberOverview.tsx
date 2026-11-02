@@ -31,13 +31,15 @@ export default function SubscriberOverview({
   const [page, setPage] = useState(0);
   const cursor = cursors[page] || "";
   useEffect(() => {
+    const normalized = query.trim();
+    if (normalized === search) return;
     const timer = setTimeout(() => {
-      setSearch(query.trim());
+      setSearch(normalized);
       setCursors([""]);
       setPage(0);
     }, 250);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, search]);
   useEffect(() => {
     const controller = new AbortController();
     setData(null);

@@ -5,6 +5,7 @@ import {
   fireEvent,
   waitFor,
   within,
+  act,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminPage from "../pages/AdminPage";
@@ -496,7 +497,17 @@ it("AO30 subscriber controls reach older pages, return to previous pages and res
     screen.getByLabelText("Išči naročnike po e-pošti ali naslovu"),
     { target: { value: "reader050@example.test" } },
   );
-  await screen.findByText("reader050@example.test");
+  await waitFor(() => {
+    const filteredParams = new URL(
+      fetcher.mock.calls.at(-1)![0],
+      "https://audit.example",
+    ).searchParams;
+    expect(filteredParams.get("q")).toBe("reader050@example.test");
+    expect(filteredParams.get("cursor")).toBe("");
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByText("reader050@example.test")).toBeTruthy();
+    expect(screen.getByText(/^Stran 1 · prikazanih 1 naročnikov/)).toBeTruthy();
+  });
   expect(screen.getByText(/Za izbrano območje skupaj/).textContent).toContain(
     "potrjenih 75",
   );
@@ -512,6 +523,62 @@ it("AO30 subscriber controls reach older pages, return to previous pages and res
     .searchParams;
   expect(params.get("cursor")).toBe("");
   expect(params.get("district")).toBe("borovnica");
+});
+
+it("AO30 initial and whitespace-only search debounce never reset a quickly selected older page", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const row = (email: string) => ({
+      email,
+      address: "Verd 1, Vrhnika",
+      district_id: "vrhnika",
+      status: "active",
+      topics: ["water"],
+    });
+    const first = Array.from({ length: 50 }, (_, index) =>
+      row(`reader${index}@example.test`),
+    );
+    const fetcher = vi.fn(async (path: string) =>
+      new URL(path, "https://audit.example").searchParams.get("cursor")
+        ? Response.json({
+            items: [row("older@example.test")],
+            counts: { active: 51 },
+            nextCursor: null,
+          })
+        : Response.json({
+            items: first,
+            counts: { active: 51 },
+            nextCursor: "777:first-page",
+          }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    render(<SubscriberOverview districts={[]} />);
+    await act(async () => {});
+    expect(screen.getByText("reader0@example.test")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Naslednja stran naročnikov" }),
+    );
+    await act(async () => {});
+    expect(screen.getByText("older@example.test")).toBeTruthy();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(screen.getByText("older@example.test")).toBeTruthy();
+    expect(screen.getByText(/^Stran 2/)).toBeTruthy();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    fireEvent.change(
+      screen.getByLabelText("Išči naročnike po e-pošti ali naslovu"),
+      { target: { value: "   " } },
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(screen.getByText("older@example.test")).toBeTruthy();
+    expect(screen.getByText(/^Stran 2/)).toBeTruthy();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("AO32 campaign preview explicitly states that final recipients can change before queueing", () => {

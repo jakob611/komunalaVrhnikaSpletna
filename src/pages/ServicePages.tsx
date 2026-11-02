@@ -76,6 +76,7 @@ type Receipt = {
   id: string;
   message?: string;
   emailStatus?: "queued" | "disabled";
+  previousInput?: boolean;
 };
 const categories = {
   water: "Voda in kanalizacija",
@@ -158,7 +159,8 @@ function Result({
       <div className="svc-success" role="status" ref={result}>
         <CheckCircle2 size={23} />
         <div>
-          <strong>Vaša oddaja je shranjena.</strong>
+          <strong>{receipt.previousInput ? "Prejšnja oddaja je shranjena." : "Vaša oddaja je shranjena."}</strong>
+          {receipt.previousInput && <p>Potrditev velja za podatke ob oddaji. Spremembe, ki ste jih vnesli med čakanjem, še niso oddane.</p>}
           <p>
             Referenca: {receipt.id}.{" "}
             {receipt.message ||
@@ -183,8 +185,10 @@ function useSubmission() {
   const pending = useRef<{ fingerprint: string; id: string } | null>(null);
   const completed = useRef<{ fingerprint: string; receipt: Receipt } | null>(null);
   const sending = useRef(false);
+  const generation = useRef(0);
   async function submit(endpoint: string, payload: object | FormData) {
     if (sending.current) return false;
+    const submittedGeneration = generation.current;
     const fingerprint = submissionFingerprint(endpoint, payload);
     if (completed.current?.fingerprint === fingerprint) {
       setError("");
@@ -245,20 +249,20 @@ function useSubmission() {
         throw new Error(
           "Potrditve shranjevanja nismo prejeli. Preverite povezavo in poskusite znova.",
         );
-      setReceipt(data);
+      setReceipt({ ...data, previousInput: generation.current !== submittedGeneration });
       completed.current = { fingerprint, receipt: data };
       pending.current = null;
       return true;
     } catch (cause) {
-      setError(
+      const failure =
         cause instanceof Error && cause.name === "AbortError"
           ? "Strežnik se ni pravočasno odzval. Podatki ostajajo v obrazcu; poskusite znova."
           : cause instanceof TypeError
             ? "Povezava s strežnikom ni uspela. Preverite internetno povezavo in poskusite znova."
             : cause instanceof Error
               ? cause.message
-              : "Povezava ni uspela. Poskusite znova.",
-      );
+              : "Povezava ni uspela. Poskusite znova.";
+      setError(generation.current === submittedGeneration ? failure : `Prejšnje oddaje nismo mogli potrditi. Spremenjeni podatki še niso oddani. ${failure}`);
       return false;
     } finally {
       window.clearTimeout(timeout);
@@ -273,6 +277,7 @@ function useSubmission() {
     error,
     submit,
     clearResult: () => {
+      generation.current += 1;
       setReceipt(null);
       setError("");
     },
@@ -721,6 +726,7 @@ export function ReportPage() {
     );
   }
   function removePhoto() {
+    submission.clearResult();
     if (fileInput.current) fileInput.current.value = "";
     setPreview("");
     setFileName("");
@@ -905,6 +911,7 @@ export function ReportPage() {
                       locationRequest.current += 1;
                       setLocating(false);
                       setPosition(null);
+                      submission.clearResult();
                       setDraftPosition(null);
                       setMapOpen(false);
                     }}
@@ -1405,24 +1412,14 @@ export function MarketPage() {
         ? rates.marketCraft
         : rates.marketStandard;
   const dateOptions = useMemo(() => {
-    if (market.dates.length)
-      return market.dates
+    return market.dates
         .filter((date) => date >= today() && !market.closedDates.includes(date))
         .sort();
-    const start = new Date(today()+'T12:00:00Z');
-    const result = [];
-    for (let i = 0; i < 35 && result.length < 4; i++) {
-      const day = new Date(start);
-      day.setUTCDate(start.getUTCDate() + i);
-      if (day.getUTCDay() === 6)result.push(day.toISOString().slice(0,10));
-    }
-    return result.filter((date) => !market.closedDates.includes(date));
   }, [market]);
-  const datesRestricted=market.dates.length>0;
-  const noUpcomingDates=datesRestricted&&!dateOptions.length;
+  const noUpcomingDates=!dateOptions.length;
   function chooseDate(value:string){setDate(value);setDateError('');submission.clearResult();}
   useEffect(()=>{
-    if(date&&(date<today()||market.closedDates.includes(date)||(datesRestricted&&!dateOptions.includes(date)))) {
+    if(date&&!dateOptions.includes(date)) {
       setDate('');setDateError('Termini so bili posodobljeni. Izberite nov datum prijave.');submission.clearResult();
     }
   },[market,dateOptions]);
@@ -1469,7 +1466,7 @@ export function MarketPage() {
               const selected=String(values.date||'');
               if(!/^\d{4}-\d{2}-\d{2}$/.test(selected)||!Number.isFinite(Date.parse(selected+'T12:00:00Z'))||new Date(selected+'T12:00:00Z').toISOString().slice(0,10)!==selected) {setDateError('Izberite veljaven datum prijave.');return;}
               if(selected<today()){setDateError('Izbrani datum je že pretekel. Izberite prihodnji termin.');return;}
-              if(market.closedDates.includes(selected)||(datesRestricted&&!dateOptions.includes(selected))){setDateError('Izbrani termin ni na voljo. Izberite drug objavljen datum ali se obrnite na upravljavca.');return;}
+              if(!dateOptions.includes(selected)){setDateError('Izbrani termin ni na voljo. Izberite drug objavljen datum ali se obrnite na upravljavca.');return;}
               setDateError('');
               await submission.submit("/api/market", {
                 ...values,
@@ -1480,17 +1477,9 @@ export function MarketPage() {
           >
             <fieldset disabled={submission.busy||noUpcomingDates} style={{border:0,padding:0,minWidth:0}}>
             <Field label="Datum prijave">
-              {datesRestricted?<select name="date" required value={date} onChange={event=>chooseDate(event.target.value)} aria-describedby="market-date-help"><option value="" disabled>Izberite objavljen datum</option>{dateOptions.map(day=><option key={day} value={day}>{dateLabel(day)}</option>)}</select>:<input
-                name="date"
-                required
-                type="date"
-                min={today()}
-                value={date}
-                onChange={(event) => chooseDate(event.target.value)}
-                aria-describedby="market-date-help"
-              />}
+              <select name="date" required value={date} onChange={event=>chooseDate(event.target.value)} aria-describedby="market-date-help"><option value="" disabled>Izberite objavljen datum</option>{dateOptions.map(day=><option key={day} value={day}>{dateLabel(day)}</option>)}</select>
             </Field>
-            <p id="market-date-help" className="svc-small">{datesRestricted?'Izberete lahko samo objavljene prihodnje termine. Izbira še ne potrdi razpoložljivosti stojnice.':'Vnesite želeni datum; termin in razpoložljivost potrdi upravljavec. Zaprti datumi niso na voljo.'}</p>
+            <p id="market-date-help" className="svc-small">Izberete lahko samo objavljene prihodnje termine. Izbira še ne potrdi razpoložljivosti stojnice.</p>
             {dateError&&<p className="svc-error" role="alert">{dateError}</p>}
             <div className="svc-step">
               <span>02</span>
@@ -2047,7 +2036,8 @@ function ContactForm() {
           <div className="svc-success" role="status" ref={receiptElement}>
             <CheckCircle2 size={23} />
             <div>
-              <strong><CmsText id="ContactForm.strong-1">{"Sporočilo je shranjeno."}</CmsText></strong>
+              <strong>{submission.receipt.previousInput ? "Prejšnje sporočilo je shranjeno." : <CmsText id="ContactForm.strong-1">{"Sporočilo je shranjeno."}</CmsText>}</strong>
+              {submission.receipt.previousInput && <p>Potrditev velja za podatke ob oddaji. Spremembe, ki ste jih vnesli med čakanjem, še niso oddane.</p>}
               <p>
                 <CmsText id="ContactForm.p-4">{"Referenca: "}</CmsText>{submission.receipt.id}{"."}{" "}
                 {submission.receipt.message ||
