@@ -1,4 +1,5 @@
 import template from './email-template.generated.js';
+import { publicOrigin } from './public-origin.js';
 import { Buffer } from 'node:buffer';
 import { notificationRecipient } from './notification-settings.js';
 import { subscriberDeliveryAllowed } from './subscriptions.js';
@@ -46,7 +47,7 @@ export function notification(record, env) {
   const detailsHtml = lines.map(line=>mapUrl&&line===`Lokacija na zemljevidu: ${mapUrl}`
     ? `Lokacija na zemljevidu: <a href="${escapeHtml(mapUrl)}">Odpri lokacijo v Google Zemljevidih</a>`
     : escapeHtml(line)).join('<br/>');
-  const adminUrl = `https://kpv.jakobtominc.com/admin?case=${encodeURIComponent(record.id)}`;
+  const adminUrl = `${publicOrigin(env)}/admin?case=${encodeURIComponent(record.id)}`;
   return {
     from: env.EMAIL_FROM, to: [env.EMAIL_TO], reply_to: record.payload.email,
     subject: `[KPV] ${title} · ${record.id.slice(0, 12)}`,

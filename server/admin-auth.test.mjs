@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { localD1 } from "./local-d1.mjs";
 import { handleAdmin } from "./admin.js";
-import { hashAdminPassword } from "./admin-auth.js";
+import { hashAdminPassword, requireAdminScope } from "./admin-auth.js";
 import {
   createTestSession,
   installTestMail,
@@ -45,6 +45,202 @@ function request(
 }
 const call = (env, path, data, session, method, extra) =>
   handleAdmin(request(path, data, session, method, extra), env);
+
+test("owner assigns a limited editorial scope and changing access invalidates an existing editor session", async () => {
+  const env = environment(),
+    owner = await createTestSession(env);
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/users",
+        { email: "limited@example.com", accessScope: "content" },
+        owner,
+      )
+    ).status,
+    201,
+  );
+  const message = env.AUTH_TEST_MAIL.at(-1);
+  const enrolled = await call(env, "/api/admin/enroll", {
+    email: "limited@example.com",
+    challengeId: message.text.match(/\?invite=([a-f0-9]{64})/)[1],
+    code: message.text.match(/Koda: (\d{8})/)[1],
+    password: "editor-test-only-password",
+  });
+  assert.equal(enrolled.status, 200);
+  const editor = await createTestSession(env, {
+    email: "limited@example.com",
+    password: "editor-test-only-password",
+    ip: "192.0.2.11",
+  });
+  assert.equal(editor.user.accessScope, "content");
+  assert.equal(editor.scope, "content");
+  for (const path of [
+    "/api/admin/work",
+    "/api/admin/subscribers",
+    "/api/admin/submissions",
+    "/api/admin/submissions/KPV-private/photo",
+  ])
+    assert.equal((await call(env, path, undefined, editor)).status, 403, path);
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/notice-delivery",
+        { noticeId: "private", revision: 0 },
+        editor,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/privacy/preview",
+        { reference: "citizen@example.com" },
+        editor,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await call(env, "/api/admin/content", undefined, editor)).status,
+    200,
+  );
+  assert.equal(
+    (await call(env, "/api/admin/media", undefined, editor)).status,
+    200,
+  );
+  requireAdminScope({ role: "editor", accessScope: "content" }, "content");
+  assert.throws(
+    () =>
+      requireAdminScope(
+        { role: "editor", accessScope: "content" },
+        "operations",
+      ),
+    (e) => e.status === 403,
+  );
+  requireAdminScope({ role: "owner", accessScope: "content" }, "operations");
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/users/scope",
+        { email: "limited@example.com", accessScope: "operations" },
+        editor,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/users/scope",
+        { email: "limited@example.com", accessScope: "operations" },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await call(env, "/api/admin/session", undefined, editor)).status,
+    401,
+  );
+  const operations = await createTestSession(env, {
+    email: "limited@example.com",
+    password: "editor-test-only-password",
+    ip: "192.0.2.12",
+  });
+  for (const path of [
+    "/api/admin/work",
+    "/api/admin/subscribers",
+    "/api/admin/submissions",
+  ])
+    assert.equal(
+      (await call(env, path, undefined, operations)).status,
+      200,
+      path,
+    );
+  for (const path of [
+    "/api/admin/content",
+    "/api/admin/media",
+    "/api/admin/history/notices",
+  ])
+    assert.equal(
+      (await call(env, path, undefined, operations)).status,
+      403,
+      path,
+    );
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/content/notices",
+        { revision: 0, value: [] },
+        operations,
+        "PUT",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/restore/notices",
+        { revision: 0, currentRevision: 0 },
+        operations,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/privacy/preview",
+        { reference: "citizen@example.com" },
+        operations,
+      )
+    ).status,
+    403,
+  );
+  const users = await (
+    await call(env, "/api/admin/users", undefined, owner)
+  ).json();
+  assert.equal(
+    users.items.find((u) => u.email === "limited@example.com").accessScope,
+    "operations",
+  );
+  assert.equal(
+    (
+      await call(
+        env,
+        "/api/admin/users/scope",
+        { email: "owner@example.com", accessScope: "content" },
+        owner,
+      )
+    ).status,
+    400,
+  );
+  env.DB.close();
+});
+
+test("authentication email links use the configured production origin", async () => {
+  const env = environment();
+  env.PUBLIC_ORIGIN = "https://komunala.example";
+  await createTestSession(env);
+  assert.ok(
+    env.AUTH_TEST_MAIL.at(-1).text.includes("https://komunala.example/admin"),
+  );
+  assert.equal(
+    env.AUTH_TEST_MAIL.at(-1).text.includes("kpv.jakobtominc.com"),
+    false,
+  );
+  env.DB.close();
+});
 const latestCode = (env) =>
   env.AUTH_TEST_MAIL.at(-1).text.match(/Koda: (\d{8})/)[1];
 async function begin(env, address = "owner@example.com", pass = password) {

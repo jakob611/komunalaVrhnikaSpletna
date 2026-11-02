@@ -16,7 +16,8 @@ export type AdminSession = {
   authenticated: true;
   csrfToken: string;
   expiresAt: string | number;
-  user: { email: string; role: "owner" | "editor" };
+  scope?: 'all' | 'content' | 'operations';
+  user: { email: string; role: "owner" | "editor"; accessScope?: 'all' | 'content' | 'operations' };
 };
 type Challenge = {
   verificationRequired: true;

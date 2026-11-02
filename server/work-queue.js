@@ -304,6 +304,13 @@ async function createInternalTask(env, raw, fail, actor) {
     category,
     address,
     createdBy: creator,
+    // Preserve the complete creation request independently of later case edits.
+    // Retrying a request with changed assignment/priority/date is a conflict.
+    initialTreatment: {
+      priority: data.priority,
+      assignee: data.assignee,
+      dueDate: data.dueDate,
+    },
   });
   // Internal tasks never enter the public submission or email-sending paths.
   await env.DB.batch([

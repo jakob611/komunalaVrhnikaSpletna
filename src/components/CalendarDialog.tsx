@@ -46,7 +46,7 @@ export function CalendarDialog({
     [repeat, setRepeat] = useState(false),
     [outlookWork, setOutlookWork] = useState(false),
     [opened, setOpened] = useState(false);
-  const links = calendarLinks({ event, address, routeId, outlookWork });
+  const links = calendarLinks({ event, address, routeId, outlookWork, origin: window.location.origin });
   const series = events.filter((item) => item.type === event.type);
   const destination =
     repeat && links.upcoming ? links.upcoming[calendar] : links.once[calendar];
@@ -202,6 +202,7 @@ export function CalendarDialog({
               </small>
             </span>
           </label>
+          {!links.upcoming && <p className="calendar-action-note">Za ta odvoz lahko dodate posamezni datum. Naročnina na prihodnje termine je na voljo, ko je potrjeno odvozno območje.</p>}
           {repeat && (
             <details className="calendar-help">
               <summary>Trenutno objavljeni datumi ({series.length})</summary>

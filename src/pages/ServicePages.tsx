@@ -1,9 +1,10 @@
+import { CmsText } from "../content/ContentFields";
 import SubscriptionForm from "../components/SubscriptionForm";
 import UtilityCalculator from "../components/UtilityCalculator";
 import ServicePriceGuide from "../components/ServicePriceGuide";
 import MapPointLink from '../components/MapPointLink';
 import {validCoordinates} from '../../shared/location.js';
-import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
+import { CmsLayout, nativeSection, cmsNative, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import {
   useEffect,
   useMemo,
@@ -12,7 +13,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import {
   MapContainer,
   TileLayer,
@@ -57,6 +58,8 @@ import BotProtection, { resetProtection } from "../components/BotProtection";
 import AnimatedDisclosure from "../components/AnimatedDisclosure";
 import { useSiteContent, telephone } from "../content/SiteContent";
 import "./services.css";
+import { submissionFingerprint } from "../content/submission-request";
+import { readSavedAddress as rememberedAddress } from "../data/saved-address";
 
 type Notice = {
   id: string;
@@ -98,13 +101,6 @@ const dateLabel = (date: string) =>
   }).format(new Date(date.slice(0, 10) + "T12:00:00"));
 const today = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Ljubljana" });
-const rememberedAddress = () => {
-  try {
-    return localStorage.getItem("kpv-address") || "";
-  } catch {
-    return "";
-  }
-};
 
 function Intro({
   eyebrow,
@@ -115,11 +111,12 @@ function Intro({
   title: string;
   children: ReactNode;
 }) {
+  const { pathname } = useLocation();
   return (
     <header className="page-intro">
       <div className="eyebrow">{eyebrow}</div>
-      <h1>{title}</h1>
-      <p>{children}</p>
+      <h1><CmsText id={`intro:${pathname}:title`}>{title}</CmsText></h1>
+      <p>{typeof children === "string" ? <CmsText id={`intro:${pathname}:description`}>{children}</CmsText> : children}</p>
     </header>
   );
 }
@@ -183,7 +180,17 @@ function useSubmission() {
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [error, setError] = useState("");
+  const pending = useRef<{ fingerprint: string; id: string } | null>(null);
+  const completed = useRef<{ fingerprint: string; receipt: Receipt } | null>(null);
+  const sending = useRef(false);
   async function submit(endpoint: string, payload: object | FormData) {
+    if (sending.current) return false;
+    const fingerprint = submissionFingerprint(endpoint, payload);
+    if (completed.current?.fingerprint === fingerprint) {
+      setError("");
+      setReceipt(completed.current.receipt);
+      return true;
+    }
     setError("");
     setReceipt(null);
     const action = endpoint.replace("/api/", "");
@@ -203,6 +210,12 @@ function useSubmission() {
       );
       return false;
     }
+    if (pending.current?.fingerprint !== fingerprint)
+      pending.current = { fingerprint, id: crypto.randomUUID() };
+    const requestId = pending.current.id;
+    const body = payload instanceof FormData ? payload : { ...payload, requestId };
+    if (body instanceof FormData) body.set("requestId", requestId);
+    sending.current = true;
     setBusy(true);
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 20000);
@@ -212,7 +225,7 @@ function useSubmission() {
         method: "POST",
         signal: controller.signal,
         headers: isForm ? undefined : { "Content-Type": "application/json" },
-        body: isForm ? payload : JSON.stringify(payload),
+        body: isForm ? body as FormData : JSON.stringify(body),
       });
       let data;
       try {
@@ -233,6 +246,8 @@ function useSubmission() {
           "Potrditve shranjevanja nismo prejeli. Preverite povezavo in poskusite znova.",
         );
       setReceipt(data);
+      completed.current = { fingerprint, receipt: data };
+      pending.current = null;
       return true;
     } catch (cause) {
       setError(
@@ -248,6 +263,7 @@ function useSubmission() {
     } finally {
       window.clearTimeout(timeout);
       setBusy(false);
+      sending.current = false;
       resetProtection(action);
     }
   }
@@ -437,13 +453,13 @@ export function NoticesPage() {
   );
   return (
     <CmsLayout>
-      <Intro eyebrow="AKTUALNO V VAŠEM KRAJU" title="Vedno dobro obveščeni.">
+      <Intro key={nativeSection("NoticesPage.introduction")} eyebrow="AKTUALNO V VAŠEM KRAJU" title="Vedno dobro obveščeni.">
         Vzdrževalna dela, spremembe odvozov in druge informacije za lažji
         vsakdan. Vse na enem mestu.
       </Intro>
-      <p><Link className="text-link" to="/obvestila#narocilo"><Bell size={17}/>Prejemajte obvestila za svoj naslov po e-pošti<ArrowRight size={16}/></Link></p>
-      <Demo />
-      <div className="svc-filter-row">
+      <p key={nativeSection("NoticesPage.subscription-link")}><Link className="text-link" to="/obvestila#narocilo"><Bell size={17}/>Prejemajte obvestila za svoj naslov po e-pošti<ArrowRight size={16}/></Link></p>
+      <Demo key={nativeSection("NoticesPage.guidance")} />
+      <div key={nativeSection("NoticesPage.svc-filter-row")} className="svc-filter-row">
         <div className="svc-tabs" aria-label="Vrsta obvestil">
           <button
             aria-pressed={filter === "all"}
@@ -469,8 +485,8 @@ export function NoticesPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      {loading ? (
-        <p role="status">Nalagamo obvestila …</p>
+      {cmsNative(nativeSection("NoticesPage.results"), (loading ? (
+        <p role="status"><CmsText id="NoticesPage.p-1">{"Nalagamo obvestila …"}</CmsText></p>
       ) : error ? (
         <NoticeError error={error} retry={retry} />
       ) : shown.length ? (
@@ -478,11 +494,11 @@ export function NoticesPage() {
       ) : (
         <div className="empty-state">
           <Bell />
-          <h3>Ni obvestil za izbrani filter.</h3>
-          <p>Poskusite drug kraj ali izberite vse teme.</p>
+          <h3><CmsText id="NoticesPage.h3-1">{"Ni obvestil za izbrani filter."}</CmsText></h3>
+          <p><CmsText id="NoticesPage.p-2">{"Poskusite drug kraj ali izberite vse teme."}</CmsText></p>
         </div>
-      )}
-      <SubscriptionForm />
+      )))}
+      <SubscriptionForm key={nativeSection("NoticesPage.SubscriptionForm")} />
     </CmsLayout>
   );
 }
@@ -491,13 +507,13 @@ export function RoadsPage() {
   const roads = notices.filter((n) => n.category === "roads");
   return (
     <CmsLayout>
-      <Intro eyebrow="JAVNE POVRŠINE" title="Varno po naših poteh.">
+      <Intro key={nativeSection("RoadsPage.introduction")} eyebrow="JAVNE POVRŠINE" title="Varno po naših poteh.">
         Pregled del na cestah in javnih površinah. Ste opazili poškodbo ali
         nedelujočo svetilko? Sporočite nam lokacijo.
       </Intro>
-      <p><Link className="text-link" to="/obvestila#narocilo"><Bell size={17}/>Prejemajte obvestila o cestah in zaporah po e-pošti<ArrowRight size={16}/></Link></p>
-      <Demo />
-      <section className="svc-road-layout">
+      <p key={nativeSection("RoadsPage.subscription-link")}><Link className="text-link" to="/obvestila#narocilo"><Bell size={17}/>Prejemajte obvestila o cestah in zaporah po e-pošti<ArrowRight size={16}/></Link></p>
+      <Demo key={nativeSection("RoadsPage.guidance")} />
+      <section key={nativeSection("RoadsPage.svc-road-layout")} className="svc-road-layout">
         <div className="svc-map-wrap">
           <MapContainer
             center={[45.945, 14.325]}
@@ -545,43 +561,38 @@ export function RoadsPage() {
             <Wrench size={24} />
           </div>
           <h2>
-            Majhna prijava.
-            <br />
-            Velika sprememba.
-          </h2>
+            <CmsText id="RoadsPage.h2-1">{"Majhna prijava."}</CmsText><br />
+            <CmsText id="RoadsPage.h2-2">{"Velika sprememba."}</CmsText></h2>
           <p>
-            Poškodovan pločnik, ulična svetilka ali zabojnik? Dodajte
-            fotografijo in lokacijo v nekaj korakih.
-          </p>
+            <CmsText id="RoadsPage.p-1">{"Poškodovan pločnik, ulična svetilka ali zabojnik? Dodajte fotografijo in lokacijo v nekaj korakih."}</CmsText></p>
           <Link className="button" to="/prijavi">
             Prijavi težavo
             <ArrowRight size={17} />
           </Link>
           <p className="svc-small">
-            V nujnih primerih pokličite dežurno službo.
-          </p>
+            <CmsText id="RoadsPage.p-2">{"V nujnih primerih pokličite dežurno službo."}</CmsText></p>
         </aside>
       </section>
-      <div className="section-heading">
+      <div key={nativeSection("RoadsPage.section-heading")} className="section-heading">
         <div>
           <div className="eyebrow">PREGLED PO LOKACIJAH</div>
-          <h2>Dela in zapore</h2>
+          <h2><CmsText id="RoadsPage.h2-3">{"Dela in zapore"}</CmsText></h2>
         </div>
         <Link to="/obvestila">
           Vsa obvestila
           <ArrowRight size={16} />
         </Link>
       </div>
-      {loading ? (
-        <p>Nalagamo pregled …</p>
+      {cmsNative(nativeSection("RoadsPage.results"), (loading ? (
+        <p><CmsText id="RoadsPage.p-3">{"Nalagamo pregled …"}</CmsText></p>
       ) : error ? (
         <NoticeError error={error} retry={retry} />
       ) : roads.length ? (
         <NoticeCards notices={roads} />
       ) : (
-        <p className="empty-state">Ni objavljenih cestnih del.</p>
-      )}
-      <SubscriptionForm />
+        <p className="empty-state"><CmsText id="RoadsPage.p-4">{"Ni objavljenih cestnih del."}</CmsText></p>
+      )))}
+      <SubscriptionForm key={nativeSection("RoadsPage.SubscriptionForm")} />
     </CmsLayout>
   );
 }
@@ -630,6 +641,7 @@ function MapNavigation({ enabled }: { enabled: boolean }) {
   return null;
 }
 export function ReportPage() {
+  const { settings } = useSiteContent();
   const [params] = useSearchParams();
   const [category, setCategory] = useState("roads");
   const [address, setAddress] = useState("");
@@ -745,15 +757,15 @@ export function ReportPage() {
   ];
   return (
     <CmsLayout>
-      <Intro
+      <Intro key={nativeSection("ReportPage.introduction")}
         eyebrow="SKUPAJ ZA UREJEN KRAJ"
         title="Opazite. Sporočite. Uredimo."
       >
         Izberite težavo, opišite lokacijo in po želji dodajte fotografijo. Za
         prijavo zadošča tudi opis lokacije brez GPS.
       </Intro>
-      <Demo>Prijavo obravnava skrbnik portala. Za nujne okvare pokličite dežurno službo.</Demo>
-      <nav className="svc-report-steps" aria-label="Koraki prijave">
+      <Demo key={nativeSection("ReportPage.guidance")}>Prijavo obravnava skrbnik portala. Za nujne okvare pokličite dežurno službo.</Demo>
+      <nav key={nativeSection("ReportPage.svc-report-steps")} className="svc-report-steps" aria-label="Koraki prijave">
         {[
           ["1", "Težava", "tezava"],
           ["2", "Lokacija", "lokacija"],
@@ -766,7 +778,8 @@ export function ReportPage() {
           </CmsAnchor>
         ))}
       </nav>
-      <form
+      <form key={nativeSection("ReportPage.report-form")}
+        onChange={submission.clearResult}
         className="svc-report-layout"
         onSubmit={async (event) => {
           event.preventDefault();
@@ -785,7 +798,7 @@ export function ReportPage() {
           <section id="tezava" className="svc-report-step">
             <div className="svc-step">
               <span>01</span>
-              <h2>Kaj ste opazili?</h2>
+              <h2><CmsText id="ReportPage.h2-1">{"Kaj ste opazili?"}</CmsText></h2>
             </div>
             <div className="svc-type-grid">
               {reportOptions.map((item) => (
@@ -794,7 +807,7 @@ export function ReportPage() {
                   key={item.value}
                   className={category === item.value ? "selected" : ""}
                   aria-pressed={category === item.value}
-                  onClick={() => setCategory(item.value)}
+                  onClick={() => { setCategory(item.value); submission.clearResult(); }}
                 >
                   <item.icon size={23} />
                   <span>{item.title}</span>
@@ -818,11 +831,11 @@ export function ReportPage() {
           <section id="lokacija" className="svc-report-step">
             <div className="svc-step">
               <span>02</span>
-              <h2>Kje je težava?</h2>
+              <h2><CmsText id="ReportPage.h2-2">{"Kje je težava?"}</CmsText></h2>
             </div>
             <p className="svc-step-explanation">
-              Vpišite naslov ali opis, po katerem bomo našli težavo.{" "}
-              <strong>To ni nujno vaš domači naslov.</strong>
+              <CmsText id="ReportPage.p-1">{"Vpišite naslov ali opis, po katerem bomo našli težavo."}</CmsText>{" "}
+              <strong><CmsText id="ReportPage.strong-1">{"To ni nujno vaš domači naslov."}</CmsText></strong>
             </p>
             <Field label="Naslov ali opis mesta težave · obvezno">
               <input
@@ -837,15 +850,11 @@ export function ReportPage() {
               />
             </Field>
             <p className="svc-small" id="report-address-help">
-              Hišne številke ne poznate? Navedite kraj, ulico in bližnji objekt.
-              Domačega naslova sem ne prepišemo samodejno.
-            </p>
+              <CmsText id="ReportPage.p-2">{"Hišne številke ne poznate? Navedite kraj, ulico in bližnji objekt. Domačega naslova sem ne prepišemo samodejno."}</CmsText></p>
             <div className="svc-location-optional">
-              <strong>Natančna točka · neobvezno</strong>
+              <strong><CmsText id="ReportPage.strong-2">{"Natančna točka · neobvezno"}</CmsText></strong>
               <p>
-                Ste ob težavi? Uporabite lokacijo telefona. Sicer jo sami
-                označite na zemljevidu.
-              </p>
+                <CmsText id="ReportPage.p-3">{"Ste ob težavi? Uporabite lokacijo telefona. Sicer jo sami označite na zemljevidu."}</CmsText></p>
               <div className="svc-location-actions">
                 <button
                   className="button secondary"
@@ -874,9 +883,7 @@ export function ReportPage() {
               </div>
               {locating && (
                 <p className="svc-small" role="status">
-                  Brskalnik vas lahko vpraša za dovoljenje. Naslova s tem še ne
-                  določimo.
-                </p>
+                  <CmsText id="ReportPage.p-4">{"Brskalnik vas lahko vpraša za dovoljenje. Naslova s tem še ne določimo."}</CmsText></p>
               )}
               {geoError && (
                 <p className="svc-error" role="alert">
@@ -888,7 +895,7 @@ export function ReportPage() {
                 <div className="svc-location-confirmed" role="status">
                   <CheckCircle2 size={20} />
                   <div>
-                    <strong>Natančna točka je dodana.</strong>
+                    <strong><CmsText id="ReportPage.strong-3">{"Natančna točka je dodana."}</CmsText></strong>
                     <MapPointLink latitude={position[0]} longitude={position[1]} label="Preveri točko v Google Zemljevidih"/>
                   </div>
                   <button
@@ -910,7 +917,7 @@ export function ReportPage() {
               <AnimatedDisclosure open={mapOpen}>
                 <div id="report-map" className="svc-report-map-picker">
                   <div className="svc-map-picker-heading">
-                    <strong>Izberite mesto težave</strong>
+                    <strong><CmsText id="ReportPage.strong-4">{"Izberite mesto težave"}</CmsText></strong>
                     <p>
                       {positionSource === "telefon" && draftPosition
                         ? "Preverite predlagano lokacijo telefona. Ta ni nujno točno mesto težave."
@@ -965,6 +972,7 @@ export function ReportPage() {
                       disabled={!draftPosition}
                       onClick={() => {
                         setPosition(draftPosition);
+                        submission.clearResult();
                         setMapOpen(false);
                       }}
                     >
@@ -983,9 +991,7 @@ export function ReportPage() {
                     </button>
                   </div>
                   <p className="svc-small">
-                    Zemljevid dopolnjuje opis lokacije. Če zemljevid ne deluje,
-                    lahko prijavo oddate samo z opisom.
-                  </p>
+                    <CmsText id="ReportPage.p-5">{"Zemljevid dopolnjuje opis lokacije. Če zemljevid ne deluje, lahko prijavo oddate samo z opisom."}</CmsText></p>
                 </div>
               </AnimatedDisclosure>
             </div>
@@ -994,13 +1000,11 @@ export function ReportPage() {
             <div className="svc-step">
               <span>03</span>
               <h2>
-                Dodajte fotografijo <small>neobvezno</small>
+                <CmsText id="ReportPage.h2-3">{"Dodajte fotografijo "}</CmsText><small><CmsText id="ReportPage.small-1">{"neobvezno"}</CmsText></small>
               </h2>
             </div>
             <p className="svc-step-explanation">
-              Fotografija pomaga razumeti težavo. Če je nimate, nadaljujte na
-              kontakt.
-            </p>
+              <CmsText id="ReportPage.p-6">{"Fotografija pomaga razumeti težavo. Če je nimate, nadaljujte na kontakt."}</CmsText></p>
             <div className="svc-photo">
               <label>
                 <Upload size={22} />
@@ -1074,11 +1078,10 @@ export function ReportPage() {
           <section id="kontakt-prijave" className="svc-report-step">
             <div className="svc-step">
               <span>04</span>
-              <h2>Vaš kontakt</h2>
+              <h2><CmsText id="ReportPage.h2-4">{"Vaš kontakt"}</CmsText></h2>
             </div>
             <p className="svc-step-explanation">
-              Kontakt uporabimo za obravnavo vaše prijave. Samodejnega odgovora po e-pošti ne pošiljamo.
-            </p>
+              <CmsText id="ReportPage.p-7">{"Kontakt uporabimo za obravnavo vaše prijave. Samodejnega odgovora po e-pošti ne pošiljamo."}</CmsText></p>
             <div className="form-grid">
               <Field label="Ime in priimek · obvezno">
                 <input
@@ -1087,7 +1090,7 @@ export function ReportPage() {
                   required
                   autoComplete="name"
                   maxLength={100}
-                  placeholder="Testna oseba"
+                  placeholder="Janez Novak"
                 />
               </Field>
               <Field label="E-poštni naslov · obvezno">
@@ -1096,16 +1099,14 @@ export function ReportPage() {
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="test@primer.si"
+                  placeholder="janez@primer.si"
                 />
               </Field>
             </div>
             <Consent />
             {mapOpen && (
               <p className="svc-small">
-                Odprto točko potrdite, če jo želite dodati. Ob oddaji se pošlje
-                samo že potrjena točka.
-              </p>
+                <CmsText id="ReportPage.p-8">{"Odprto točko potrdite, če jo želite dodati. Ob oddaji se pošlje samo že potrjena točka."}</CmsText></p>
             )}
             <BotProtection action="reports" />
             <button
@@ -1121,23 +1122,21 @@ export function ReportPage() {
         <aside className="svc-report-guidance">
           <div className="svc-help">
             <Lightbulb size={24} />
-            <h3>Da bomo težavo lažje našli.</h3>
+            <h3><CmsText id="ReportPage.h3-1">{"Da bomo težavo lažje našli."}</CmsText></h3>
             <ul>
               <li>Pri svetilki dodajte številko droga, če je vidna.</li>
               <li>Pri cesti navedite smer vožnje in bližnji objekt.</li>
               <li>Pri zabojniku opišite vrsto odpadkov in zbirno mesto.</li>
             </ul>
-            <p>Za oddajo natančna GPS-točka in fotografija nista obvezni.</p>
+            <p><CmsText id="ReportPage.p-9">{"Za oddajo natančna GPS-točka in fotografija nista obvezni."}</CmsText></p>
           </div>
           <div className="svc-report-emergency">
             <Phone size={20} />
-            <strong>Potrebujete nujno pomoč?</strong>
+            <strong><CmsText id="ReportPage.strong-5">{"Potrebujete nujno pomoč?"}</CmsText></strong>
             <p>
-              Za nujne težave z javno infrastrukturo uporabite uradno dežurno
-              številko. Spletna prijava ni primerna za nujne primere.
-            </p>
-            <CmsAnchor href="tel:+38641364681">
-              041 364 681
+              <CmsText id="ReportPage.p-10">{"Za nujne težave z javno infrastrukturo uporabite uradno dežurno številko. Spletna prijava ni primerna za nujne primere."}</CmsText></p>
+            <CmsAnchor href={`tel:${telephone(settings.emergencyPhone)}`}>
+              {settings.emergencyPhone}
               <ArrowRight size={17} />
             </CmsAnchor>
           </div>
@@ -1155,6 +1154,8 @@ export function ServicesPage() {
   }));
   const [params] = useSearchParams();
   const [service, setService] = useState("bulky");
+  const savedExecutionAddress = rememberedAddress();
+  const [executionAddress, setExecutionAddress] = useState(rememberedAddress);
   useEffect(() => {
     const value = params.get("service");
     setService(
@@ -1170,11 +1171,11 @@ export function ServicesPage() {
   const guide = selectedService;
   return (
     <CmsLayout>
-      <Intro eyebrow="STORITVE ZA VAŠ DOM" title="Uredite kar od doma.">
+      <Intro key={nativeSection("ServicesPage.introduction")} eyebrow="STORITVE ZA VAŠ DOM" title="Uredite kar od doma.">
         Od odsluženega kavča do praznjenja greznice. Izberite storitev in nam
         zaupajte, kaj potrebujete.
       </Intro>
-      <div className="svc-service-tools">
+      <div key={nativeSection("ServicesPage.svc-service-tools")} className="svc-service-tools">
         <span>Iščete kaj drugega?</span>
         <Link to="/trznica">
           Tržnica
@@ -1193,12 +1194,12 @@ export function ServicesPage() {
           <Flower2 size={16} />
         </Link>
       </div>
-      <div className="svc-service-choice-heading">
+      <div key={nativeSection("ServicesPage.svc-service-choice-heading")} className="svc-service-choice-heading">
         <span className="eyebrow">01 · IZBIRA STORITVE</span>
-        <h2>Kaj želite urediti?</h2>
-        <p>Izbira spodaj prilagodi navodila in povpraševanje.</p>
+        <h2><CmsText id="ServicesPage.h2-1">{"Kaj želite urediti?"}</CmsText></h2>
+        <p><CmsText id="ServicesPage.p-1">{"Izbira spodaj prilagodi navodila in povpraševanje."}</CmsText></p>
       </div>
-      <div
+      <div key={nativeSection("ServicesPage.svc-service-grid")}
         className="svc-service-grid"
         role="group"
         aria-label="Izberite storitev"
@@ -1231,7 +1232,7 @@ export function ServicesPage() {
           </button>
         ))}
       </div>
-      <section className="svc-service-guide" key={service}>
+      <section className="svc-service-guide" key={nativeSection("ServicesPage.svc-service-guide")}>
         <div className="svc-service-guide-intro">
           <div>
             <span className="eyebrow">IZBRANA STORITEV</span>
@@ -1242,8 +1243,7 @@ export function ServicesPage() {
         <ServicePriceGuide service={service}/>
         <details>
           <summary>
-            Kaj pripraviti pred oddajo?
-            <ChevronDown size={18} />
+            <CmsText id="ServicesPage.summary-1">{"Kaj pripraviti pred oddajo?"}</CmsText><ChevronDown size={18} />
           </summary>
           <ul>
             {guide.prepare.map((item) => (
@@ -1265,19 +1265,17 @@ export function ServicesPage() {
           </Link>
         )}
       </section>
-      <div className="svc-two-column">
+      <div key={nativeSection("ServicesPage.svc-two-column")} className="svc-two-column">
         <section className="panel" id="povprasevanje">
           <div className="eyebrow">02 · OPIS IN KONTAKT</div>
           <h2>{serviceOptions.find((s) => s.value === service)?.title}</h2>
           <p>
-            Izpolnite kontakt, naslov izvedbe in opis. Želeni datum je neobvezen
-            in še ni potrjen termin.
-          </p>
+            <CmsText id="ServicesPage.p-2">{"Izpolnite kontakt, naslov izvedbe in opis. Želeni datum je neobvezen in še ni potrjen termin."}</CmsText></p>
           <p className="svc-small">
-            Vsa polja razen telefona in želenega datuma so obvezna.
-          </p>
+            <CmsText id="ServicesPage.p-3">{"Vsa polja razen telefona in želenega datuma so obvezna."}</CmsText></p>
           <Demo>Oddaja povpraševanja še ne potrjuje naročila ali termina. Po obravnavi se dogovorimo o izvedbi.</Demo>
           <form
+            onChange={submission.clearResult}
             onSubmit={async (event) => {
               const values = Values(event);
               await submission.submit("/api/requests", {
@@ -1326,10 +1324,12 @@ export function ServicesPage() {
                   minLength={4}
                   maxLength={200}
                   autoComplete="street-address"
-                  defaultValue={rememberedAddress()}
+                  value={executionAddress}
+                  onChange={event => setExecutionAddress(event.target.value)}
                   placeholder="Ulica, hišna številka, kraj"
                 />
               </Field>
+              {savedExecutionAddress && executionAddress !== savedExecutionAddress && <div className="svc-wide"><button type="button" className="text-link" onClick={() => { setExecutionAddress(savedExecutionAddress); submission.clearResult(); }}>Uporabi shranjeni naslov: {savedExecutionAddress}</button></div>}
               <Field
                 label={
                   service === "bulky"
@@ -1361,7 +1361,7 @@ export function ServicesPage() {
         </section>
         <aside className="svc-help svc-service-help">
           <div className="eyebrow">KAKO POTEKA</div>
-          <h2>Trije koraki do urejenega doma.</h2>
+          <h2><CmsText id="ServicesPage.h2-2">{"Trije koraki do urejenega doma."}</CmsText></h2>
           {[
             "Izberete ustrezno storitev in opišete potrebe.",
             "Izvajalec preveri podatke, pogoje in ceno.",
@@ -1373,18 +1373,15 @@ export function ServicesPage() {
             </div>
           ))}
           <p className="svc-small">
-            Za izvedbo je potreben dogovor o terminu, obsegu in ceni storitve.
-          </p>
+            <CmsText id="ServicesPage.p-4">{"Za izvedbo je potreben dogovor o terminu, obsegu in ceni storitve."}</CmsText></p>
           <Link to="/kontakt" className="svc-inline-link">
             Potrebujem pomoč
             <ArrowRight size={17} />
           </Link>
           <hr />
-          <h3>Bi predmet lahko živel naprej?</h3>
+          <h3><CmsText id="ServicesPage.h3-1">{"Bi predmet lahko živel naprej?"}</CmsText></h3>
           <p>
-            Če je kavč, stol ali drug predmet še uporaben, najprej preverite
-            možnosti ponovne uporabe pri Depoju.
-          </p>
+            <CmsText id="ServicesPage.p-5">{"Če je kavč, stol ali drug predmet še uporaben, najprej preverite možnosti ponovne uporabe pri Depoju."}</CmsText></p>
           <Link to="/depo" className="svc-inline-link">
             Spoznajte Depo
             <ArrowRight size={17} />
@@ -1431,17 +1428,17 @@ export function MarketPage() {
   },[market,dateOptions]);
   return (
     <CmsLayout>
-      <Intro eyebrow="LOKALNO JE LEPŠE" title="Vaša ponudba. Naša tržnica.">
+      <Intro key={nativeSection("MarketPage.introduction")} eyebrow="LOKALNO JE LEPŠE" title="Vaša ponudba. Naša tržnica.">
         Predstavite svoje pridelke in izdelke. Oddajte povpraševanje za prodajno mesto.
       </Intro>
-      <Demo>
+      <Demo key={nativeSection("MarketPage.guidance")}>
         Izberite želeni datum. Razpoložljivost in končno ceno potrdi upravljavec tržnice po prejemu prijave. Plačilo na spletu ni omogočeno.
       </Demo>
-      <div className="svc-two-column">
+      <div key={nativeSection("MarketPage.svc-two-column")} className="svc-two-column">
         <section className="panel">
           <div className="svc-step">
             <span>01</span>
-            <h2>Izberite želeni datum</h2>
+            <h2><CmsText id="MarketPage.h2-1">{"Izberite želeni datum"}</CmsText></h2>
           </div>
           <div className="svc-date-options">
             {dateOptions.map((day) => (
@@ -1454,18 +1451,19 @@ export function MarketPage() {
                 onClick={() => chooseDate(day)}
               >
                 <span>{new Intl.DateTimeFormat("sl-SI", { weekday: "long" }).format(new Date(day + "T12:00:00"))}</span>
-                <strong>{new Date(day + "T12:00:00").getDate()}.</strong>
+                <strong>{new Date(day + "T12:00:00").getDate()}{"."}</strong>
                 <span>
                   {new Intl.DateTimeFormat("sl-SI", { month: "long" }).format(
                     new Date(day + "T12:00:00"),
                   )}
                 </span>
-                <small>Želeni datum</small>
+                <small><CmsText id="MarketPage.small-1">{"Želeni datum"}</CmsText></small>
               </button>
             ))}
           </div>
-          {noUpcomingDates&&<p className="notice" role="status">Trenutno ni objavljenih prihodnjih terminov za prijavo. Za nov termin se obrnite na upravljavca tržnice.</p>}
+          {noUpcomingDates&&<p className="notice" role="status"><CmsText id="MarketPage.p-1">{"Trenutno ni objavljenih prihodnjih terminov za prijavo. Za nov termin se obrnite na upravljavca tržnice."}</CmsText></p>}
           <form
+            onChange={submission.clearResult}
             onSubmit={async (event) => {
               const values = Values(event);
               const selected=String(values.date||'');
@@ -1496,7 +1494,7 @@ export function MarketPage() {
             {dateError&&<p className="svc-error" role="alert">{dateError}</p>}
             <div className="svc-step">
               <span>02</span>
-              <h2>Podatki o ponudniku</h2>
+              <h2><CmsText id="MarketPage.h2-2">{"Podatki o ponudniku"}</CmsText></h2>
             </div>
             <div className="form-grid">
               <Field label="Ime ponudnika ali podjetja">
@@ -1568,14 +1566,14 @@ export function MarketPage() {
           <div className="svc-market-summary">
             <Store size={34} />
             <div className="eyebrow">POVZETEK PRIJAVE</div>
-            <h2>Vaša prijava.</h2>
+            <h2><CmsText id="MarketPage.h2-3">{"Vaša prijava."}</CmsText></h2>
             <div>
               <span>Datum</span>
               <strong>{date ? dateLabel(date) : "Izberite datum"}</strong>
             </div>
             <div>
               <span>Število mest</span>
-              <strong>1</strong>
+              <strong>{"1"}</strong>
             </div>
             <div>
               <span>Najem zunanje stojnice</span>
@@ -1583,17 +1581,14 @@ export function MarketPage() {
             </div>
             <p>
               <CreditCard size={18} />
-              Cena za sobotno zunanjo stojnico na Sodnijskem trgu, z DDV. Druge lokacije in dodatne storitve imajo ločen cenik. Plačilo uredite po dogovoru.
-            </p>
+              <CmsText id="MarketPage.p-2">{"Cena za sobotno zunanjo stojnico na Sodnijskem trgu, z DDV. Druge lokacije in dodatne storitve imajo ločen cenik. Plačilo uredite po dogovoru."}</CmsText></p>
             <MapPointLink address="Sodnijski trg, Vrhnika" label="Pot do tržnice na Sodnijskem trgu"/>
           </div>
           <div className="svc-help">
             <Leaf size={23} />
-            <h3>Dobrodošli lokalni ponudniki.</h3>
+            <h3><CmsText id="MarketPage.h3-1">{"Dobrodošli lokalni ponudniki."}</CmsText></h3>
             <p>
-              Za pogoje prodaje, dovoljenja in dejanske termine preverite uradne
-              informacije pri KPV.
-            </p>
+              <CmsText id="MarketPage.p-3">{"Za pogoje prodaje, dovoljenja in dejanske termine preverite uradne informacije pri KPV."}</CmsText></p>
             <Link to="/kontakt" className="svc-inline-link">
               Vprašajte nas
               <ArrowRight size={17} />
@@ -1613,22 +1608,18 @@ export function DepoPage() {
   const { settings } = useSiteContent();
   return (
     <CmsLayout>
-      <Intro eyebrow="PONOVNA UPORABA" title="Staro za nekoga. Novo za vas.">
+      <Intro key={nativeSection("DepoPage.introduction")} eyebrow="PONOVNA UPORABA" title="Staro za nekoga. Novo za vas.">
         Predmeti s preteklostjo si zaslužijo prihodnost. Odkrijte Depo, trgovino
         z rabljenimi in preoblikovanimi predmeti na Vrhniki.
       </Intro>
-      <section className="svc-depo-hero">
+      <section key={nativeSection("DepoPage.svc-depo-hero")} className="svc-depo-hero">
         <div>
           <div className="eyebrow">DEPO VRHNIKA</div>
           <h2>
-            Dobre stvari
-            <br />
-            dobijo drugo priložnost.
-          </h2>
+            <CmsText id="DepoPage.h2-1">{"Dobre stvari"}</CmsText><br />
+            <CmsText id="DepoPage.h2-2">{"dobijo drugo priložnost."}</CmsText></h2>
           <p>
-            Od pohištva do drobnih najdb za dom. Aktualni izdelki vas čakajo v
-            uradnem spletnem katalogu, še več pa v trgovini.
-          </p>
+            <CmsText id="DepoPage.p-1">{"Od pohištva do drobnih najdb za dom. Aktualni izdelki vas čakajo v uradnem spletnem katalogu, še več pa v trgovini."}</CmsText></p>
           <CmsAnchor
             className="button"
             href={settings.depoUrl}
@@ -1653,15 +1644,13 @@ export function DepoPage() {
           </div>
         </div>
       </section>
-      <div className="svc-depo-grid">
+      <div key={nativeSection("DepoPage.svc-depo-grid")} className="svc-depo-grid">
         <article className="panel">
           <MapPin size={25} />
-          <h3>Obiščite trgovino</h3>
+          <h3><CmsText id="DepoPage.h3-1">{"Obiščite trgovino"}</CmsText></h3>
           <p>
-            Cankarjev trg 6a
-            <br />
-            1360 Vrhnika
-          </p>
+            <CmsText id="DepoPage.p-2">{"Cankarjev trg 6a"}</CmsText><br />
+            <CmsText id="DepoPage.p-3">{"1360 Vrhnika"}</CmsText></p>
           <CmsAnchor
             className="svc-inline-link"
             href="https://www.google.com/maps/search/?api=1&query=Depo+Cankarjev+trg+6a+Vrhnika"
@@ -1674,11 +1663,9 @@ export function DepoPage() {
         </article>
         <article className="panel">
           <Clock3 size={25} />
-          <h3>Pred obiskom preverite</h3>
+          <h3><CmsText id="DepoPage.h3-2">{"Pred obiskom preverite"}</CmsText></h3>
           <p>
-            Ponudba se spreminja. Delovni čas in razpoložljivost predmetov
-            preverite na uradni strani ali po telefonu.
-          </p>
+            <CmsText id="DepoPage.p-4">{"Ponudba se spreminja. Delovni čas in razpoložljivost predmetov preverite na uradni strani ali po telefonu."}</CmsText></p>
           <CmsAnchor className="svc-inline-link" href="tel:+38641777385">
             041 777 385
             <Phone size={17} />
@@ -1686,25 +1673,21 @@ export function DepoPage() {
         </article>
         <article className="panel">
           <ShoppingBag size={25} />
-          <h3>Imate še uporaben predmet?</h3>
+          <h3><CmsText id="DepoPage.h3-3">{"Imate še uporaben predmet?"}</CmsText></h3>
           <p>
-            Pred oddajo se z Depojem dogovorite o primernosti in načinu
-            prevzema.
-          </p>
+            <CmsText id="DepoPage.p-5">{"Pred oddajo se z Depojem dogovorite o primernosti in načinu prevzema."}</CmsText></p>
           <CmsAnchor className="svc-inline-link" href="mailto:depo@kpv.si">
             depo@kpv.si
             <Mail size={17} />
           </CmsAnchor>
         </article>
       </div>
-      <p className="svc-small">
-        Kontaktni podatki in povezava:{" "}
+      <p key={nativeSection("DepoPage.svc-small")} className="svc-small">
+        <CmsText id="DepoPage.p-6">{"Kontaktni podatki in povezava:"}</CmsText>{" "}
         <Source href="https://www.kpv.si/depoVrhnika/trgovina.html">
           Uradna stran Depo Vrhnika
         </Source>
-        . Ta portal ne prikazuje lastne zaloge in ne sprejema naročil za
-        izdelke.
-      </p>
+        <CmsText id="DepoPage.p-7">{". Ta portal ne prikazuje lastne zaloge in ne sprejema naročil za izdelke."}</CmsText></p>
     </CmsLayout>
   );
 }
@@ -1888,15 +1871,14 @@ function ContactForm() {
         </span>
         <div>
           <span className="eyebrow">SPOROČILO ZA PRAVO PODROČJE</span>
-          <h2 id="contact-form-title">Pišite nam.</h2>
+          <h2 id="contact-form-title"><CmsText id="ContactForm.h2-1">{"Pišite nam."}</CmsText></h2>
         </div>
       </div>
       <p>
-        Izberite področje in opišite vprašanje. Predlagano zadevo lahko uredite
-        po svoje.
-      </p>
+        <CmsText id="ContactForm.p-1">{"Izberite področje in opišite vprašanje. Predlagano zadevo lahko uredite po svoje."}</CmsText></p>
       <Demo>Sporočilo se shrani in posreduje skrbniku portala. Za nujne zadeve uporabite dežurni telefon.</Demo>
       <form
+        onChange={submission.clearResult}
         onSubmit={async (event) => {
           const values = Values(event);
           await submission.submit("/api/contact", {
@@ -1911,7 +1893,7 @@ function ContactForm() {
       >
         <div className="svc-contact-form-step">
           <span>01</span>
-          <h3>O čem nam pišete?</h3>
+          <h3><CmsText id="ContactForm.h3-1">{"O čem nam pišete?"}</CmsText></h3>
         </div>
         <div className="form-grid">
           <Field label="Področje · obvezno">
@@ -1955,9 +1937,7 @@ function ContactForm() {
         </div>
         {category === "other" && (
           <p className="svc-contact-topic-help">
-            Teme ni na seznamu? V zadevo vpišite kratek naslov svojega
-            vprašanja.
-          </p>
+            <CmsText id="ContactForm.p-2">{"Teme ni na seznamu? V zadevo vpišite kratek naslov svojega vprašanja."}</CmsText></p>
         )}
         {suggestion && (
           <div className="svc-contact-suggestion">
@@ -1992,8 +1972,7 @@ function ContactForm() {
             />
           </Field>
           <p id="contact-subject-help" className="svc-small">
-            Zadeva naj v enem stavku povzame, pri čem potrebujete pomoč.
-          </p>
+            <CmsText id="ContactForm.p-3">{"Zadeva naj v enem stavku povzame, pri čem potrebujete pomoč."}</CmsText></p>
         </div>
         <Field label="Vaše sporočilo · obvezno">
           <textarea
@@ -2019,7 +1998,7 @@ function ContactForm() {
         </div>
         <div className="svc-contact-form-step">
           <span>02</span>
-          <h3>Kako vas lahko dosežemo?</h3>
+          <h3><CmsText id="ContactForm.h3-2">{"Kako vas lahko dosežemo?"}</CmsText></h3>
         </div>
         <div className="form-grid">
           <Field label="Ime in priimek · obvezno">
@@ -2029,7 +2008,7 @@ function ContactForm() {
               minLength={2}
               maxLength={120}
               autoComplete="name"
-              placeholder="Testna oseba"
+              placeholder="Janez Novak"
             />
           </Field>
           <Field label="E-poštni naslov · obvezno">
@@ -2039,7 +2018,7 @@ function ContactForm() {
               type="email"
               maxLength={254}
               autoComplete="email"
-              placeholder="test@primer.si"
+              placeholder="janez@primer.si"
             />
           </Field>
           <Field label="Telefon · neobvezno" wide>
@@ -2068,9 +2047,9 @@ function ContactForm() {
           <div className="svc-success" role="status" ref={receiptElement}>
             <CheckCircle2 size={23} />
             <div>
-              <strong>Sporočilo je shranjeno.</strong>
+              <strong><CmsText id="ContactForm.strong-1">{"Sporočilo je shranjeno."}</CmsText></strong>
               <p>
-                Referenca: {submission.receipt.id}.{" "}
+                <CmsText id="ContactForm.p-4">{"Referenca: "}</CmsText>{submission.receipt.id}{"."}{" "}
                 {submission.receipt.message ||
                   "Sporočilo je shranjeno za obravnavo. Za nujne zadeve uporabite telefonske kontakte na tej strani."}
               </p>
@@ -2103,7 +2082,7 @@ function ContactHours() {
       <div className="svc-contact-hours-heading">
         <div>
           <span className="eyebrow">PREDEN SE ODPRAVITE NA POT</span>
-          <h2 id="contact-hours-title">Kdaj nas lahko obiščete?</h2>
+          <h2 id="contact-hours-title"><CmsText id="ContactHours.h2-1">{"Kdaj nas lahko obiščete?"}</CmsText></h2>
         </div>
         <span className="svc-hours-label">
           <Clock3 size={17} /> Redni delovni čas
@@ -2157,9 +2136,7 @@ function ContactHours() {
         ))}
       </div>
       <p className="svc-hours-note">
-        Ob praznikih in izrednih spremembah pred obiskom preverite urnik pri
-        izbrani službi.
-      </p>
+        <CmsText id="ContactHours.p-1">{"Ob praznikih in izrednih spremembah pred obiskom preverite urnik pri izbrani službi."}</CmsText></p>
       <Source href="https://www.kpv.si/">
         {_revisions?.hours
           ? "Urnik je uredil skrbnik portala. Uradni podatki so na strani KPV."
@@ -2173,14 +2150,14 @@ export function ContactPage() {
   const { settings } = useSiteContent();
   return (
     <CmsLayout>
-      <Intro
+      <Intro key={nativeSection("ContactPage.introduction")}
         eyebrow="TUKAJ SMO ZA VAS"
         title="Pravi odgovor se začne s stikom."
       >
         Za vprašanje izberite področje v obrazcu ali uporabite uradne kontakte
         podjetja. Sporočilo oddate v spodnjem obrazcu.
       </Intro>
-      <div className="svc-contact-quick-paths">
+      <div key={nativeSection("ContactPage.svc-contact-quick-paths")} className="svc-contact-quick-paths">
         <CmsAnchor href="#kontakt-obrazec">
           <Mail size={18} />
           Pišite nam
@@ -2197,10 +2174,10 @@ export function ContactPage() {
           <ArrowRight size={16} />
         </CmsAnchor>
       </div>
-      <div className="svc-contact-emergency-note">
+      <div key={nativeSection("ContactPage.svc-contact-emergency-note")} className="svc-contact-emergency-note">
         <Phone size={20} />
         <span>
-          <strong>Nujna komunalna težava?</strong> Za nujno pomoč uporabite
+          <strong><CmsText id="ContactPage.strong-1">{"Nujna komunalna težava?"}</CmsText></strong> Za nujno pomoč uporabite
           dežurno službo, in ne obrazca.
         </span>
         <CmsAnchor href={`tel:${telephone(settings.emergencyPhone)}`}>
@@ -2208,15 +2185,15 @@ export function ContactPage() {
           <ArrowRight size={17} />
         </CmsAnchor>
       </div>
-      <div className="svc-contact-layout">
+      <div key={nativeSection("ContactPage.svc-contact-layout")} className="svc-contact-layout">
         <ContactForm />
         <aside className="svc-contact-sidebar" id="uradni-kontakti">
           <section className="panel svc-contact-main">
             <div className="svc-icon">
               <Phone size={25} />
             </div>
-            <h2>Komunalno podjetje Vrhnika</h2>
-            <p>Javno podjetje Komunalno podjetje Vrhnika, d. o. o.</p>
+            <h2><CmsText id="ContactPage.h2-1">{"Komunalno podjetje Vrhnika"}</CmsText></h2>
+            <p><CmsText id="ContactPage.p-1">{"Javno podjetje Komunalno podjetje Vrhnika, d. o. o."}</CmsText></p>
             <CmsAnchor
               href={`tel:${telephone(settings.phone)}`}
               className="svc-contact-number"
@@ -2245,14 +2222,13 @@ export function ContactPage() {
             </CmsAnchor>
           </section>
           <section className="panel svc-contact-small">
-            <h3>Za vsakodnevna opravila</h3>
+            <h3><CmsText id="ContactPage.h3-1">{"Za vsakodnevna opravila"}</CmsText></h3>
             <Link to="/prijavi">
               <Wrench size={20} />
               <span>
                 Prijava težave
                 <small>
-                  Poškodba ceste, svetilka ali zabojnik; fotografija in lokacija
-                </small>
+                  <CmsText id="ContactPage.small-1">{"Poškodba ceste, svetilka ali zabojnik; fotografija in lokacija"}</CmsText></small>
               </span>
               <ChevronRight size={18} />
             </Link>
@@ -2260,7 +2236,7 @@ export function ContactPage() {
               <FileText size={20} />
               <span>
                 Povpraševanje za storitev
-                <small>Kosovni odvoz, praznjenje greznice in drugo</small>
+                <small><CmsText id="ContactPage.small-2">{"Kosovni odvoz, praznjenje greznice in drugo"}</CmsText></small>
               </span>
               <ChevronRight size={18} />
             </Link>
@@ -2268,26 +2244,25 @@ export function ContactPage() {
               <Bell size={20} />
               <span>
                 Obvestila za moj dom
-                <small>Želja za obveščanje o lokalnih informacijah</small>
+                <small><CmsText id="ContactPage.small-3">{"Želja za obveščanje o lokalnih informacijah"}</CmsText></small>
               </span>
               <ChevronRight size={18} />
             </Link>
           </section>
           <div className="svc-contact-real-help">
             <CheckCircle2 size={20} />
-            <h3>Potrebujete hiter odgovor?</h3>
+            <h3><CmsText id="ContactPage.h3-2">{"Potrebujete hiter odgovor?"}</CmsText></h3>
             <p>
-              Pokličite uradno številko ali napišite e-pošto na{" "}
+              <CmsText id="ContactPage.p-2">{"Pokličite uradno številko ali napišite e-pošto na"}</CmsText>{" "}
               <CmsAnchor href={`mailto:${settings.email}`}>
                 info@kpv.si
               </CmsAnchor>
-              . Za nujne zadeve ne čakajte na odgovor prek obrazca.
-            </p>
+              <CmsText id="ContactPage.p-3">{". Za nujne zadeve ne čakajte na odgovor prek obrazca."}</CmsText></p>
           </div>
         </aside>
       </div>
-      <ContactHours />
-      <div className="svc-contact-foot">
+      <ContactHours key={nativeSection("ContactPage.ContactHours")} />
+      <div key={nativeSection("ContactPage.svc-contact-foot")} className="svc-contact-foot">
         <Source href="https://www.kpv.si/mPodjetje/mPkont.html">
           Vir kontaktov: uradna spletna stran KPV
         </Source>
@@ -2301,26 +2276,22 @@ export function ContactPage() {
 export function AboutPage() {
   return (
     <CmsLayout>
-      <Intro
+      <Intro key={nativeSection("AboutPage.introduction")}
         eyebrow="O PODJETJU IN PORTALU"
         title="Za okolje, v katerem radi živimo."
       >
         Pitna voda, urejeno okolje in zanesljive komunalne storitve so del
         vsakdana. Ta portal jih povezuje v preproste poti za občane.
       </Intro>
-      <section className="svc-about-band">
+      <section key={nativeSection("AboutPage.svc-about-band")} className="svc-about-band">
         <Leaf size={48} strokeWidth={1.4} />
         <h2>
-          Vsakdanja skrb.
-          <br />
-          Skupna prihodnost.
-        </h2>
+          <CmsText id="AboutPage.h2-1">{"Vsakdanja skrb."}</CmsText><br />
+          <CmsText id="AboutPage.h2-2">{"Skupna prihodnost."}</CmsText></h2>
         <p>
-          Komunalno podjetje Vrhnika izvaja komunalne dejavnosti na območju
-          občin Vrhnika, Borovnica in Log - Dragomer.
-        </p>
+          <CmsText id="AboutPage.p-1">{"Komunalno podjetje Vrhnika izvaja komunalne dejavnosti na območju občin Vrhnika, Borovnica in Log - Dragomer."}</CmsText></p>
       </section>
-      <div className="svc-service-grid">
+      <div key={nativeSection("AboutPage.svc-service-grid")} className="svc-service-grid">
         {[
           {
             icon: Droplets,
@@ -2361,13 +2332,10 @@ export function AboutPage() {
           </Link>
         ))}
       </div>
-      <section className="panel svc-about-note">
-        <h2>Storitve na enem mestu</h2><p>Na portalu najdete informacije o dejavnostih, urnike odvoza, objavljena obvestila in obrazce za vprašanja ter prijave. Povpraševanja in želene termine obravnava skrbnik; izvedba zahteva potrditev.</p>
+      <section key={nativeSection("AboutPage.service-information")} className="panel svc-about-note">
+        <h2><CmsText id="AboutPage.h2-3">{"Storitve na enem mestu"}</CmsText></h2><p><CmsText id="AboutPage.p-2">{"Na portalu najdete informacije o dejavnostih, urnike odvoza, objavljena obvestila in obrazce za vprašanja ter prijave. Povpraševanja in želene termine obravnava skrbnik; izvedba zahteva potrditev."}</CmsText></p>
         <p>
-          Naslov se lahko shrani v vaš brskalnik za hitrejši ponovni obisk.
-          Odstranite ga lahko z izbrisom podatkov te spletne strani v
-          nastavitvah brskalnika.
-        </p>
+          <CmsText id="AboutPage.p-3">{"Naslov se lahko shrani v vaš brskalnik za hitrejši ponovni obisk. Odstranite ga lahko z izbrisom podatkov te spletne strani v nastavitvah brskalnika."}</CmsText></p>
         <Source href="https://kpv.si/mPodjetje/mPred.html">
           Uradna predstavitev podjetja
         </Source>

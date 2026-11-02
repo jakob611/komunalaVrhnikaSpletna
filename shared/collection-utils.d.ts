@@ -14,6 +14,8 @@ export type CollectionRoute = {
 };
 export type CollectionData = { routes: CollectionRoute[] };
 export const COLLECTION_TYPES: Readonly<Record<CollectionType, string>>;
+export function hasAmbiguousHouseNumbers(value: string): boolean;
+export function normalizeAddressInput(value: string): string;
 export function addressTokens(value: string): string[];
 export function normalizedAddress(value: string): string;
 export function addressRuleMatches(address: string, pattern: string): boolean;

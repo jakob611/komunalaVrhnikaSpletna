@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -32,28 +27,56 @@ import {
 } from "lucide-react";
 import siteDefaults from "../../shared/site-defaults.json";
 import "./admin.css";
-import LocationPicker from '../components/admin/LocationPicker';
-import TariffsEditor from '../components/admin/TariffsEditor';
-import type {TariffData} from '../../shared/utility-pricing.js';
-import WorkQueue from "../components/admin/WorkQueue";
+import LocationPicker from "../components/admin/LocationPicker";
+import TariffsEditor from "../components/admin/TariffsEditor";
+import type { TariffData } from "../../shared/utility-pricing.js";
+import WorkQueue, {
+  type WorkQueueRecovery,
+} from "../components/admin/WorkQueue";
 import AdminSignIn, {
   type AdminSession,
 } from "../components/admin/AdminSignIn";
 import AdminUsers from "../components/admin/AdminUsers";
-import NotificationSettings from "../components/admin/NotificationSettings";
+import NotificationSettings, {
+  type NotificationSettingsRecovery,
+} from "../components/admin/NotificationSettings";
 import CollectionEditor from "../components/admin/CollectionEditor";
 import CemeteryEditor from "../components/admin/CemeteryEditor";
 import type { CemeteryData } from "../data/cemetery";
-import NoticesEditor, { type EditableNotice } from "../components/admin/NoticesEditor";
-import DistrictsEditor, { type District } from "../components/admin/DistrictsEditor";
+import NoticesEditor, {
+  type EditableNotice,
+} from "../components/admin/NoticesEditor";
+import DistrictsEditor, {
+  type District,
+} from "../components/admin/DistrictsEditor";
 import type { CollectionData } from "../../shared/collection-utils";
 import LayoutEditor from "../components/admin/LayoutEditor";
-import WebsiteEditor, { WEBSITE_SECTIONS, type WebsiteDraft } from "../components/admin/WebsiteEditor";
+import WebsiteEditor, {
+  WEBSITE_SECTIONS,
+  type WebsiteDraft,
+} from "../components/admin/WebsiteEditor";
 import type { CmsLayoutData } from "../../shared/page-layout";
+import EditorRecoveryBoundary from "../components/admin/EditorRecoveryBoundary";
+import { validateEditorDraft } from "../components/admin/draft-validation";
+import PrivacyTools from "../components/admin/PrivacyTools";
+import ScheduledPublications from "../components/admin/ScheduledPublications";
+import NoticeCampaigns from "../components/admin/NoticeCampaigns";
 
 type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 type Sections = Record<string, Json>;
 type Session = AdminSession;
+type StoredDraft = {
+  value: Json;
+  baseRevisions: Record<string, number>;
+  revision: number;
+  savedAt: number;
+};
+type InterruptedDraft = {
+  user: string;
+  section: string;
+  value: Json;
+  baseRevisions: Record<string, number>;
+};
 type Media = {
   id: string;
   url: string;
@@ -79,7 +102,12 @@ const sectionInfo: Record<
   string,
   { name: string; description: string; group: string }
 > = {
-  website: { name: "Urejevalnik spletne strani", description: "Besedila, slike, povezave, razporeditev in logotip na enem mestu.", group: "Portal" },
+  website: {
+    name: "Urejevalnik spletne strani",
+    description:
+      "Besedila, slike, povezave, razporeditev in logotip na enem mestu.",
+    group: "Portal",
+  },
   layout: {
     name: "Razporeditev in nove strani",
     description: "Premikanje razdelkov, dodajanje gumbov, vsebin in strani.",
@@ -116,8 +144,18 @@ const sectionInfo: Record<
     description: "Objavljajte in urejajte obvestila za občane.",
     group: "Vsebine",
   },
-  districts: { name: "Območja e-obveščanja", description: "Občine, naselja in predeli, na katere se naročniki prijavijo za e-obvestila.", group: "Vsebine" },
-  tariffs: {name:'Ceniki in izračun',description:'Potrjene cene po občinah, obračunske količine in cene posebnih storitev.',group:'Vsebine'},
+  districts: {
+    name: "Območja e-obveščanja",
+    description:
+      "Občine, naselja in predeli, na katere se naročniki prijavijo za e-obvestila.",
+    group: "Vsebine",
+  },
+  tariffs: {
+    name: "Ceniki in izračun",
+    description:
+      "Potrjene cene po občinah, obračunske količine in cene posebnih storitev.",
+    group: "Vsebine",
+  },
   collection: {
     name: "Urniki odvoza",
     description: "Območja, termini in vrste odpadkov.",
@@ -145,7 +183,8 @@ const sectionInfo: Record<
   },
   rates: {
     name: "Cene tržničnih stojnic",
-    description: "Sobotni najem zunanje stojnice na Sodnijskem trgu, z DDV. Občinski ceniki so povezani neposredno na veljavne dokumente KPV.",
+    description:
+      "Sobotni najem zunanje stojnice na Sodnijskem trgu, z DDV. Občinski ceniki so povezani neposredno na veljavne dokumente KPV.",
     group: "Vsebine",
   },
   market: {
@@ -756,12 +795,30 @@ function Editor({
     return (
       <div className={`admin-field-grid admin-depth-${Math.min(depth, 3)}`}>
         {Object.entries(value).map(([name, field]) => {
-          if(section==='wastePoints'&&['lat','lng'].includes(name)) {
-            if(name==='lng')return null;
-            return <LocationPicker key="location" latitude={typeof value.lat==='number'?value.lat:null} longitude={typeof value.lng==='number'?value.lng:null} optional={false} onChange={(lat,lng)=>onChange({...value,lat,lng})}/>;
+          if (section === "wastePoints" && ["lat", "lng"].includes(name)) {
+            if (name === "lng") return null;
+            return (
+              <LocationPicker
+                key="location"
+                latitude={typeof value.lat === "number" ? value.lat : null}
+                longitude={typeof value.lng === "number" ? value.lng : null}
+                optional={false}
+                onChange={(lat, lng) => onChange({ ...value, lat, lng })}
+              />
+            );
           }
-          if (section === "settings" && !path.length && ["logoUrl", "logoAlt"].includes(name)) return null;
-          if (section === "rates" && !path.length && !["marketStandard", "marketFood", "marketCraft"].includes(name)) return null;
+          if (
+            section === "settings" &&
+            !path.length &&
+            ["logoUrl", "logoAlt"].includes(name)
+          )
+            return null;
+          if (
+            section === "rates" &&
+            !path.length &&
+            !["marketStandard", "marketFood", "marketCraft"].includes(name)
+          )
+            return null;
           const nested = field !== null && typeof field === "object";
           return (
             <div
@@ -905,6 +962,8 @@ export default function AdminPage() {
       ? "submissions"
       : "dashboard",
   );
+  const currentArea = useRef(active);
+  currentArea.current = active;
   const [draft, setDraft] = useState<Json>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -916,17 +975,37 @@ export default function AdminPage() {
   );
   const [history, setHistory] = useState<Version[] | null>(null);
   const [advanced, setAdvanced] = useState(false);
-  const [websiteHistorySection, setWebsiteHistorySection] = useState<string>("copy");
+  const [websiteHistorySection, setWebsiteHistorySection] =
+    useState<string>("copy");
   const [jsonText, setJsonText] = useState("");
   const [media, setMedia] = useState<Media[]>([]);
   const [mediaLoaded, setMediaLoaded] = useState(false);
-  const [mediaNextCursor,setMediaNextCursor]=useState<string|null>(null);
-  const [mediaLoading,setMediaLoading]=useState(false);
+  const [mediaNextCursor, setMediaNextCursor] = useState<string | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState("");
   const [previewPage, setPreviewPage] = useState("/");
   const [previewMode, setPreviewMode] = useState<"edit" | "interact">("edit");
   const [workDirty, setWorkDirty] = useState(false);
   const [workBusy, setWorkBusy] = useState(false);
+  const [storedDraft, setStoredDraft] = useState<StoredDraft | null>(null);
+  const [draftLoading, setDraftLoading] = useState(false);
+  const interruptedDraft = useRef<InterruptedDraft | null>(null);
+  const interruptedWork = useRef<{
+    user: string;
+    value: WorkQueueRecovery;
+  } | null>(null);
+  const interruptedNotifications = useRef<{
+    user: string;
+    value: NotificationSettingsRecovery;
+  } | null>(null);
+  const interruptedArea = useRef<{ user: string; section: string } | null>(
+    null,
+  );
+  const accessScope = session?.scope || session?.user.accessScope || "all";
+  const canContent =
+    session?.user.role === "owner" || accessScope !== "operations";
+  const canOperations =
+    session?.user.role === "owner" || accessScope !== "content";
   const previewPages = [
     ...pages,
     ...((sections.layout as unknown as CmsLayoutData | undefined)?.pages || [])
@@ -980,15 +1059,59 @@ export default function AdminPage() {
       previous?.focus();
     };
   }, [mobileMenu, compactMenu]);
-  const websiteDraft = (source: Sections): Json => Object.fromEntries(WEBSITE_SECTIONS.map(key => [key, clone(source[key] ?? (siteDefaults as unknown as Sections)[key])])) as Json;
-  const draftFor = (key: string, source = sections) => key === "website" ? websiteDraft(source) : clone(source[key] ?? null);
+  const websiteDraft = (source: Sections): Json =>
+    Object.fromEntries(
+      WEBSITE_SECTIONS.map((key) => [
+        key,
+        clone(source[key] ?? (siteDefaults as unknown as Sections)[key]),
+      ]),
+    ) as Json;
+  const draftFor = (key: string, source = sections) =>
+    key === "website" ? websiteDraft(source) : clone(source[key] ?? null);
   const contentLoaded = Object.keys(sections).length > 0;
   const editing = Object.hasOwn(sectionInfo, active);
   const contentDirty =
     editing &&
-    JSON.stringify(draft) !== JSON.stringify(active === "website" ? websiteDraft(sections) : sections[active] ?? null);
+    JSON.stringify(draft) !==
+      JSON.stringify(
+        active === "website"
+          ? websiteDraft(sections)
+          : (sections[active] ?? null),
+      );
   const dirty = contentDirty || workDirty;
+  const draftSaved =
+    storedDraft !== null &&
+    JSON.stringify(draft) === JSON.stringify(storedDraft.value);
   const visual = active === "copy" || active === "images" || active === "links";
+
+  function expireSession() {
+    if (session)
+      interruptedArea.current = { user: session.user.email, section: active };
+    if (editing && session && draft !== null)
+      interruptedDraft.current = {
+        user: session.user.email,
+        section: active,
+        value: clone(draft),
+        baseRevisions: Object.fromEntries(
+          (active === "website" ? WEBSITE_SECTIONS : [active]).map((key) => [
+            key,
+            revisions[key] ?? 0,
+          ]),
+        ),
+      };
+    setSession(null);
+    setSections({});
+    setDraft(null);
+    setMedia([]);
+    setMediaLoaded(false);
+    setMediaNextCursor(null);
+    setHistory(null);
+    setAdvanced(false);
+    setSelection(null);
+    setNotice(
+      "Seja je potekla. Za nadaljevanje se znova prijavite. Neshranjene spremembe niso bile objavljene.",
+    );
+  }
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers = new Headers(init.headers);
@@ -1007,20 +1130,10 @@ export default function AdminPage() {
       if (
         response.status === 401 &&
         !path.endsWith("/login") &&
-        !path.endsWith("/session")
+        !path.endsWith("/session") &&
+        !path.endsWith("/logout")
       ) {
-        setSession(null);
-        setSections({});
-        setDraft(null);
-        setMedia([]);
-        setMediaLoaded(false);
-      setMediaNextCursor(null);
-        setHistory(null);
-        setAdvanced(false);
-        setSelection(null);
-        setNotice(
-          "Seja je potekla. Za nadaljevanje se znova prijavite. Neshranjene spremembe niso bile objavljene.",
-        );
+        expireSession();
       }
       throw new RequestError(
         data.error ||
@@ -1041,16 +1154,29 @@ export default function AdminPage() {
           : cause.message
         : "Povezava ni uspela. Preverite internetno povezavo.",
     );
-  async function loadContent() {
+  async function loadContent(
+    recover?: InterruptedDraft,
+    preserveDraft = false,
+  ) {
     setLoading(true);
     try {
       const data = await request<{
         sections: Sections;
         revisions: Record<string, number>;
-      }>("/api/admin/content");
+      }>(canContent ? "/api/admin/content" : "/api/content");
       setSections(data.sections);
-      setRevisions(data.revisions);
-      if (Object.hasOwn(sectionInfo, active))
+      setRevisions({
+        ...(data.revisions || {}),
+        ...(recover?.baseRevisions || {}),
+      });
+      if (recover) {
+        setActive(recover.section);
+        setDraft(recover.value);
+        setNotice(
+          "Osnutek pred potekom seje je obnovljen. Objavljene vsebine se niso spremenile.",
+        );
+        interruptedDraft.current = null;
+      } else if (Object.hasOwn(sectionInfo, active) && !preserveDraft)
         setDraft(draftFor(active, data.sections));
     } catch (cause) {
       failure(cause);
@@ -1058,18 +1184,34 @@ export default function AdminPage() {
       setLoading(false);
     }
   }
-  async function loadMedia(append=false) {
-    if(mediaLoading||(append&&!mediaNextCursor))return;
+  async function loadMedia(append = false) {
+    if (mediaLoading || (append && !mediaNextCursor)) return;
     setMediaLoading(true);
-    if(!append)setLoading(true);
+    if (!append) setLoading(true);
     try {
-      const query=append?'?'+new URLSearchParams({cursor:mediaNextCursor!}):'';
-      const data=await request<{items:Media[];nextCursor:string|null}>('/api/admin/media'+query);
-      setMedia(previous=>append?[...new Map([...previous,...data.items].map(item=>[item.id,item])).values()]:data.items);
+      const query = append
+        ? "?" + new URLSearchParams({ cursor: mediaNextCursor! })
+        : "";
+      const data = await request<{ items: Media[]; nextCursor: string | null }>(
+        "/api/admin/media" + query,
+      );
+      setMedia((previous) =>
+        append
+          ? [
+              ...new Map(
+                [...previous, ...data.items].map((item) => [item.id, item]),
+              ).values(),
+            ]
+          : data.items,
+      );
       setMediaNextCursor(data.nextCursor);
       setMediaLoaded(true);
-    } catch(cause) {failure(cause);}
-    finally {setMediaLoading(false);if(!append)setLoading(false);}
+    } catch (cause) {
+      failure(cause);
+    } finally {
+      setMediaLoading(false);
+      if (!append) setLoading(false);
+    }
   }
   useEffect(() => {
     let mounted = true;
@@ -1098,53 +1240,127 @@ export default function AdminPage() {
   }, []);
   useEffect(() => {
     if (session) {
+      const recover =
+        interruptedDraft.current?.user === session.user.email
+          ? interruptedDraft.current
+          : undefined;
+      const area =
+        interruptedArea.current?.user === session.user.email
+          ? interruptedArea.current.section
+          : undefined;
+      const mayRecoverArea =
+        area &&
+        (["users", "notifications", "privacy"].includes(area)
+          ? session.user.role === "owner"
+          : ["submissions", "campaigns"].includes(area)
+            ? canOperations
+            : canContent);
+      if (!canOperations) interruptedWork.current = null;
+      if (session.user.role !== "owner")
+        interruptedNotifications.current = null;
+      interruptedArea.current = null;
       setActive(
-        new URLSearchParams(location.search).has("case")
-          ? "submissions"
-          : "dashboard",
+        recover
+          ? recover.section
+          : mayRecoverArea
+            ? area
+            : !canContent ||
+                (canOperations &&
+                  new URLSearchParams(location.search).has("case"))
+              ? "submissions"
+              : "dashboard",
       );
-      void loadContent();
+      void loadContent(recover);
     }
   }, [session?.csrfToken]);
   useEffect(() => {
-    if (!dirty) return;
+    setStoredDraft(null);
+    if (!session || !editing || !contentLoaded || !canContent) return;
+    let current = true;
+    setDraftLoading(true);
+    void request<{ draft?: StoredDraft | null }>(`/api/admin/drafts/${active}`)
+      .then((data) => {
+        if (current) setStoredDraft(data.draft || null);
+      })
+      .catch((cause) => {
+        if (current) failure(cause);
+      })
+      .finally(() => {
+        if (current) setDraftLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [session?.user.email, active, contentLoaded]);
+  useEffect(() => {
+    if (!dirty || (draftSaved && !workDirty)) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  }, [dirty, draftSaved, workDirty]);
   function mayLeave() {
     return (
       !dirty ||
+      (draftSaved && !workDirty) ||
       window.confirm(
         "Imate neshranjene spremembe. Če nadaljujete, bodo zavržene. Želite nadaljevati?",
       )
     );
   }
   function navigate(next: string) {
+    if (!contentLoaded) return;
     if (["copy", "images", "links", "layout"].includes(next)) next = "website";
-    if (next === active) { setMobileMenu(false); return; }
+    if (
+      (!canContent &&
+        (Object.hasOwn(sectionInfo, next) ||
+          next === "media" ||
+          next === "dashboard")) ||
+      (!canOperations && next === "submissions")
+    )
+      return;
+    if (next === active) {
+      setMobileMenu(false);
+      return;
+    }
     if (busy || workBusy || (next !== active && !mayLeave())) return;
     if (next !== active) {
       setDraft(draftFor(next));
       setSelection(null);
     }
     setActive(next);
+    if (next !== "submissions") interruptedWork.current = null;
+    if (next !== "notifications") interruptedNotifications.current = null;
     setWorkDirty(false);
     setMobileMenu(false);
     setError("");
     setNotice("");
-    if (next === "media" || next === "images" || next === "website") void loadMedia();
+    if (next === "media" || next === "images" || next === "website")
+      void loadMedia();
   }
   async function logout() {
     if (!mayLeave()) return;
     setBusy(true);
     setError("");
+    setNotice("");
     try {
-      await request("/api/admin/logout", { method: "POST" });
+      let alreadyEnded = false;
+      try {
+        await request("/api/admin/logout", { method: "POST" });
+      } catch (cause) {
+        // A rejected expired cookie already has no server-side authority.
+        // Explicit logout must discard local recovery rather than preserve it.
+        if (!(cause instanceof RequestError && cause.status === 401))
+          throw cause;
+        alreadyEnded = true;
+      }
       setSession(null);
+      interruptedDraft.current = null;
+      interruptedWork.current = null;
+      interruptedNotifications.current = null;
+      interruptedArea.current = null;
       setSections({});
       setDraft(null);
       setMedia([]);
@@ -1153,7 +1369,11 @@ export default function AdminPage() {
       setHistory(null);
       setAdvanced(false);
       setSelection(null);
-      setNotice("Varno ste se odjavili.");
+      setNotice(
+        alreadyEnded
+          ? "Seja je že potekla. Lokalno ste odjavljeni; neshranjeni osnutki so zavrženi."
+          : "Varno ste se odjavili.",
+      );
     } catch (cause) {
       failure(cause);
     } finally {
@@ -1167,22 +1387,29 @@ export default function AdminPage() {
     setNotice("");
     try {
       if (active === "website" && isObject(draft)) {
-        const changed = WEBSITE_SECTIONS.filter(key => JSON.stringify(draft[key]) !== JSON.stringify(sections[key]));
-        let completed = 0;
-        try {
-          for (const key of changed) {
-            const result = await request<{revision: number; value?: Json}>(`/api/admin/content/${key}`, {method: "PUT", body: JSON.stringify({value: draft[key], revision: revisions[key] ?? 0})});
-            const saved = result.value === undefined ? clone(draft[key]) : result.value;
-            setSections(old => ({...old, [key]: saved}));
-            setDraft(old => isObject(old) ? {...old, [key]: clone(saved)} : old);
-            setRevisions(old => ({...old, [key]: result.revision}));
-            completed++;
-          }
-          setNotice("Vse spremembe spletne strani so shranjene in objavljene.");
-        } catch (cause) {
-          if (completed) setNotice(`Objavljeno je ${completed} od ${changed.length} področij. Preostale spremembe so ohranjene; odpravite napako in znova shranite.`);
-          throw cause;
-        }
+        const changed = WEBSITE_SECTIONS.filter(
+          (key) => JSON.stringify(draft[key]) !== JSON.stringify(sections[key]),
+        );
+        const result = await request<{
+          sections: Sections;
+          revisions: Record<string, number>;
+        }>("/api/admin/publish", {
+          method: "POST",
+          body: JSON.stringify({
+            sections: Object.fromEntries(
+              changed.map((key) => [key, draft[key]]),
+            ),
+            revisions: Object.fromEntries(
+              changed.map((key) => [key, revisions[key] ?? 0]),
+            ),
+          }),
+        });
+        setSections((old) => ({ ...old, ...result.sections }));
+        setDraft((old) =>
+          isObject(old) ? { ...old, ...clone(result.sections) } : old,
+        );
+        setRevisions((old) => ({ ...old, ...result.revisions }));
+        setNotice("Vse spremembe spletne strani so objavljene skupaj.");
         return;
       }
       const result = await request<{ revision: number; value?: Json }>(
@@ -1199,7 +1426,42 @@ export default function AdminPage() {
       setSections((old) => ({ ...old, [active]: saved }));
       setDraft(clone(saved));
       setRevisions((old) => ({ ...old, [active]: result.revision }));
-      setNotice(active === "notices" ? "Obvestila so shranjena. Na spletni strani so vidni samo vnosi z vključenim prikazom." : "Spremembe so shranjene in objavljene na spletni strani.");
+      setNotice(
+        active === "notices"
+          ? "Obvestila so shranjena. Na spletni strani so vidni samo vnosi z vključenim prikazom."
+          : "Spremembe so shranjene in objavljene na spletni strani.",
+      );
+    } catch (cause) {
+      failure(cause);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveDraft() {
+    if (!editing || busy || draftLoading) return;
+    setBusy(true);
+    setError("");
+    try {
+      const value = validateEditorDraft(active, draft) as Json;
+      const keys = active === "website" ? [...WEBSITE_SECTIONS] : [active];
+      const baseRevisions = Object.fromEntries(
+        keys.map((key) => [key, revisions[key] ?? 0]),
+      );
+      const result = await request<{ revision: number; savedAt: number }>(
+        `/api/admin/drafts/${active}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            value,
+            baseRevisions,
+            revision: storedDraft?.revision || 0,
+          }),
+        },
+      );
+      setStoredDraft({ value: clone(value), baseRevisions, ...result });
+      setNotice(
+        "Osnutek je zasebno shranjen za vaš račun. Javna stran ostaja nespremenjena.",
+      );
     } catch (cause) {
       failure(cause);
     } finally {
@@ -1236,7 +1498,10 @@ export default function AdminPage() {
           method: "POST",
           body: JSON.stringify({
             revision,
-            currentRevision: revisions[active === "website" ? websiteHistorySection : active] ?? 0,
+            currentRevision:
+              revisions[
+                active === "website" ? websiteHistorySection : active
+              ] ?? 0,
           }),
         },
       );
@@ -1244,7 +1509,11 @@ export default function AdminPage() {
       if (data.value !== undefined) {
         const key = active === "website" ? websiteHistorySection : active;
         setSections((old) => ({ ...old, [key]: data.value! }));
-        setDraft(old => active === "website" && isObject(old) ? {...old, [key]: clone(data.value!)} : clone(data.value!));
+        setDraft((old) =>
+          active === "website" && isObject(old)
+            ? { ...old, [key]: clone(data.value!) }
+            : clone(data.value!),
+        );
         setRevisions((old) => ({ ...old, [key]: data.revision }));
       } else await loadContent();
       setNotice(
@@ -1281,8 +1550,8 @@ export default function AdminPage() {
       ]);
       setMediaLoaded(true);
       setNotice(
-        active === 'media'
-          ? 'Slika je shranjena v knjižnici. Za prikaz na spletni strani jo izberite v urejevalniku spletne strani.'
+        active === "media"
+          ? "Slika je shranjena v knjižnici. Za prikaz na spletni strani jo izberite v urejevalniku spletne strani."
           : "Slika je naložena. Spremembe objavite z gumbom »Shrani in objavi«.",
       );
       return item;
@@ -1461,10 +1730,12 @@ export default function AdminPage() {
       submissions: "Delovni nalogi",
       users: "Dostop in skrbniki",
       notifications: "E-poštna obvestila",
+      privacy: "Osebni podatki",
+      campaigns: "Pošiljanje obvestil",
     }[active] ??
       "Upravljanje");
 
-  if (checking)
+  if (checking || (session && !contentLoaded && !error))
     return (
       <div className="admin-root admin-auth">
         <div className="admin-auth-card">
@@ -1475,13 +1746,31 @@ export default function AdminPage() {
     );
   if (!session)
     return (
-      <AdminSignIn
-        onAuthenticated={(next) => {
-          setSession(next);
-          setNotice("");
-          setError("");
-        }}
-      />
+      <>
+        {notice && (
+          <p
+            role="status"
+            style={{ margin: 0, padding: "12px 24px", textAlign: "center" }}
+          >
+            {notice}
+          </p>
+        )}
+        <AdminSignIn
+          onAuthenticated={(next) => {
+            if (interruptedWork.current?.user !== next.user.email)
+              interruptedWork.current = null;
+            if (interruptedNotifications.current?.user !== next.user.email)
+              interruptedNotifications.current = null;
+            if (interruptedDraft.current?.user !== next.user.email)
+              interruptedDraft.current = null;
+            if (interruptedArea.current?.user !== next.user.email)
+              interruptedArea.current = null;
+            setSession(next);
+            setNotice("");
+            setError("");
+          }}
+        />
+      </>
     );
 
   return (
@@ -1516,20 +1805,34 @@ export default function AdminPage() {
           <X size={21} />
         </button>
         <nav>
-          <button
-            className={active === "dashboard" ? "is-current" : ""}
-            onClick={() => navigate("dashboard")}
-          >
-            <LayoutDashboard size={18} />
-            Pregled
-          </button>
-          <button
-            className={active === "submissions" ? "is-current" : ""}
-            onClick={() => navigate("submissions")}
-          >
-            <Inbox size={18} />
-            Delovni nalogi
-          </button>
+          {canContent && (
+            <button
+              className={active === "dashboard" ? "is-current" : ""}
+              onClick={() => navigate("dashboard")}
+            >
+              <LayoutDashboard size={18} />
+              Pregled
+            </button>
+          )}
+          {canOperations && (
+            <button
+              className={active === "submissions" ? "is-current" : ""}
+              onClick={() => navigate("submissions")}
+            >
+              <Inbox size={18} />
+              Delovni nalogi
+            </button>
+          )}
+          {canOperations && (
+            <button
+              type="button"
+              className={active === "campaigns" ? "is-current" : ""}
+              onClick={() => navigate("campaigns")}
+            >
+              <Inbox size={18} />
+              Pošiljanje obvestil
+            </button>
+          )}
           {session.user.role === "owner" && (
             <button
               type="button"
@@ -1540,41 +1843,62 @@ export default function AdminPage() {
               Dostop in skrbniki
             </button>
           )}
-          {session.user.role === "owner" && <button type="button" className={active === "notifications" ? "is-current" : ""} onClick={() => navigate("notifications")}><Inbox size={18}/> E-poštna obvestila</button>}
-          {["Portal", "Vsebine"].map((group) => (
-            <div key={group} className="admin-nav-group">
-              <span>{group}</span>
-              {Object.entries(sectionInfo)
-                .filter(([, item]) => item.group === group)
-                .map(([key, item]) => (
-                  <button
-                    key={key}
-                    className={active === key ? "is-current" : ""}
-                    onClick={() => navigate(key)}
-                    aria-current={active === key ? "page" : undefined}
-                  >
-                    {key === "copy" ? (
-                      <Copy size={17} />
-                    ) : key === "images" ? (
-                      <ImagePlus size={17} />
-                    ) : (
-                      <span className="admin-nav-dot" />
-                    )}
-                    {item.name}
-                  </button>
-                ))}
-            </div>
-          ))}
-          <div className="admin-nav-group">
-            <span>Knjižnica</span>
+          {session.user.role === "owner" && (
             <button
-              className={active === "media" ? "is-current" : ""}
-              onClick={() => navigate("media")}
+              type="button"
+              className={active === "notifications" ? "is-current" : ""}
+              onClick={() => navigate("notifications")}
             >
-              <Files size={18} />
-              Datoteke
+              <Inbox size={18} /> E-poštna obvestila
             </button>
-          </div>
+          )}
+          {session.user.role === "owner" && (
+            <button
+              type="button"
+              className={active === "privacy" ? "is-current" : ""}
+              onClick={() => navigate("privacy")}
+            >
+              <ShieldCheck size={18} />
+              Osebni podatki
+            </button>
+          )}
+          {canContent &&
+            ["Portal", "Vsebine"].map((group) => (
+              <div key={group} className="admin-nav-group">
+                <span>{group}</span>
+                {Object.entries(sectionInfo)
+                  .filter(([, item]) => item.group === group)
+                  .map(([key, item]) => (
+                    <button
+                      key={key}
+                      className={active === key ? "is-current" : ""}
+                      onClick={() => navigate(key)}
+                      aria-current={active === key ? "page" : undefined}
+                    >
+                      {key === "copy" ? (
+                        <Copy size={17} />
+                      ) : key === "images" ? (
+                        <ImagePlus size={17} />
+                      ) : (
+                        <span className="admin-nav-dot" />
+                      )}
+                      {item.name}
+                    </button>
+                  ))}
+              </div>
+            ))}
+          {canContent && (
+            <div className="admin-nav-group">
+              <span>Knjižnica</span>
+              <button
+                className={active === "media" ? "is-current" : ""}
+                onClick={() => navigate("media")}
+              >
+                <Files size={18} />
+                Datoteke
+              </button>
+            </div>
+          )}
         </nav>
         <div className="admin-sidebar-bottom">
           <a href="/" target="_blank" rel="noreferrer">
@@ -1652,7 +1976,10 @@ export default function AdminPage() {
                   : "Vsebin ni bilo mogoče naložiti."}
               </h2>
               {!loading && (
-                <button className="admin-button" onClick={loadContent}>
+                <button
+                  className="admin-button"
+                  onClick={() => void loadContent()}
+                >
                   <RefreshCw size={16} />
                   Poskusi znova
                 </button>
@@ -1691,21 +2018,23 @@ export default function AdminPage() {
                         <ArrowUp size={17} />
                       </span>
                     </button>
-                    <button
-                      onClick={() => navigate("submissions")}
-                      className="admin-dashboard-card"
-                    >
-                      <Inbox size={25} />
-                      <h3>Delovni nalogi</h3>
-                      <p>
-                        Kontaktna sporočila, prijave napak, povpraševanja in
-                        prijave na tržnico.
-                      </p>
-                      <span>
-                        Odpri naloge
-                        <ArrowUp size={17} />
-                      </span>
-                    </button>
+                    {canOperations && (
+                      <button
+                        onClick={() => navigate("submissions")}
+                        className="admin-dashboard-card"
+                      >
+                        <Inbox size={25} />
+                        <h3>Delovni nalogi</h3>
+                        <p>
+                          Kontaktna sporočila, prijave napak, povpraševanja in
+                          prijave na tržnico.
+                        </p>
+                        <span>
+                          Odpri naloge
+                          <ArrowUp size={17} />
+                        </span>
+                      </button>
+                    )}
                     <button
                       onClick={() => navigate("collection")}
                       className="admin-dashboard-card"
@@ -1713,7 +2042,8 @@ export default function AdminPage() {
                       <ImagePlus size={25} />
                       <h3>Urniki odvoza</h3>
                       <p>
-                        Uredite območja in termine ter preverite urnik po naslovu.
+                        Uredite območja in termine ter preverite urnik po
+                        naslovu.
                       </p>
                       <span>
                         Odpri urnike
@@ -1724,16 +2054,29 @@ export default function AdminPage() {
                   <section className="admin-panel">
                     <div className="admin-panel-heading">
                       <h2>Hiter dostop do vsebin</h2>
-                      <span>{Object.values(sectionInfo).filter(item => item.group !== "Prejšnji urejevalniki").length} področij</span>
+                      <span>
+                        {
+                          Object.values(sectionInfo).filter(
+                            (item) => item.group !== "Prejšnji urejevalniki",
+                          ).length
+                        }{" "}
+                        področij
+                      </span>
                     </div>
                     <div className="admin-quick-grid">
                       {Object.entries(sectionInfo)
-                        .filter(([, item]) => item.group !== "Prejšnji urejevalniki")
+                        .filter(
+                          ([, item]) => item.group !== "Prejšnji urejevalniki",
+                        )
                         .map(([key, item]) => (
                           <button key={key} onClick={() => navigate(key)}>
                             <span>
                               {item.name}
-                              <small>{key === "website" ? "Besedila, slike, razporeditev in logotip" : `Različica ${revisions[key] ?? 0}`}</small>
+                              <small>
+                                {key === "website"
+                                  ? "Besedila, slike, razporeditev in logotip"
+                                  : `Različica ${revisions[key] ?? 0}`}
+                              </small>
                             </span>
                             <ChevronRight size={17} />
                           </button>
@@ -1752,7 +2095,23 @@ export default function AdminPage() {
                   <div className="admin-editor-intro">
                     <p>{sectionInfo[active].description}</p>
                     <div>
-                      {active === "website" && <label className="admin-field"><span>Zgodovina področja</span><select value={websiteHistorySection} onChange={e => setWebsiteHistorySection(e.target.value)}>{WEBSITE_SECTIONS.map(key => <option value={key} key={key}>{sectionInfo[key]?.name || key}</option>)}</select></label>}
+                      {active === "website" && (
+                        <label className="admin-field">
+                          <span>Zgodovina področja</span>
+                          <select
+                            value={websiteHistorySection}
+                            onChange={(e) =>
+                              setWebsiteHistorySection(e.target.value)
+                            }
+                          >
+                            {WEBSITE_SECTIONS.map((key) => (
+                              <option value={key} key={key}>
+                                {sectionInfo[key]?.name || key}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
                       <button
                         className="admin-button admin-small"
                         type="button"
@@ -1769,7 +2128,7 @@ export default function AdminPage() {
                           setJsonText(JSON.stringify(draft, null, 2));
                           setAdvanced(true);
                         }}
-                        disabled={busy || active === "website"}
+                        disabled={busy}
                       >
                         <Code2 size={16} />
                         Napredno
@@ -1781,7 +2140,9 @@ export default function AdminPage() {
                       {dirty ? (
                         <>
                           <span />
-                          Neshranjene spremembe
+                          {draftSaved
+                            ? "Osnutek je shranjen; še ni objavljen"
+                            : "Neshranjene spremembe"}
                         </>
                       ) : (
                         <>
@@ -1789,9 +2150,21 @@ export default function AdminPage() {
                           Vsebina je shranjena
                         </>
                       )}
-                      <small>{active === "website" ? "Skupni osnutek spletne strani" : `Različica ${revisions[active] ?? 0}`}</small>
+                      <small>
+                        {active === "website"
+                          ? "Skupni osnutek spletne strani"
+                          : `Različica ${revisions[active] ?? 0}`}
+                      </small>
                     </span>
                     <div>
+                      <button
+                        type="button"
+                        className="admin-button"
+                        disabled={!dirty || busy || draftLoading}
+                        onClick={() => void saveDraft()}
+                      >
+                        Shrani osnutek
+                      </button>
                       <button
                         type="button"
                         className="admin-button"
@@ -1825,321 +2198,449 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-                  {active === "website" ? (
-                    <fieldset className="admin-complex-editor" disabled={busy}>
-                      <WebsiteEditor value={draft as unknown as WebsiteDraft} onChange={next => setDraft(next as unknown as Json)} pages={pages} media={media} onUpload={upload} disabled={busy} hasMoreMedia={!!mediaNextCursor} mediaLoading={mediaLoading} onMoreMedia={()=>void loadMedia(true)} />
-                    </fieldset>
-                  ) : active === "layout" ? (
-                    <fieldset className="admin-complex-editor" disabled={busy}>
-                      <LayoutEditor
-                        value={draft as unknown as CmsLayoutData}
+                  {storedDraft && (
+                    <section
+                      className="admin-panel"
+                      aria-label="Shranjeni osnutek"
+                    >
+                      <p>
+                        Vaš zasebni osnutek: {prettyDate(storedDraft.savedAt)}.
+                        Shranjeni osnutek se samodejno ne objavi.
+                      </p>
+                      <button
+                        type="button"
+                        className="admin-button"
+                        disabled={busy}
+                        onClick={() => {
+                          if (
+                            dirty &&
+                            !window.confirm(
+                              "Zamenjate trenutne spremembe s shranjenim osnutkom?",
+                            )
+                          )
+                            return;
+                          try {
+                            setDraft(
+                              validateEditorDraft(
+                                active,
+                                storedDraft.value,
+                              ) as Json,
+                            );
+                            setRevisions((old) => ({
+                              ...old,
+                              ...storedDraft.baseRevisions,
+                            }));
+                            setNotice(
+                              "Osnutek je odprt. Objava bo preverila, ali so se javne vsebine medtem spremenile.",
+                            );
+                          } catch (cause) {
+                            failure(cause);
+                          }
+                        }}
+                      >
+                        Odpri shranjeni osnutek
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-button"
+                        disabled={busy}
+                        onClick={() => void loadContent(undefined, true)}
+                      >
+                        Osveži objavljene različice in ohrani osnutek
+                      </button>
+                    </section>
+                  )}
+                  <EditorRecoveryBoundary
+                    key={active}
+                    draft={draft}
+                    onReset={() => setDraft(draftFor(active))}
+                  >
+                    <ScheduledPublications
+                      section={active}
+                      value={draft}
+                      revisions={revisions}
+                      call={request}
+                      disabled={busy}
+                      dirty={contentDirty}
+                      user={session.user.email}
+                      owner={session.user.role === "owner"}
+                    />
+                    {active === "website" ? (
+                      <fieldset
+                        className="admin-complex-editor"
+                        disabled={busy}
+                      >
+                        <WebsiteEditor
+                          value={draft as unknown as WebsiteDraft}
+                          onChange={(next) => setDraft(next as unknown as Json)}
+                          pages={pages}
+                          media={media}
+                          onUpload={upload}
+                          disabled={busy}
+                          hasMoreMedia={!!mediaNextCursor}
+                          mediaLoading={mediaLoading}
+                          onMoreMedia={() => void loadMedia(true)}
+                        />
+                      </fieldset>
+                    ) : active === "layout" ? (
+                      <fieldset
+                        className="admin-complex-editor"
+                        disabled={busy}
+                      >
+                        <LayoutEditor
+                          value={draft as unknown as CmsLayoutData}
+                          onChange={(next) => setDraft(next as unknown as Json)}
+                          pages={pages}
+                          disabled={busy}
+                        />
+                      </fieldset>
+                    ) : active === "notices" ? (
+                      <NoticesEditor
+                        value={draft as unknown as EditableNotice[]}
                         onChange={(next) => setDraft(next as unknown as Json)}
-                        pages={pages}
+                        disabled={busy}
+                        districts={sections.districts as unknown as District[]}
+                        revision={revisions.notices ?? 0}
+                        csrfToken={session.csrfToken}
+                        dirty={dirty}
+                        canDeliver={canOperations}
+                        onSessionExpired={expireSession}
+                      />
+                    ) : active === "districts" ? (
+                      <DistrictsEditor
+                        value={draft as unknown as District[]}
+                        onChange={(next) => setDraft(next as unknown as Json)}
+                        disabled={busy}
+                        canViewSubscribers={canOperations}
+                        onSessionExpired={expireSession}
+                      />
+                    ) : active === "tariffs" ? (
+                      <TariffsEditor
+                        value={draft as unknown as TariffData}
+                        onChange={(next) => setDraft(next as unknown as Json)}
                         disabled={busy}
                       />
-                    </fieldset>
-                  ) : active === "notices" ? (
-                    <NoticesEditor value={draft as unknown as EditableNotice[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy} districts={sections.districts as unknown as District[]} revision={revisions.notices ?? 0} csrfToken={session.csrfToken} dirty={dirty} />
-                  ) : active === "districts" ? (
-                    <DistrictsEditor value={draft as unknown as District[]} onChange={next => setDraft(next as unknown as Json)} disabled={busy}/>
-                  ) : active === "tariffs" ? (
-                    <TariffsEditor value={draft as unknown as TariffData} onChange={next=>setDraft(next as unknown as Json)} disabled={busy}/>
-                  ) : active === "cemetery" ? (
-                    <CemeteryEditor value={draft as unknown as CemeteryData} onChange={next=>setDraft(next as unknown as Json)} disabled={busy} onUpload={upload}/>
-                  ) : active === "collection" ? (
-                    <fieldset className="admin-complex-editor" disabled={busy}>
-                      <CollectionEditor
-                        value={draft as unknown as CollectionData}
+                    ) : active === "cemetery" ? (
+                      <CemeteryEditor
+                        value={draft as unknown as CemeteryData}
                         onChange={(next) => setDraft(next as unknown as Json)}
                         disabled={busy}
+                        onUpload={upload}
                       />
-                    </fieldset>
-                  ) : visual ? (
-                    <>
-                      <div className="admin-preview-toolbar">
-                        <label>
-                          Način predogleda
-                          <select
-                            value={previewMode}
-                            onChange={(e) =>
-                              setPreviewMode(
-                                e.target.value as "edit" | "interact",
-                              )
-                            }
-                          >
-                            <option value="edit">
-                              Urejanje · klik izbere element
-                            </option>
-                            <option value="interact">
-                              Preizkus · gumbi delujejo
-                            </option>
-                          </select>
-                        </label>
-                        <label>
-                          Stran za urejanje
-                          <select
-                            value={previewPage}
-                            disabled={busy}
-                            onChange={(event) => {
-                              setPreviewReady(false);
-                              setPreviewPage(event.target.value);
-                              setSelection(null);
-                            }}
-                          >
-                            {previewPages.map(([path, label]) => (
-                              <option key={path} value={path}>
-                                {label}
+                    ) : active === "collection" ? (
+                      <fieldset
+                        className="admin-complex-editor"
+                        disabled={busy}
+                      >
+                        <CollectionEditor
+                          value={draft as unknown as CollectionData}
+                          onChange={(next) => setDraft(next as unknown as Json)}
+                          disabled={busy}
+                        />
+                      </fieldset>
+                    ) : visual ? (
+                      <>
+                        <div className="admin-preview-toolbar">
+                          <label>
+                            Način predogleda
+                            <select
+                              value={previewMode}
+                              onChange={(e) =>
+                                setPreviewMode(
+                                  e.target.value as "edit" | "interact",
+                                )
+                              }
+                            >
+                              <option value="edit">
+                                Urejanje · klik izbere element
                               </option>
-                            ))}
-                          </select>
-                        </label>
-                        <button
-                          className="admin-button admin-small"
-                          type="button"
-                          onClick={() => {
-                            setPreviewReady(false);
-                            if (iframe.current)
-                              iframe.current.src = `${previewPage}?cms-preview=1`;
-                          }}
-                        >
-                          <RefreshCw size={15} />
-                          Osveži predogled
-                        </button>
-                      </div>
-                      <div className="admin-visual-workspace">
-                        <div className="admin-preview-wrap">
-                          <div className="admin-preview-caption">
-                            <span />
-                            <span />
-                            <span />
-                            <small>
-                              {previewPage} ·{" "}
-                              {previewMode === "edit"
-                                ? "Klik izbere element"
-                                : "Preizkus brez oddaje obrazcev"}
-                            </small>
-                          </div>
-                          <iframe
-                            name="kpv-cms-preview"
-                            sandbox="allow-scripts allow-same-origin"
-                            ref={iframe}
-                            title="Predogled spletne strani za urejanje"
-                            src={`${previewPage}?cms-preview=1`}
-                            onLoad={() => {
-                              iframe.current?.contentWindow?.postMessage(
-                                { type: "kpv-cms-request-structure" },
-                                location.origin,
-                              );
+                              <option value="interact">
+                                Preizkus · gumbi delujejo
+                              </option>
+                            </select>
+                          </label>
+                          <label>
+                            Stran za urejanje
+                            <select
+                              value={previewPage}
+                              disabled={busy}
+                              onChange={(event) => {
+                                setPreviewReady(false);
+                                setPreviewPage(event.target.value);
+                                setSelection(null);
+                              }}
+                            >
+                              {previewPages.map(([path, label]) => (
+                                <option key={path} value={path}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            className="admin-button admin-small"
+                            type="button"
+                            onClick={() => {
+                              setPreviewReady(false);
+                              if (iframe.current)
+                                iframe.current.src = `${previewPage}?cms-preview=1`;
                             }}
-                          />
+                          >
+                            <RefreshCw size={15} />
+                            Osveži predogled
+                          </button>
                         </div>
-                        <aside
-                          className="admin-visual-inspector"
-                          ref={inspector}
-                        >
-                          <div className="admin-inspector-heading">
-                            {active === "images" ? (
-                              <ImagePlus size={20} />
-                            ) : (
-                              <Copy size={20} />
-                            )}
-                            <h2>
-                              {selection
-                                ? "Urejanje izbire"
-                                : "Izberite element"}
-                            </h2>
+                        <div className="admin-visual-workspace">
+                          <div className="admin-preview-wrap">
+                            <div className="admin-preview-caption">
+                              <span />
+                              <span />
+                              <span />
+                              <small>
+                                {previewPage} ·{" "}
+                                {previewMode === "edit"
+                                  ? "Klik izbere element"
+                                  : "Preizkus brez oddaje obrazcev"}
+                              </small>
+                            </div>
+                            <iframe
+                              name="kpv-cms-preview"
+                              sandbox="allow-scripts allow-same-origin"
+                              ref={iframe}
+                              title="Predogled spletne strani za urejanje"
+                              src={`${previewPage}?cms-preview=1`}
+                              onLoad={() => {
+                                iframe.current?.contentWindow?.postMessage(
+                                  { type: "kpv-cms-request-structure" },
+                                  location.origin,
+                                );
+                              }}
+                            />
                           </div>
-                          {selection ? (
-                            <fieldset disabled={busy}>
-                              <span className="admin-selection-tag">
-                                {selection.kind === "image"
-                                  ? "Slika"
-                                  : "Besedilo"}{" "}
-                                · {selection.tag || "element"}
-                              </span>
-                              <p className="admin-original">
-                                {selection.kind === "image"
-                                  ? selection.alt || "Izbrana slika"
-                                  : selection.original}
-                              </p>
-                              {selection.kind === "link" ? (
-                                <>
-                                  <label className="admin-field">
-                                    <span>Besedilo povezave</span>
-                                    <input
-                                      value={String(
-                                        selectedOverride?.label ??
-                                          selection.label ??
-                                          "",
-                                      )}
-                                      onChange={(e) =>
-                                        changeOverride({
-                                          label: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  </label>
-                                  <label className="admin-field">
-                                    <span>Cilj povezave</span>
-                                    <input
-                                      value={String(
-                                        selectedOverride?.url ??
-                                          selection.url ??
-                                          selection.original,
-                                      )}
-                                      onChange={(e) =>
-                                        changeOverride({ url: e.target.value })
-                                      }
-                                    />
-                                    <small>
-                                      Uporabite /pot, https://…, mailto: ali
-                                      tel:. V načinu Preizkus lahko preverite
-                                      delovanje notranje povezave.
-                                    </small>
-                                  </label>
-                                </>
-                              ) : selection.kind === "text" ? (
-                                <label className="admin-field">
-                                  <span>Novo besedilo</span>
-                                  <textarea
-                                    rows={7}
-                                    value={String(
-                                      selectedOverride?.value ??
-                                        selection.original,
-                                    )}
-                                    onChange={(event) =>
-                                      changeOverride({
-                                        value: event.target.value,
-                                      })
-                                    }
-                                  />
-                                  <small>
-                                    Spremembo vidite v predogledu. Za javno
-                                    objavo jo shranite.
-                                  </small>
-                                </label>
+                          <aside
+                            className="admin-visual-inspector"
+                            ref={inspector}
+                          >
+                            <div className="admin-inspector-heading">
+                              {active === "images" ? (
+                                <ImagePlus size={20} />
                               ) : (
-                                <>
-                                  {(selectedOverride?.url ||
-                                    selection.src ||
-                                    selection.original !== "cms:featured") && (
-                                    <img
-                                      className="admin-selected-image"
-                                      src={String(
-                                        selectedOverride?.url ??
-                                          selection.src ??
-                                          selection.original,
-                                      )}
-                                      alt="Predogled izbrane slike"
-                                    />
-                                  )}
+                                <Copy size={20} />
+                              )}
+                              <h2>
+                                {selection
+                                  ? "Urejanje izbire"
+                                  : "Izberite element"}
+                              </h2>
+                            </div>
+                            {selection ? (
+                              <fieldset disabled={busy}>
+                                <span className="admin-selection-tag">
+                                  {selection.kind === "image"
+                                    ? "Slika"
+                                    : "Besedilo"}{" "}
+                                  · {selection.tag || "element"}
+                                </span>
+                                <p className="admin-original">
+                                  {selection.kind === "image"
+                                    ? selection.alt || "Izbrana slika"
+                                    : selection.original}
+                                </p>
+                                {selection.kind === "link" ? (
+                                  <>
+                                    <label className="admin-field">
+                                      <span>Besedilo povezave</span>
+                                      <input
+                                        value={String(
+                                          selectedOverride?.label ??
+                                            selection.label ??
+                                            "",
+                                        )}
+                                        onChange={(e) =>
+                                          changeOverride({
+                                            label: e.target.value,
+                                          })
+                                        }
+                                      />
+                                    </label>
+                                    <label className="admin-field">
+                                      <span>Cilj povezave</span>
+                                      <input
+                                        value={String(
+                                          selectedOverride?.url ??
+                                            selection.url ??
+                                            selection.original,
+                                        )}
+                                        onChange={(e) =>
+                                          changeOverride({
+                                            url: e.target.value,
+                                          })
+                                        }
+                                      />
+                                      <small>
+                                        Uporabite /pot, https://…, mailto: ali
+                                        tel:. V načinu Preizkus lahko preverite
+                                        delovanje notranje povezave.
+                                      </small>
+                                    </label>
+                                  </>
+                                ) : selection.kind === "text" ? (
                                   <label className="admin-field">
-                                    <span>Povezava do nove slike</span>
-                                    <input
+                                    <span>Novo besedilo</span>
+                                    <textarea
+                                      rows={7}
                                       value={String(
-                                        selectedOverride?.url ??
-                                          selection.src ??
+                                        selectedOverride?.value ??
                                           selection.original,
                                       )}
                                       onChange={(event) =>
                                         changeOverride({
-                                          url: event.target.value,
-                                        })
-                                      }
-                                    />
-                                  </label>
-                                  <label className="admin-field">
-                                    <span>Opis slike za dostopnost</span>
-                                    <input
-                                      value={String(
-                                        selectedOverride?.alt ??
-                                          selection.alt ??
-                                          "",
-                                      )}
-                                      onChange={(event) =>
-                                        changeOverride({
-                                          alt: event.target.value,
+                                          value: event.target.value,
                                         })
                                       }
                                     />
                                     <small>
-                                      Kratek opis vsebine; za okrasno sliko
-                                      pustite prazno.
+                                      Spremembo vidite v predogledu. Za javno
+                                      objavo jo shranite.
                                     </small>
                                   </label>
-                                  <h3 className="admin-field-title">
-                                    Izberite iz knjižnice
-                                  </h3>
-                                  <div className="admin-image-picker">
-                                    {media.map((item) => (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() =>
-                                          changeOverride({ url: item.url })
+                                ) : (
+                                  <>
+                                    {(selectedOverride?.url ||
+                                      selection.src ||
+                                      selection.original !==
+                                        "cms:featured") && (
+                                      <img
+                                        className="admin-selected-image"
+                                        src={String(
+                                          selectedOverride?.url ??
+                                            selection.src ??
+                                            selection.original,
+                                        )}
+                                        alt="Predogled izbrane slike"
+                                      />
+                                    )}
+                                    <label className="admin-field">
+                                      <span>Povezava do nove slike</span>
+                                      <input
+                                        value={String(
+                                          selectedOverride?.url ??
+                                            selection.src ??
+                                            selection.original,
+                                        )}
+                                        onChange={(event) =>
+                                          changeOverride({
+                                            url: event.target.value,
+                                          })
                                         }
-                                        aria-label={`Uporabi sliko ${item.name || item.id}`}
-                                      >
-                                        <img
-                                          src={item.url}
-                                          alt={
-                                            item.name || "Slika iz knjižnice"
+                                      />
+                                    </label>
+                                    <label className="admin-field">
+                                      <span>Opis slike za dostopnost</span>
+                                      <input
+                                        value={String(
+                                          selectedOverride?.alt ??
+                                            selection.alt ??
+                                            "",
+                                        )}
+                                        onChange={(event) =>
+                                          changeOverride({
+                                            alt: event.target.value,
+                                          })
+                                        }
+                                      />
+                                      <small>
+                                        Kratek opis vsebine; za okrasno sliko
+                                        pustite prazno.
+                                      </small>
+                                    </label>
+                                    <h3 className="admin-field-title">
+                                      Izberite iz knjižnice
+                                    </h3>
+                                    <div className="admin-image-picker">
+                                      {media.map((item) => (
+                                        <button
+                                          key={item.id}
+                                          type="button"
+                                          onClick={() =>
+                                            changeOverride({ url: item.url })
                                           }
-                                          loading="lazy"
-                                        />
-                                      </button>
-                                    ))}
-                                  </div>
+                                          aria-label={`Uporabi sliko ${item.name || item.id}`}
+                                        >
+                                          <img
+                                            src={item.url}
+                                            alt={
+                                              item.name || "Slika iz knjižnice"
+                                            }
+                                            loading="lazy"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <button
+                                      className="admin-button admin-small"
+                                      type="button"
+                                      onClick={() =>
+                                        uploadInput.current?.click()
+                                      }
+                                    >
+                                      <Upload size={15} />
+                                      Naloži drugo sliko
+                                    </button>
+                                  </>
+                                )}
+                                {selectedOverride && (
                                   <button
-                                    className="admin-button admin-small"
+                                    className="admin-danger-link"
                                     type="button"
-                                    onClick={() => uploadInput.current?.click()}
+                                    onClick={() => {
+                                      if (Array.isArray(draft))
+                                        setDraft(
+                                          draft.filter(
+                                            (item) =>
+                                              !(
+                                                isObject(item) &&
+                                                item.key === selection.key &&
+                                                item.page === selection.page
+                                              ),
+                                          ),
+                                        );
+                                    }}
                                   >
-                                    <Upload size={15} />
-                                    Naloži drugo sliko
+                                    <Trash2 size={15} />
+                                    Povrni izvirnik
                                   </button>
-                                </>
-                              )}
-                              {selectedOverride && (
-                                <button
-                                  className="admin-danger-link"
-                                  type="button"
-                                  onClick={() => {
-                                    if (Array.isArray(draft))
-                                      setDraft(
-                                        draft.filter(
-                                          (item) =>
-                                            !(
-                                              isObject(item) &&
-                                              item.key === selection.key &&
-                                              item.page === selection.page
-                                            ),
-                                        ),
-                                      );
-                                  }}
-                                >
-                                  <Trash2 size={15} />
-                                  Povrni izvirnik
-                                </button>
-                              )}
-                            </fieldset>
-                          ) : (
-                            <p>
-                              V predogledu kliknite{" "}
-                              {active === "images"
-                                ? "sliko"
-                                : "naslov, odstavek ali gumb"}
-                              . Tu boste uredili izbrano vsebino. Za premik po
-                              spletni strani uporabite izbiro strani zgoraj.
-                            </p>
-                          )}
-                        </aside>
-                      </div>
-                      <details className="admin-panel admin-overrides">
-                        <summary>
-                          Shranjene zamenjave (
-                          {Array.isArray(draft) ? draft.length : 0})
-                        </summary>
+                                )}
+                              </fieldset>
+                            ) : (
+                              <p>
+                                V predogledu kliknite{" "}
+                                {active === "images"
+                                  ? "sliko"
+                                  : "naslov, odstavek ali gumb"}
+                                . Tu boste uredili izbrano vsebino. Za premik po
+                                spletni strani uporabite izbiro strani zgoraj.
+                              </p>
+                            )}
+                          </aside>
+                        </div>
+                        <details className="admin-panel admin-overrides">
+                          <summary>
+                            Shranjene zamenjave (
+                            {Array.isArray(draft) ? draft.length : 0})
+                          </summary>
+                          <fieldset disabled={busy}>
+                            <Editor
+                              value={draft}
+                              example={sections[active]}
+                              section={active}
+                              onChange={setDraft}
+                            />
+                          </fieldset>
+                        </details>
+                      </>
+                    ) : (
+                      <section className="admin-panel admin-editor-panel">
                         <fieldset disabled={busy}>
                           <Editor
                             value={draft}
@@ -2148,20 +2649,9 @@ export default function AdminPage() {
                             onChange={setDraft}
                           />
                         </fieldset>
-                      </details>
-                    </>
-                  ) : (
-                    <section className="admin-panel admin-editor-panel">
-                      <fieldset disabled={busy}>
-                        <Editor
-                          value={draft}
-                          example={sections[active]}
-                          section={active}
-                          onChange={setDraft}
-                        />
-                      </fieldset>
-                    </section>
-                  )}
+                      </section>
+                    )}
+                  </EditorRecoveryBoundary>
                 </>
               )}
               {active === "media" && (
@@ -2231,14 +2721,61 @@ export default function AdminPage() {
                       </article>
                     ))}
                   </div>
-                  {mediaNextCursor&&<button type="button" className="admin-button" disabled={mediaLoading} onClick={()=>void loadMedia(true)}>{mediaLoading?'Nalagamo starejše slike …':'Naloži starejše slike'}</button>}
+                  {mediaNextCursor && (
+                    <button
+                      type="button"
+                      className="admin-button"
+                      disabled={mediaLoading}
+                      onClick={() => void loadMedia(true)}
+                    >
+                      {mediaLoading
+                        ? "Nalagamo starejše slike …"
+                        : "Naloži starejše slike"}
+                    </button>
+                  )}
                 </>
               )}
-              {active === "notifications" && session.user.role === "owner" && <NotificationSettings csrfToken={session.csrfToken} onSessionExpired={() => setSession(null)} onDirtyChange={setWorkDirty} onBusyChange={setWorkBusy} />}
+              {active === "notifications" && session.user.role === "owner" && (
+                <NotificationSettings
+                  csrfToken={session.csrfToken}
+                  onSessionExpired={expireSession}
+                  onDirtyChange={setWorkDirty}
+                  onBusyChange={setWorkBusy}
+                  recovery={
+                    interruptedNotifications.current?.user ===
+                    session.user.email
+                      ? interruptedNotifications.current.value
+                      : undefined
+                  }
+                  onRecoveryChange={(value) => {
+                    interruptedNotifications.current = value
+                      ? { user: session.user.email, value }
+                      : null;
+                  }}
+                />
+              )}
+              {active === "privacy" && session.user.role === "owner" && (
+                <PrivacyTools
+                  csrfToken={session.csrfToken}
+                  onSessionExpired={expireSession}
+                />
+              )}
+              {active === "campaigns" && canOperations && (
+                <NoticeCampaigns
+                  districts={sections.districts as unknown as District[]}
+                  notices={
+                    (sections.notices || []) as unknown as EditableNotice[]
+                  }
+                  revision={revisions.notices ?? 0}
+                  csrfToken={session.csrfToken}
+                  onRefresh={() => void loadContent()}
+                  onSessionExpired={expireSession}
+                />
+              )}
               {active === "users" && session.user.role === "owner" && (
                 <AdminUsers
                   csrfToken={session.csrfToken}
-                  onSessionExpired={() => setSession(null)}
+                  onSessionExpired={expireSession}
                 />
               )}
               {active === "submissions" && session && (
@@ -2246,14 +2783,16 @@ export default function AdminPage() {
                   csrfToken={session.csrfToken}
                   onDirtyChange={setWorkDirty}
                   onBusyChange={setWorkBusy}
-                  onSessionExpired={() => {
-                    setSession(null);
-                    setSections({});
-                    setDraft(null);
-                    setMedia([]);
-                    setNotice(
-                      "Seja je potekla. Za nadaljevanje se znova prijavite.",
-                    );
+                  onSessionExpired={expireSession}
+                  recovery={
+                    interruptedWork.current?.user === session.user.email
+                      ? interruptedWork.current.value
+                      : undefined
+                  }
+                  onRecoveryChange={(value) => {
+                    interruptedWork.current = value
+                      ? { user: session.user.email, value }
+                      : null;
                   }}
                 />
               )}
@@ -2296,10 +2835,19 @@ export default function AdminPage() {
                   <button
                     type="button"
                     className="admin-button admin-small"
-                    disabled={busy || item.revision === revisions[active === "website" ? websiteHistorySection : active]}
+                    disabled={
+                      busy ||
+                      item.revision ===
+                        revisions[
+                          active === "website" ? websiteHistorySection : active
+                        ]
+                    }
                     onClick={() => restore(item.revision)}
                   >
-                    {item.revision === revisions[active === "website" ? websiteHistorySection : active]
+                    {item.revision ===
+                    revisions[
+                      active === "website" ? websiteHistorySection : active
+                    ]
                       ? "Trenutna"
                       : "Obnovi"}
                   </button>
@@ -2322,6 +2870,7 @@ export default function AdminPage() {
       {advanced && (
         <Dialog
           title="Napredno urejanje podatkov"
+          error={error}
           onClose={() => setAdvanced(false)}
         >
           <p className="admin-dialog-description">
@@ -2361,13 +2910,37 @@ export default function AdminPage() {
                 type="file"
                 accept="application/json,.json"
                 onChange={async (event) => {
-                  const file = event.target.files?.[0];
+                  const input = event.currentTarget;
+                  const file = input.files?.[0];
                   if (!file) return;
-                  if (file.size > 2 * 1024 * 1024) {
-                    setError("Datoteka JSON je prevelika (največ 2 MB).");
+                  const section = active;
+                  const limitMb = section === "website" ? 6 : 2;
+                  if (file.size > limitMb * 1024 * 1024) {
+                    setError(
+                      `Datoteka JSON je prevelika (največ ${limitMb} MB).`,
+                    );
+                    input.value = "";
                     return;
                   }
-                  setJsonText(await file.text());
+                  try {
+                    const parsed: unknown = JSON.parse(await file.text());
+                    const valid = validateEditorDraft(section, parsed);
+                    if (currentArea.current === section) {
+                      setJsonText(JSON.stringify(valid, null, 2));
+                      setError("");
+                    }
+                  } catch (cause) {
+                    if (currentArea.current === section)
+                      failure(
+                        cause instanceof SyntaxError
+                          ? new Error(
+                              "Datoteka JSON ni veljavna. Trenutni osnutek je ohranjen.",
+                            )
+                          : cause,
+                      );
+                  } finally {
+                    input.value = "";
+                  }
                 }}
               />
             </label>
@@ -2379,15 +2952,19 @@ export default function AdminPage() {
                   const parsed: unknown = JSON.parse(jsonText);
                   if (parsed === null || typeof parsed !== "object")
                     throw new Error();
-                  setDraft(parsed as Json);
+                  setDraft(validateEditorDraft(active, parsed) as Json);
                   setAdvanced(false);
                   setNotice(
                     "Podatki so preneseni v obrazec. Pred objavo jih preglejte in shranite.",
                   );
                   setError("");
-                } catch {
-                  window.alert(
-                    "Vsebina ni veljaven objekt ali seznam JSON. Popravite zapis in poskusite znova.",
+                } catch (cause) {
+                  failure(
+                    cause instanceof SyntaxError
+                      ? new Error(
+                          "Zapis JSON ni veljaven. Trenutni osnutek je ohranjen.",
+                        )
+                      : cause,
                   );
                 }
               }}

@@ -16,6 +16,7 @@ import type {
 } from "../../../shared/page-layout";
 import "./layout-editor.css";
 import { mergeNativeBlocks } from "../../../shared/page-layout";
+import { canonicalNativeBlocks } from "../../content/native-sections";
 type Native = { id: string; title: string };
 const uid = () => crypto.randomUUID();
 const typeNames: Record<CmsBlock["type"], string> = {
@@ -64,7 +65,7 @@ const makeBlock = (type: CmsBlock["type"]): CmsBlock => ({
 });
 export default function LayoutEditor({
   value,
-  onChange,
+  onChange: onLayoutChange,
   pages,
   disabled = false,
   previewData, page, onPageChange, initialSelected = "", onEditContent, media = [], onUpload, hasMoreMedia=false, mediaLoading=false, onMoreMedia,
@@ -79,6 +80,28 @@ export default function LayoutEditor({
   onEditContent?: () => void; media?: {id: string; url: string; name?: string}[];
   onUpload?: (file: File) => Promise<{url: string} | undefined>;
 }) {
+  const latest = useRef({ value, onChange: onLayoutChange });
+  latest.current = { value, onChange: onLayoutChange };
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const onChange = (next: CmsLayoutData) => {
+    if (!mounted.current) return;
+    latest.current.value = next;
+    latest.current.onChange(next);
+  };
+  async function uploadImage(file: File, targetPath: string, targetId: string) {
+    if (!onUpload) return;
+    try {
+      const item = await onUpload(file);
+      if (!item || !mounted.current) return;
+      const current = latest.current.value;
+      const page = current.pages.find(page => page.path === targetPath);
+      if (!page?.blocks.some(block => block.id === targetId && block.type === 'image')) return;
+      onChange({ ...current, pages: current.pages.map(page => page.path === targetPath
+        ? { ...page, blocks: page.blocks.map(block => block.id === targetId ? { ...block, image: item.url } : block) }
+        : page) });
+    } catch { if (mounted.current) setError('Slike ni bilo mogoče naložiti. Poskusite znova.'); }
+  }
   const [localPath, setLocalPath] = useState("/");
   const path = page ?? localPath;
   const setPath = (next: string) => { setLocalPath(next); onPageChange?.(next); };
@@ -92,7 +115,7 @@ export default function LayoutEditor({
   const properties = useRef<HTMLFieldSetElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const current = value.pages.find((p) => p.path === path);
-  const blocks = mergeNativeBlocks(current?.blocks, native);
+  const blocks = mergeNativeBlocks(canonicalNativeBlocks(path, current?.blocks), native);
   const block = blocks.find((b) => b.id === selected);
   const allPages = [
     ...pages,
@@ -414,10 +437,11 @@ export default function LayoutEditor({
                 ) {
                   onChange({
                     ...value,
-                    pages: value.pages.filter((p) => p.path !== path),
+                    pages: path.startsWith("/strani/")
+                      ? value.pages.map((p) => p.path === path ? { ...p, blocks: [] } : p)
+                      : value.pages.filter((p) => p.path !== path),
                   });
                   setSelected("");
-                  if (path.startsWith("/strani/")) setPath("/");
                 }
               }}
             >
@@ -529,7 +553,7 @@ export default function LayoutEditor({
           )}
           {block.type === "image" && <>
             {block.image && <img className="admin-selected-image" src={block.image} alt={block.alt || "Predogled slike"} />}
-            {onUpload && <label className="admin-button website-upload">Naloži in uporabi sliko<input type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={async e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) { const item = await onUpload(file); if (item) patch({image: item.url}); } }} /></label>}
+            {onUpload && <label className="admin-button website-upload">Naloži in uporabi sliko<input type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void uploadImage(file, path, block.id); }} /></label>}
             {!!media.length && <details><summary>Izberi sliko iz knjižnice</summary><div className="admin-image-picker">{media.map(item => <button key={item.id} type="button" onClick={() => patch({image: item.url})} aria-label={`Uporabi ${item.name || "sliko"}`}><img src={item.url} alt={item.name || "Slika"} loading="lazy" /></button>)}</div>{hasMoreMedia&&<button type="button" className="admin-button" disabled={disabled||mediaLoading} onClick={onMoreMedia}>{mediaLoading?'Nalagamo …':'Naloži starejše slike'}</button>}</details>}
           </>}
           {block.type === "spacer" && (

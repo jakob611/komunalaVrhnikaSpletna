@@ -6,6 +6,10 @@ import { handleAdmin, readPublished, cleanupAdmin } from "./admin.js";
 import { managedCollection } from "./managed-collection.js";
 import { requestSubscription, subscriptionAction, processCampaigns } from "./subscriptions.js";
 import { publishedCalendarSeries, publishedRecurrence } from "../shared/calendar-series.js";
+import { submissionAttempt, completedSubmission, savePublicSubmission, discardUncommittedPhoto } from "./public-submissions.js";
+import { readiness } from "./readiness.js";
+import { servePublicPage, documentHeaders } from "./public-pages.js";
+import { processScheduledPublications } from "./scheduled-publications.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -56,7 +60,7 @@ function consent(data) {
   if (data.consent !== true && data.consent !== "true")
     throw new ApiError(400, "Za shranjevanje oddaje je potrebna privolitev.");
 }
-function date(data, key, required = false) {
+function date(data, key, required = false, allowPast = false) {
   const value = optional(data, key, 10);
   if (!value && !required) return "";
   const parsed = new Date(`${value}T12:00:00Z`);
@@ -64,7 +68,7 @@ function date(data, key, required = false) {
     !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
     !Number.isFinite(parsed.getTime()) ||
     parsed.toISOString().slice(0, 10) !== value ||
-    value < ljubljanaDate()
+    (!allowPast && value < ljubljanaDate())
   )
     throw new ApiError(400, "Izberite veljaven današnji ali prihodnji datum.");
   return value;
@@ -355,6 +359,7 @@ async function report(request) {
   return {
     payload,
     upload,
+    requestId: data.requestId,
     token: data["cf-turnstile-response"],
     honeypot: data.website,
   };
@@ -364,20 +369,13 @@ export async function handleRequest(request, env = {}, ctx) {
   const url = new URL(request.url);
   const route = url.pathname;
   if (!route.startsWith("/api/")) {
-    if (env.ASSETS) {
-      const response = await env.ASSETS.fetch(request);
-      if (route !== "/admin" && route !== "/admin/" && route !== "/obvestila/narocnina") return response;
-      const headers = new Headers(response.headers);
-      headers.set("X-Robots-Tag", "noindex, nofollow");
-      headers.set("Cache-Control", "no-store");
-      headers.set("X-Frame-Options", "DENY");
-      headers.set("Referrer-Policy", "no-referrer");
-      return new Response(response.body, { status: response.status, headers });
+    try {
+      return await servePublicPage(request, env, () => readPublished(env, "layout"));
+    } catch {
+      return documentHeaders(new Response("Stran trenutno ni na voljo. Poskusite pozneje.", {
+        status: 503, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+      }), request);
     }
-    return new Response(
-      "API KPV · za spletni vmesnik odprite razvojni strežnik.",
-      { status: 404 },
-    );
   }
   try {
     const subscriptionResponse = await subscriptionAction(request, env, { json, readJson, readDistricts: () => readPublished(env, "districts") });
@@ -389,25 +387,11 @@ export async function handleRequest(request, env = {}, ctx) {
       return adminResponse;
     }
     if (request.method === "GET") {
-      if (route === "/api/health")
-        return json({
-          ok: true,
-          demo: false,
-          storage: env.LOCAL_STORAGE
-            ? env.DB
-              ? "local-sqlite"
-              : "local-file"
-            : env.DB
-              ? "d1"
-              : "unavailable",
-          email: emailEnabled(env) ? "resend" : "not-configured",
-          payments: "not-enabled",
-          botProtection: env.LOCAL_STORAGE
-            ? "local-demo"
-            : env.TURNSTILE_SECRET && env.TURNSTILE_SITE_KEY
-              ? "turnstile"
-              : "not-configured",
-        });
+      if (route === "/api/live") return json({ ok: true });
+      if (route === "/api/health") {
+        const health = await readiness(env);
+        return json(health, health.ok ? 200 : 503);
+      }
       if (route === "/api/config")
         return json({
           email: { enabled: emailEnabled(env) },
@@ -488,12 +472,14 @@ export async function handleRequest(request, env = {}, ctx) {
     let upload = null;
     let token;
     let honeypot;
+    let requestId;
     if (route === "/api/reports")
-      ({ payload, upload, token, honeypot } = await report(request));
+      ({ payload, upload, token, honeypot, requestId } = await report(request));
     else {
       const data = await readJson(request);
       token = data["cf-turnstile-response"];
       honeypot = data.website;
+      requestId = data.requestId;
       const person = contact(data);
       if (route === "/api/contact") {
         const subcategories = {
@@ -549,19 +535,10 @@ export async function handleRequest(request, env = {}, ctx) {
           phone: optional(data, "phone", 40),
           address: field(data, "address", 3, 250),
           message: field(data, "message", 10, 4000),
-          preferredDate: date(data, "preferredDate"),
+          preferredDate: date(data, "preferredDate", false, true),
         };
       } else {
-        const proposedDate = date(data, "date", true);
-        const market = await readPublished(env, "market");
-        if (
-          market.closedDates.includes(proposedDate) ||
-          (market.dates.length && !market.dates.includes(proposedDate))
-        )
-          throw new ApiError(
-            400,
-            "Izbrani termin ni na voljo. Izberite objavljen termin tržnice.",
-          );
+        const proposedDate = date(data, "date", true, true);
         payload = {
           ...person,
           phone: optional(data, "phone", 40),
@@ -571,6 +548,19 @@ export async function handleRequest(request, env = {}, ctx) {
           paymentStatus: "not-charged",
         };
       }
+    }
+    const attempt = route === "/api/subscriptions" ? null : await submissionAttempt(requestId, route.slice(5), payload, upload);
+    const completed = await completedSubmission(env, attempt);
+    // A completed request may be retried after its one-use Turnstile token was
+    // consumed. The random key and exact payload digest recover only its receipt.
+    if (completed) return json(completed.receipt, 201);
+    if ((route === "/api/market" && payload.date < ljubljanaDate()) ||
+      (route === "/api/requests" && payload.preferredDate && payload.preferredDate < ljubljanaDate()))
+      throw new ApiError(400, "Izberite veljaven današnji ali prihodnji datum.");
+    if (route === "/api/market") {
+      const market = await readPublished(env, "market");
+      if (market.closedDates.includes(payload.date) || (market.dates.length && !market.dates.includes(payload.date)))
+        throw new ApiError(400, "Izbrani termin ni na voljo. Izberite objavljen termin tržnice.");
     }
     await verifyBot(request, env, token, route.slice(5), honeypot);
     if (route === "/api/subscriptions") {
@@ -586,27 +576,24 @@ export async function handleRequest(request, env = {}, ctx) {
       status: "demo-saved",
       payload,
     };
+    const queued = emailEnabled(env);
+    const receipt = {
+      id, status: "demo-saved", demo: false, emailStatus: queued ? "queued" : "disabled",
+      message: queued
+        ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za skrbnika portala. Za povpraševanja in prijave na tržnico je potrebna ločena potrditev izvedbe oziroma termina."
+        : "Oddaja je shranjena za obravnavo. E-poštna obvestila trenutno niso vključena.",
+    };
     if (upload) await store.putPhoto(upload.key, upload.bytes, upload.type);
+    let result;
     try {
-      await store.save(record);
+      result = await savePublicSubmission(env, store, record, attempt, receipt);
     } catch (error) {
-      if (upload) await store.deletePhoto(upload.key);
+      if (upload) await discardUncommittedPhoto(env, store, record);
       throw error;
     }
-    const queued = emailEnabled(env);
-    if (queued && ctx?.waitUntil) ctx.waitUntil(processEmail(env, { id }));
-    return json(
-      {
-        id,
-        status: "demo-saved",
-        demo: false,
-        emailStatus: queued ? "queued" : "disabled",
-        message: queued
-          ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za skrbnika portala. Za povpraševanja in prijave na tržnico je potrebna ločena potrditev izvedbe oziroma termina."
-          : "Oddaja je shranjena za obravnavo. E-poštna obvestila trenutno niso vključena.",
-      },
-      201,
-    );
+    if (upload && result.submissionId !== id) await store.deletePhoto(upload.key);
+    if (queued && ctx?.waitUntil) ctx.waitUntil(processEmail(env, { id: result.submissionId }));
+    return json(result.receipt, 201);
   } catch (error) {
     if (error instanceof ApiError || error instanceof BotError || Number.isInteger(error?.status))
       return json({ error: error.message, demo: false }, error.status);
@@ -631,8 +618,10 @@ export async function handleRequest(request, env = {}, ctx) {
 export default {
   fetch: handleRequest,
   async scheduled(_controller, env) {
+    try { await processScheduledPublications(env); } catch { console.error(JSON.stringify({event:'scheduled_publications_unavailable'})); }
     try { await processCampaigns(env); } catch { console.error(JSON.stringify({event:'campaign_queue_unavailable'})); }
     await Promise.all([processEmail(env), cleanupAdmin(env)]);
     await env.DB?.prepare('DELETE FROM subscription_limits WHERE window<?').bind(Math.floor(Date.now()/3600000)-48).run();
+    await env.DB?.prepare('DELETE FROM public_form_limits WHERE window<?').bind(Date.now()-2*3600000).run();
   },
 };

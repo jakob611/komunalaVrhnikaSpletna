@@ -1,17 +1,7 @@
 // Private operational settings are deliberately separate from published CMS data.
-async function initialize(db) {
-  await db.prepare(`CREATE TABLE IF NOT EXISTS notification_settings (
-    key TEXT PRIMARY KEY CHECK(key = 'recipient'),
-    recipient TEXT NOT NULL,
-    revision INTEGER NOT NULL,
-    updated_at TEXT NOT NULL,
-    updated_by TEXT NOT NULL
-  )`).run();
-}
 
 export async function readNotificationSettings(env) {
   if (!env.DB) throw Error("Notification settings storage unavailable");
-  await initialize(env.DB);
   const row = await env.DB.prepare("SELECT * FROM notification_settings WHERE key='recipient'").first();
   const defaultRecipient = env.EMAIL_TO || "";
   return {

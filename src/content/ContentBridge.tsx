@@ -9,7 +9,7 @@ import {
 } from "./SiteContent";
 
 const ignored =
-  "script,style,textarea,input,select,option,svg,canvas,iframe,[data-cms-skip],.leaflet-container,.cemetery-detail,.cemetery-results,[role='status'],[role='alert']";
+  "script,style,textarea,input,select,option,svg,canvas,iframe,[data-cms-skip],[data-cms-field-key],.leaflet-container,.cemetery-detail,.cemetery-results,[role='status'],[role='alert']";
 const clean = (value: string) => value.replace(/\s+/g, " ").trim();
 
 export default function ContentBridge() {
@@ -208,6 +208,18 @@ export default function ContentBridge() {
           );
         return;
       }
+      const field = target.closest<HTMLElement>("[data-cms-field-key]");
+      if (field) {
+        const picture = field instanceof HTMLImageElement;
+        window.parent.postMessage({
+          type: "kpv-cms-select", kind: picture ? "image" : "text",
+          key: field.dataset.cmsFieldKey, original: field.dataset.cmsFieldOriginal,
+          legacyKey: field.dataset.cmsFieldLegacyKey,
+          page: field.dataset.cmsFieldPage || pageFor(field), tag: picture ? "img" : target.tagName.toLowerCase(),
+          ...(picture ? { src: field.getAttribute("src") || "", alt: field.alt } : {}),
+        }, location.origin);
+        return;
+      }
       if (target.closest(ignored)) return;
       const image = target.closest<HTMLImageElement>("img");
       const slot = target.closest("[data-cms-image-slot]");
@@ -288,7 +300,7 @@ export default function ContentBridge() {
       if (!inspecting || !(event.target instanceof Element)) return;
       highlighted?.classList.remove("cms-inspect-target");
       highlighted =
-        mode === "interact" || event.target.closest(ignored)
+        mode === "interact" || (event.target.closest(ignored) && !event.target.closest("[data-cms-field-key]"))
           ? null
           : tool === "layout" ? event.target.closest("[data-cms-block-id]") : event.target;
       highlighted?.classList.add("cms-inspect-target");

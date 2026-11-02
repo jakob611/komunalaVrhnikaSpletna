@@ -126,7 +126,9 @@
   min-width: 0;
   font-size: 0.82rem;
 }
-.admin-root .admin-invite-form input {
+.admin-root .admin-invite-form input,
+.admin-root .admin-invite-form select,
+.admin-root .admin-user-actions select {
   width: 100%;
   min-height: 46px;
   padding: 12px;
@@ -166,6 +168,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+.admin-user-actions label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.78rem;
+  min-width: 0;
 }
 .admin-owner-badge {
   display: inline-flex;

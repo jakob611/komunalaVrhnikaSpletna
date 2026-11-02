@@ -1,6 +1,6 @@
 # Preverjanje portala in vzdrževanje
 
-Pregled: 31. 10. 2026. Namen je preprečevanje ponavljajočih se napak v dejanskih postopkih, ne zgolj uspešna gradnja.
+Pregled: 1. 11. 2026. Namen je preprečevanje ponavljajočih se napak v dejanskih postopkih, ne zgolj uspešna gradnja.
 
 ## Obvezni pregled pred objavo
 
@@ -42,4 +42,8 @@ Noben programski preizkus ne potrdi pravilnosti fizične evidence grobov. Orient
 
 Tarife in odvoze je treba posodabljati ob novih uradnih objavah. Preverjene tarife imajo vir in datum. Izračun za gospodinjstvo je ocena rednih mesečnih storitev, ne sprememba dejanskega računa.
 
-Zadnje brskalniško preverjanje tega sklopa je omejeno: nastavitev računa je zavrnila uporabo lokalnega brskalnika. Samodejni DOM-preizkusi niso označeni kot vizualni preizkusi. Sporočila ponudniku niso isto kot prejem v predal; testne kampanje se ne pošiljajo občanom brez izrecnega navodila.
+Prvi izvedbeni pregled 1. 11. 2026 je potrdil lokalno prijavo z geslom in kodo, klik za urejanje migriranega polja, zasebni osnutek, skupno objavo, zavrnitev neveljavnega JSON, načrtovanje in mobilno prazno stanje pokopališča. Takrat je opravilo preverjanje 162 strežniških/skupnih in 62 UI primerov, tudi dejanski lokalni workerd z D1/R2 ter posnetke nad 2 MB.
+
+Nadaljnji [funkcionalni pregled](qa/FUNCTIONAL-REVIEW-2026-11-01.md) vsebuje popis 164 skupin dejanj/stanj za obiskovalce, urejevalnike in skrbnike. Ločuje pregled kode, simulirani DOM, dejanski API in brskalnik. Zabeleženi so konkretni popravki, ponovljivi preizkusi, dejanske lokalne oddaje s fotografijo, celoten življenjski cikel naročnine in naloga, paginacija naročnikov, izvoz/uvoz datoteke, načrtovanje/preklic ter predogled tiska. Aktualne skupne rezultate in preostale meje vsebuje navedeno poročilo.
+
+To ne potrjuje vseh naprav ali popolne dostopnosti. Sporočila ponudniku niso isto kot prejem v predal; testne kampanje se ne pošiljajo občanom brez izrecnega navodila. Potrditev fizičnih evidenc, tarif, produkcijske dostave, dejanskih naprav in operativnih postopkov ostaja ločena od uspešne gradnje.

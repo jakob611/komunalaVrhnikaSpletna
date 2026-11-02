@@ -11,11 +11,13 @@ export default function NoticeDelivery({
   revision,
   csrfToken,
   dirty,
+  onSessionExpired,
 }: {
   noticeId: string;
   revision: number;
   csrfToken: string;
   dirty: boolean;
+  onSessionExpired?: () => void;
 }) {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false),
@@ -72,6 +74,7 @@ export default function NoticeDelivery({
       });
       const data = await response.json();
       if (!stillCurrent()) return;
+      if (response.status === 401) onSessionExpired?.();
       if (!response.ok) throw Error(data.error || "Zahteva ni uspela.");
       setResult(data);
       if (!preview)
@@ -97,7 +100,10 @@ export default function NoticeDelivery({
       <p>
         Najprej shranite in objavite obvestilo. Nato preverite prejemnike in
         potrdite pošiljanje. Pošiljanje zajame samo potrjene naročnike za
-        izbrana območja, naslove in temo.
+        izbrana območja, naslove in temo. Število v predogledu je trenutno
+        stanje. Ob uvrstitvi v čakalno vrsto prejemnike preverimo znova; nove
+        potrditve, odjave ali spremembe nastavitev lahko spremenijo končno
+        število.
       </p>
       {dirty && <p role="status">Pred preverjanjem shranite spremembe.</p>}
       <button
@@ -116,9 +122,19 @@ export default function NoticeDelivery({
           {result.alreadyQueued ? (
             <>
               <p>
-                Ta različica je že uvrščena za pošiljanje; ponovno je ne
-                pošljemo.
+                {result.status === "cancelled"
+                  ? "Priprava te različice je preklicana. Še neposlane kopije niso več na voljo za dostavo; ta različica se ne pošlje ponovno."
+                  : "Ta različica je že uvrščena za pošiljanje; ponovno je ne pošljemo."}
               </p>
+              {!!result.deliveries.failed && (
+                <p>
+                  Neuspešne ali preklicane dostave niso ponovno poslane s tem
+                  gumbom. Preverite veljavnost obvestila in prejemnike; pri
+                  težavi s pošto naj lastnik pregleda stanje dostave pri
+                  ponudniku. Sprejeto pri ponudniku še ne potrjuje prejema v
+                  predal.
+                </p>
+              )}
               <p>
                 Priprava:{" "}
                 {result.status === "complete"
@@ -140,6 +156,13 @@ export default function NoticeDelivery({
             >
               Potrdi pošiljanje za {result.recipients} naročnikov
             </button>
+          )}
+          {!result.alreadyQueued && !result.recipients && (
+            <p>
+              Za izbrano temo, območja in naslove ni potrjenih prejemnikov.
+              Preverite ciljanje obvestila in potrjene naročnine, preden
+              poskusite znova.
+            </p>
           )}
         </div>
       )}

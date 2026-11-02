@@ -1,5 +1,6 @@
 import {
   Children,
+  Fragment,
   cloneElement,
   isValidElement,
   useEffect,
@@ -19,6 +20,12 @@ import type {
 } from "../../shared/page-layout";
 import { safeDestination, safePicture, mergeNativeBlocks } from "../../shared/page-layout";
 import "./page-composer.css";
+import { canonicalNativeBlocks } from "./native-sections";
+export { nativeSection } from "./native-sections";
+export function cmsNative(id: string, node: ReactNode): ReactNode {
+  if (node === null || node === undefined || typeof node === "boolean") return node;
+  return isValidElement(node) ? cloneElement(node, { key: id }) : <Fragment key={id}>{node}</Fragment>;
+}
 
 export const isCmsPreview = () =>
   window.parent !== window &&
@@ -29,7 +36,7 @@ const textOf = (children: ReactNode): string =>
     .map((child) =>
       typeof child === "string" || typeof child === "number"
         ? String(child)
-        : isValidElement(child) && typeof child.type === "string"
+        : isValidElement(child)
           ? textOf((child.props as { children?: ReactNode }).children)
           : "",
     )
@@ -232,7 +239,8 @@ export function CmsLayout({ children }: { children: ReactNode }) {
   const native = Children.toArray(children).map((node, index) => {
     const element = isValidElement(node) ? node : null;
     const props = element?.props as Record<string, unknown> | undefined;
-    const id = `native-${contentKey(String(element?.key ?? index)).slice(0, 16)}`;
+    const explicit = String(element?.key ?? "").match(/(?:^|\$)(native-[a-f0-9]{16})$/)?.[1];
+    const id = explicit ?? `native-${contentKey(String(element?.key ?? index)).slice(0, 16)}`;
     const title = sectionName(props, index);
     return { id, title, node };
   });
@@ -264,7 +272,10 @@ export function CmsLayout({ children }: { children: ReactNode }) {
   const layout = preview || data.layout;
   const configuration = layout.pages.find((p) => p.path === pathname);
   if (!configuration && !isCmsPreview()) return <>{children}</>;
-  const effective = { blocks: mergeNativeBlocks(configuration?.blocks, native) };
+  // The service guide previously used the currently selected service as its React key.
+  // Retain layouts saved from any service while giving the guide one permanent identity.
+  const configured = canonicalNativeBlocks(pathname, configuration?.blocks);
+  const effective = { blocks: mergeNativeBlocks(configured, native) };
   const used = new Set(
     effective.blocks
       .filter((b) => b.type === "native")

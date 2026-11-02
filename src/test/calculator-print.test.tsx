@@ -1,0 +1,30 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { expect, it, vi } from "vitest";
+import UtilityCalculator from "../components/UtilityCalculator";
+
+it("keeps the printable result's input summary current and limited to the selected services", () => {
+  render(<MemoryRouter><UtilityCalculator/></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText(/Občina odjemnega mesta/), { target: { value: "vrhnika" } });
+  fireEvent.change(screen.getByLabelText(/Mesečna poraba vode/), { target: { value: "12" } });
+  fireEvent.change(screen.getByLabelText(/Število oseb za obračun/), { target: { value: "3" } });
+  fireEvent.click(screen.getByRole("button", { name: /Izračunaj mesečni/ }));
+  const summary = () => within(screen.getByLabelText("Podatki in predpostavke izračuna"));
+  expect(summary().getByText("12 m³/mesec")).toBeTruthy();
+  expect(summary().getByText("3")).toBeTruthy();
+  expect(summary().getByText(/DN 15 ali 20.*faktor 1/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText(/Kam odteka odpadna voda/), { target: { value: "septic" } });
+  expect(summary().getByText("Greznica")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Kaj želite izračunati?"), { target: { value: "water" } });
+  expect(summary().queryByText("Osebe za obračun odpadkov")).toBeNull();
+  expect(summary().queryByText("Odvoz BIO")).toBeNull();
+  fireEvent.change(screen.getByLabelText(/Mesečna poraba vode/), { target: { value: "9" } });
+  expect(summary().getByText("9 m³/mesec")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Kaj želite izračunati?"), { target: { value: "waste" } });
+  expect(summary().queryByText("Poraba vode")).toBeNull();
+  expect(summary().queryByText("Vodomer in omrežnina")).toBeNull();
+  expect(summary().getByText("3")).toBeTruthy();
+  const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  fireEvent.click(screen.getByRole("button", { name: "Natisni izračun" }));
+  expect(print).toHaveBeenCalledOnce();
+});

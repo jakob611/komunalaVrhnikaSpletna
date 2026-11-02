@@ -55,10 +55,20 @@ function GraveIdentifier({
 }
 export default function CemeteryEditor({
   value,
-  onChange,
+  onChange: onCemeteryChange,
   disabled = false,
   onUpload,
 }: Props) {
+  const latest = useRef({ value, onChange: onCemeteryChange });
+  latest.current = { value, onChange: onCemeteryChange };
+  const mounted = useRef(true);
+  const uploadVersion = useRef(0);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; uploadVersion.current++; }; }, []);
+  const onChange = (next: CemeteryData) => {
+    if (!mounted.current) return;
+    latest.current.value = next;
+    latest.current.onChange(next);
+  };
   const sectors = cemeterySectors(value);
   const [sectorName, setSectorName] = useState(""),
     [chosenSector, setChosenSector] = useState(""),
@@ -110,7 +120,7 @@ export default function CemeteryEditor({
       );
       return false;
     }
-    const confirmed = value.graves.some((grave) => grave.positioned !== false);
+    const confirmed = latest.current.value.graves.some((grave) => grave.positioned !== false);
     if (confirmed) {
       setPendingPlan(plan);
       setError("");
@@ -119,9 +129,10 @@ export default function CemeteryEditor({
     return applyBackground(plan, false);
   }
   function applyBackground(plan: CemeteryData["plan"], keep: boolean) {
+    const current = latest.current.value;
     if (
       keep &&
-      value.graves.some(
+      current.graves.some(
         (g) =>
           g.positioned !== false &&
           (g.x + 36 > plan.width || g.y + 32 > plan.height),
@@ -133,9 +144,9 @@ export default function CemeteryEditor({
       return false;
     }
     onChange({
-      ...value,
+      ...current,
       plan,
-      graves: value.graves.map((grave) =>
+      graves: current.graves.map((grave) =>
         keep && grave.positioned !== false
           ? grave
           : {
@@ -746,9 +757,17 @@ export default function CemeteryEditor({
                   accept="image/jpeg,image/png,image/webp"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    const item = await onUpload(file);
-                    if (item) background({ ...value.plan, imageUrl: item.url });
                     e.target.value = "";
+                    if (!file) return;
+                    const version = ++uploadVersion.current;
+                    try {
+                      const item = await onUpload(file);
+                      if (item && mounted.current && uploadVersion.current === version)
+                        background({ ...latest.current.value.plan, imageUrl: item.url });
+                    } catch {
+                      if (mounted.current && uploadVersion.current === version)
+                        setError('Načrta ni bilo mogoče naložiti. Poskusite znova.');
+                    }
                   }}
                 />
               </label>

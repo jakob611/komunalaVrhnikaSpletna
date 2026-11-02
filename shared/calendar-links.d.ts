@@ -8,6 +8,7 @@ export function calendarLinks(options: {
   address: string;
   routeId?: string;
   outlookWork?: boolean;
+  origin?: string;
   today?: string;
 }): {
   once: CalendarDestinations;

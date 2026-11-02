@@ -1,12 +1,8 @@
-import { addressRuleMatches, addressTokens } from './collection-utils.js';
+import { addressRuleMatches, addressTokens, hasAmbiguousHouseNumbers, normalizeAddressInput } from './collection-utils.js';
 
 export const NOTIFICATION_TOPICS = Object.freeze({water:'Voda in kanalizacija',roads:'Ceste in javne površine',waste:'Odpadki',general:'Splošno'});
 
 const roadKinds = new Set(['cesta','ulica','pot','trg']);
-const houseRange = /\b\d+[a-z]?\s*[-–—/]\s*\d+[a-z]?\b/i;
-function notificationAddress(value) {
-  return String(value).replace(/\b(c|ul)\.(?=\s|$)/gi,(_,kind)=>kind.toLowerCase()==='c'?'cesta':'ulica').replace(/\b(\d+)\s*-\s*([a-z])\b/gi,'$1$2');
-}
 function primaryRoadKinds(value) {
   return addressTokens(value.split(',')[0]).filter(token=>roadKinds.has(token));
 }
@@ -22,8 +18,8 @@ function fullAddressTokens(value) {
   });
 }
 export function notificationAddressMatches(address,rule) {
-  if(houseRange.test(address)||houseRange.test(rule))return false;
-  let full=notificationAddress(address),pattern=notificationAddress(rule);
+  if(hasAmbiguousHouseNumbers(address)||hasAmbiguousHouseNumbers(rule))return false;
+  let full=normalizeAddressInput(address),pattern=normalizeAddressInput(rule);
   const fullKinds=primaryRoadKinds(full),patternKinds=primaryRoadKinds(pattern);
   // A missing street type is common shorthand, but two explicitly different types
   // can identify different streets and must never be treated as equivalent.
@@ -61,7 +57,7 @@ export function validateDeliveryFields(item) {
   for (const key of ['districtIds','addressRules']) if (item[key] !== undefined) {
     if (!Array.isArray(item[key]) || item[key].length > (key === 'districtIds' ? 100 : 200) || item[key].some(s => typeof s !== 'string' || !s.trim() || s.length > 250 || /[<>\r\n]/.test(s))) throw Object.assign(Error('Preverite območja in naslovna pravila obvestila.'),{status:400});
     result[key] = [...new Set(item[key].map(s => s.trim()))];
-    if(key==='addressRules'&&result[key].some(s=>houseRange.test(s)))throw Object.assign(Error('Hišnih razponov ne razbiramo. Vnesite vsako hišo v svojo vrstico ali samo ulico oziroma naselje za vse hiše.'),{status:400});
+    if(key==='addressRules'&&result[key].some(hasAmbiguousHouseNumbers))throw Object.assign(Error('Hišnih razponov ne razbiramo. Vnesite vsako hišo v svojo vrstico ali samo ulico oziroma naselje za vse hiše.'),{status:400});
   }
   return result;
 }

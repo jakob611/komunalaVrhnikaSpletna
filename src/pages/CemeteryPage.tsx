@@ -1,4 +1,5 @@
-import { CmsLayout, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
+import { CmsText } from "../content/ContentFields";
+import { CmsLayout, nativeSection, CmsLink as Link, CmsAnchor } from "../content/PageComposer";
 import {
   useEffect,
   useRef,
@@ -24,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { findGraves, type Grave } from "../data/cemetery";
-import { useSiteContent } from "../content/SiteContent";
+import { useSiteContent, telephone } from "../content/SiteContent";
 import "./cemetery.css";
 
 const dateLabel = (value: string) =>
@@ -193,7 +194,7 @@ function GraveMap({
       <div className="cemetery-map-heading">
         <div>
           <span className="eyebrow">ORIENTACIJSKA SHEMA</span>
-          <h2 id="cemetery-map-title">Načrt grobnih mest</h2>
+          <h2 id="cemetery-map-title"><CmsText id="GraveMap.h2-1">{"Načrt grobnih mest"}</CmsText></h2>
         </div>
         <span className="cemetery-plan-tag">
           <Layers3 size={15} /> Načrt pokopališča
@@ -384,15 +385,14 @@ function GraveMap({
         )}
       </div>
       <p className="cemetery-map-note">
-        Kliknite grob za podatke. Povečajte načrt za prikaz imen. Položaji so orientacijski; pri iskanju upoštevajte oznako sektorja, vrste in groba.
-      </p>
-      {!graves.length && <p className="cemetery-map-note">Položaji grobov še niso objavljeni. Za informacije uporabite kontakt upravljavca spodaj.</p>}
+        <CmsText id="GraveMap.p-1">{"Kliknite grob za podatke. Povečajte načrt za prikaz imen. Položaji so orientacijski; pri iskanju upoštevajte oznako sektorja, vrste in groba."}</CmsText></p>
+      {!graves.length && <p className="cemetery-map-note"><CmsText id="GraveMap.p-2">{"Položaji grobov še niso objavljeni. Za informacije uporabite kontakt upravljavca spodaj."}</CmsText></p>}
     </section>
   );
 }
 
 export default function CemeteryPage() {
-  const { cemetery } = useSiteContent();
+  const { cemetery, settings } = useSiteContent();
   const graves = cemetery.graves;
   const sections = [...new Set(graves.map((grave) => grave.section))].sort();
   const [params, setParams] = useSearchParams();
@@ -464,23 +464,40 @@ export default function CemeteryPage() {
     (total, grave) => total + grave.people.length,
     0,
   );
+  if (!graves.length) return <div className="cemetery-page"><CmsLayout>
+    <header key={nativeSection("CemeteryPage.cemetery-intro")} className="cemetery-intro">
+      <div><span className="eyebrow"><Flower2 size={16} /> POKOPALIŠČE VRHNIKA</span>
+        <h1>Informacije za obisk in urejanje groba.</h1>
+        <p>Za podatke o grobnem mestu in pokopaliških storitvah smo vam na voljo pri Komunali Vrhnika.</p>
+      </div>
+    </header>
+    <section key="cemetery-contact-information" className="panel cemetery-help">
+      <div><h2>Potrebujete podatek o grobu?</h2>
+        <p>Evidenca grobov ni objavljena. Obrnite se na upravljavca ter pripravite ime in priimek pokojnika ter približno leto smrti, če ga poznate.</p>
+        <CmsAnchor className="text-link" href={`tel:${telephone(settings.phone)}`}>{settings.phone}</CmsAnchor>{" · "}
+        <CmsAnchor className="text-link" href={`mailto:${settings.email}`}>{settings.email}</CmsAnchor>
+      </div>
+      <div><h2>Načrtujete obisk?</h2>
+        <p>Preverite kontaktne podatke in uradne ure ali odprite pot do centralnega pokopališča Vrhnika.</p>
+        <Link to="/kontakt" className="button secondary">Kontakti in uradne ure <ArrowRight size={17}/></Link>
+        <CmsAnchor className="text-link" href="https://www.google.com/maps/search/?api=1&query=Centralno+pokopali%C5%A1%C4%8De+Vrhnika" target="_blank" rel="noreferrer"><MapPin size={17}/> Pot do pokopališča</CmsAnchor>
+      </div>
+    </section>
+  </CmsLayout></div>;
   return (
     <div className="cemetery-page">
       <CmsLayout>
-        <header className="cemetery-intro" data-motion-section>
+        <header key={nativeSection("CemeteryPage.cemetery-intro")} className="cemetery-intro" data-motion-section>
           <div>
             <span className="eyebrow">
               <Flower2 size={16} /> POKOPALIŠČE VRHNIKA
             </span>
             <h1>
-              Spomin ostane.
-              <br />
-              <em>Pot naj bo preprosta.</em>
+              <CmsText id="CemeteryPage.h1-1">{"Spomin ostane."}</CmsText><br />
+              <em><CmsText id="CemeteryPage.em-1">{"Pot naj bo preprosta."}</CmsText></em>
             </h1>
             <p>
-              Poiščite ime, izberite grob in si oglejte njegovo mesto na načrtu.
-              Tudi ko prihajate od daleč.
-            </p>
+              <CmsText id="CemeteryPage.p-1">{"Poiščite ime, izberite grob in si oglejte njegovo mesto na načrtu. Tudi ko prihajate od daleč."}</CmsText></p>
           </div>
           <div className="cemetery-intro-art" aria-hidden="true">
             <div className="cemetery-flower-circle">
@@ -493,7 +510,7 @@ export default function CemeteryPage() {
             </span>
           </div>
         </header>
-        <section
+        <section key={nativeSection("CemeteryPage.cemetery-panel")}
           className="cemetery-panel"
           aria-labelledby="cemetery-search-title"
           data-motion-section
@@ -501,7 +518,7 @@ export default function CemeteryPage() {
           <div className="cemetery-search-heading">
             <div>
               <span className="eyebrow">POIŠČITE SVOJE BLIŽNJE</span>
-              <h2 id="cemetery-search-title">Poiščite grobno mesto.</h2>
+              <h2 id="cemetery-search-title"><CmsText id="CemeteryPage.h2-1">{"Poiščite grobno mesto."}</CmsText></h2>
             </div>
             <span className="cemetery-search-hint">
               <Compass size={17} /> Načrt · {sections.length} sektorjev
@@ -536,8 +553,7 @@ export default function CemeteryPage() {
             )}
           </div>
           <p className="cemetery-search-help" id="cemetery-search-help">
-            Iščete lahko tudi brez šumnikov. Na načrtu se obarvajo vsi zadetki.
-          </p>
+            <CmsText id="CemeteryPage.p-2">{"Iščete lahko tudi brez šumnikov. Na načrtu se obarvajo vsi zadetki."}</CmsText></p>
           <div className="cemetery-filter-row">
             <div
               className="cemetery-filters"
@@ -565,7 +581,7 @@ export default function CemeteryPage() {
             </span>
           </div>
         </section>
-        <div className="cemetery-workspace">
+        <div key={nativeSection("CemeteryPage.cemetery-workspace")} className="cemetery-workspace">
           {(graves.some(grave=>grave.positioned!==false)||cemetery.plan.imageUrl) ? <GraveMap
             matches={results}
             activeFilter={Boolean(query.trim()) || section !== "all"}
@@ -573,7 +589,7 @@ export default function CemeteryPage() {
             onSelect={select}
             plots={graves.filter(grave=>grave.positioned!==false)}
             plan={cemetery.plan}
-          /> : <section className="cemetery-map-panel" style={{padding:24}}><span className="eyebrow">GROBNA MESTA</span><h2>Podatek o grobu dobite pri upravljavcu.</h2><p>Objavljene podatke poiščite po imenu ali oznaki. Načrt je na voljo za grobove s potrjenim položajem.</p><Link to="/kontakt" className="button secondary">Kontakti in uradne ure <ArrowRight size={17}/></Link></section>}
+          /> : <section className="cemetery-map-panel" style={{padding:24}}><span className="eyebrow">GROBNA MESTA</span><h2><CmsText id="CemeteryPage.h2-2">{"Podatek o grobu dobite pri upravljavcu."}</CmsText></h2><p><CmsText id="CemeteryPage.p-3">{"Objavljene podatke poiščite po imenu ali oznaki. Načrt je na voljo za grobove s potrjenim položajem."}</CmsText></p><Link to="/kontakt" className="button secondary">Kontakti in uradne ure <ArrowRight size={17}/></Link></section>}
           <div className="cemetery-sidebar">
             <section
               className="cemetery-detail"
@@ -620,13 +636,13 @@ export default function CemeteryPage() {
                     <Flower2 size={24} /> {selected.id}
                   </h2>
                   <p className="cemetery-coordinate">
-                    Sektor {selected.section}
-                    <ChevronRight size={13} /> vrsta {selected.row}
-                    <ChevronRight size={13} /> grob {selected.number}
+                    <CmsText id="CemeteryPage.p-4">{"Sektor "}</CmsText>{selected.section}
+                    <ChevronRight size={13} /> <CmsText id="CemeteryPage.p-5">{"vrsta "}</CmsText>{selected.row}
+                    <ChevronRight size={13} /> <CmsText id="CemeteryPage.p-6">{"grob "}</CmsText>{selected.number}
                   </p>
                   <div className="cemetery-people">
-                    {selected.positioned===false&&<p className="cemetery-detail-note">Položaj tega groba na načrtu še ni potrjen. Za pot uporabite oznako sektorja, vrste in groba ali se obrnite na upravljavca.</p>}
-                    {!selected.people.length&&<p className="cemetery-detail-note">Pri tem grobnem mestu ni objavljenih podatkov o osebah. To ni podatek o razpoložljivosti za najem.</p>}
+                    {selected.positioned===false&&<p className="cemetery-detail-note"><CmsText id="CemeteryPage.p-7">{"Položaj tega groba na načrtu še ni potrjen. Za pot uporabite oznako sektorja, vrste in groba ali se obrnite na upravljavca."}</CmsText></p>}
+                    {!selected.people.length&&<p className="cemetery-detail-note"><CmsText id="CemeteryPage.p-8">{"Pri tem grobnem mestu ni objavljenih podatkov o osebah. To ni podatek o razpoložljivosti za najem."}</CmsText></p>}
                     {selected.people.map((person) => (
                       <div key={person.name}>
                         <h3>{person.name}</h3>
@@ -667,17 +683,14 @@ export default function CemeteryPage() {
                     </label>
                   )}
                   <p className="cemetery-detail-note">
-                    Povezavo do izbranega groba lahko kopirate in pošljete svojcem.
-                  </p>
+                    <CmsText id="CemeteryPage.p-9">{"Povezavo do izbranega groba lahko kopirate in pošljete svojcem."}</CmsText></p>
                 </div>
               ) : (
                 <div className="cemetery-detail-empty">
                   <Flower2 size={35} strokeWidth={1.4} />
-                  <h2 id="cemetery-detail-title">Izberite grob.</h2>
+                  <h2 id="cemetery-detail-title"><CmsText id="CemeteryPage.h2-3">{"Izberite grob."}</CmsText></h2>
                   <p>
-                    Kliknite na načrt ali ime na seznamu. Tukaj se pokažejo
-                    podatki in povezava za svojce.
-                  </p>
+                    <CmsText id="CemeteryPage.p-10">{"Kliknite na načrt ali ime na seznamu. Tukaj se pokažejo podatki in povezava za svojce."}</CmsText></p>
                 </div>
               )}
             </section>
@@ -747,9 +760,8 @@ export default function CemeteryPage() {
                     </button>
                   )}
                   <p className="cemetery-list-foot">
-                    Prikazanih {Math.min(limit, results.length)} od{" "}
-                    {results.length}. Načrt prikazuje grobove s potrjenim položajem.
-                  </p>
+                    <CmsText id="CemeteryPage.p-11">{"Prikazanih "}</CmsText>{Math.min(limit, results.length)} {"od"}{" "}
+                    {results.length}<CmsText id="CemeteryPage.p-13">{". Načrt prikazuje grobove s potrjenim položajem."}</CmsText></p>
                 </>
               ) : (
                 <div className="cemetery-empty" data-motion-enter>
@@ -772,14 +784,12 @@ export default function CemeteryPage() {
             </section>
           </div>
         </div>
-        <section className="cemetery-help" data-motion-section>
+        <section key={nativeSection("CemeteryPage.cemetery-help")} className="cemetery-help" data-motion-section>
           <div>
             <span className="eyebrow">ZA OBISK IN INFORMACIJE</span>
-            <h2>Ko potrebujete več kot načrt.</h2>
+            <h2><CmsText id="CemeteryPage.h2-4">{"Ko potrebujete več kot načrt."}</CmsText></h2>
             <p>
-              KPV je upravljavec centralnega pokopališča Vrhnika. Za informacije
-              o evidenci grobov in upravljanju se obrnite na podjetje.
-            </p>
+              <CmsText id="CemeteryPage.p-14">{"KPV je upravljavec centralnega pokopališča Vrhnika. Za informacije o evidenci grobov in upravljanju se obrnite na podjetje."}</CmsText></p>
             <CmsAnchor
               href="https://www.google.com/maps/search/?api=1&query=Centralno+pokopali%C5%A1%C4%8De+Vrhnika"
               target="_blank"
@@ -790,11 +800,9 @@ export default function CemeteryPage() {
             </CmsAnchor>
           </div>
           <div>
-            <h3>Potrebujete podatek o grobu?</h3>
+            <h3><CmsText id="CemeteryPage.h3-1">{"Potrebujete podatek o grobu?"}</CmsText></h3>
             <p>
-              Pripravite ime in priimek pokojnika ter približno leto smrti, če
-              ga poznate.
-            </p>
+              <CmsText id="CemeteryPage.p-15">{"Pripravite ime in priimek pokojnika ter približno leto smrti, če ga poznate."}</CmsText></p>
             <Link to="/kontakt" className="button secondary">
               Kontakti in uradne ure <ArrowRight size={17} />
             </Link>

@@ -11,6 +11,7 @@ import {
 import {
   COLLECTION_TYPES,
   generateCollectionEvents,
+  hasAmbiguousHouseNumbers,
   matchCollectionSchedule,
   mergeCollectionEvents,
   moveCollectionEvents,
@@ -359,11 +360,14 @@ export default function CollectionEditor({
                   Celotno naselje vključite samo, če zanj velja isti urnik.
                   Natančnejši naslov ima prednost. Številka 1 ne vključuje 12
                   ali 1a. Šumniki in velike črke ne vplivajo na iskanje.
+                  Razpone (12–14) vpišite kot posamezne hiše. Zapis 12/1 je
+                  dvoumen; stanovanje navedite posebej, npr. »Verd 12, stanovanje 1, Vrhnika«.
                   Ulici dodajte kraj za vejico, da je ne zamenjamo z enako
                   poimenovano ulico drugje. Za celotno naselje zadostuje ime naselja.
                   Območja za BIO, embalažo in mešane odpadke se lahko razlikujejo;
                   za vsako vrsto lahko pripravite ločeno območje.
                 </p>
+                {route.addresses.some(hasAmbiguousHouseNumbers) && <p className="collection-alert error" role="alert">Pravilo vsebuje dvoumen hišni razpon ali poševnico. Vsako hišo vpišite v svojo vrstico; takega pravila ni mogoče objaviti.</p>}
                 {!route.addresses.some((text) => text.trim()) && (
                   <p className="collection-alert error">
                     Pred objavo vpišite vsaj eno pravilo naslova.
@@ -846,6 +850,7 @@ export default function CollectionEditor({
               placeholder="Npr. Tržaška cesta 1, Vrhnika"
             />
           </label>
+          {hasAmbiguousHouseNumbers(testAddress) && <p className="collection-alert error" role="alert">Vnesite eno hišno številko. Zapis s poševnico ali razponom ni dovolj natančen; stanovanje dodajte za vejico.</p>}
           {match && (
             <p
               role="status"
@@ -864,7 +869,8 @@ export default function CollectionEditor({
               : <p>{result.ambiguous ? `Naslov se ujema z več območji: ${result.candidates.map((item)=>item.name).join(" / ")}. Portal za to vrsto ne bo ugibal.` : "Ni ustreznega naslovnega pravila za to vrsto odpadkov."}</p>}</div>;
           })}</div>}
           <p className="collection-help">
-            Preverjanje uporablja isti način iskanja kot javni urnik.
+            Preverjanje uporablja trenutni osnutek in isti način iskanja kot javni urnik.
+            Javni urnik se spremeni šele po objavi.
             Uporabljajo se natančno vpisani datumi; ponavljanja so pripomoček za
             pripravo, ne samodejno podaljševanje urnika.
           </p>

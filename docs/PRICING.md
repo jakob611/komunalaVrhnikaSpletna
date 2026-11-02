@@ -22,7 +22,7 @@ V izhodiščnih PDF-jih je pri posameznih bruto cenah zadnja decimalka neenotno 
 4. Pri posebnih storitvah vnesite bruto ceno, DDV, pravo enoto in omejitve obsega. Ni znane paketne cene: ne predstavljajte cene za kilogram ali uro kot celotnega naročila.
 5. Preverite primer osnutka, shranite in objavite. Na javnem kalkulatorju preverite isto občino in podatke.
 
-Objava zamenja trenutno tabelo; ni arhivskega ali samodejno načrtovanega preklopa cenikov. Datum v prihodnosti prepreči izračun pred začetkom veljavnosti. Zgodovina CMS omogoča obnovo podatkov.
+Objava zamenja trenutno tabelo; arhivskega obračuna ni. Prihodnji cenik shranite z gumbom Shrani osnutek, nato v Načrtovana objava tega področja določite datum objave, ki ni pred začetkom veljavnosti. Objava se preveri po slovenskem datumu in ob konfliktu različic zahteva pregled. Datum veljavnosti sam ne ustvari načrta. Zgodovina CMS omogoča obnovo podatkov.
 
 Ocena je za en cel mesec gospodinjskega odjema z merjeno porabo. Ne obsega poslovnega odjema, delitve skupnega računa, padavinskih voda, individualnih oprostitev, starih obdobij in posebnih del. Možne subvencije se ne ugibajo: privzeto je polni cenik, uporabnik lahko prepiše dejansko priznano mesečno znižanje iz svojega računa. Izračun jasno navede predpostavko DN 15/20; premer je mogoče prilagoditi, višina vodomera ni vhodni podatek.
 

@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import "./workqueue.css";
-import MapPointLink from '../MapPointLink';
+import MapPointLink from "../MapPointLink";
 
 type Step = { id: string; text: string; done: boolean };
 type Item = {
@@ -77,18 +77,32 @@ const categories: Record<string, string> = {
   general: "Splošna obvestila",
 };
 const values: Record<string, string> = {
-  supply: "Oskrba s pitno vodo", septic: "Greznice in male čistilne naprave",
-  connection: "Priključki", collection: "Odvoz odpadkov in urnik",
-  sorting: "Ločevanje in zbirna mesta", bulky: "Kosovni odpadki",
-  road: "Vzdrževanje cest", lighting: "Javna razsvetljava", public: "Javne površine",
-  invoice: "Računi", meter: "Odčitki števcev", payment: "Plačila",
-  booking: "Prijava na tržnico", conditions: "Pogoji tržnice",
-  donation: "Oddaja predmetov", purchase: "Nakup v DEPO",
-  standard: "Standardno prodajno mesto", food: "Živilska ponudba", craft: "Rokodelski izdelki",
+  supply: "Oskrba s pitno vodo",
+  septic: "Greznice in male čistilne naprave",
+  connection: "Priključki",
+  collection: "Odvoz odpadkov in urnik",
+  sorting: "Ločevanje in zbirna mesta",
+  bulky: "Kosovni odpadki",
+  road: "Vzdrževanje cest",
+  lighting: "Javna razsvetljava",
+  public: "Javne površine",
+  invoice: "Računi",
+  meter: "Odčitki števcev",
+  payment: "Plačila",
+  booking: "Prijava na tržnico",
+  conditions: "Pogoji tržnice",
+  donation: "Oddaja predmetov",
+  purchase: "Nakup v DEPO",
+  standard: "Standardno prodajno mesto",
+  food: "Živilska ponudba",
+  craft: "Rokodelski izdelki",
 };
 const displayValue = (value: unknown) => {
-  const translate = (entry: unknown) => categories[String(entry)] || values[String(entry)] || String(entry);
-  return Array.isArray(value) ? value.map(translate).join(", ") : translate(value);
+  const translate = (entry: unknown) =>
+    categories[String(entry)] || values[String(entry)] || String(entry);
+  return Array.isArray(value)
+    ? value.map(translate).join(", ")
+    : translate(value);
 };
 const date = (value: string) =>
   new Intl.DateTimeFormat("sl-SI", {
@@ -139,17 +153,30 @@ const emptyTask = () => ({
   assignee: "",
   dueDate: "",
 });
+export type WorkQueueRecovery = {
+  caseId: string | null;
+  item: Item | null;
+  draft: Item | null;
+  events: Event[];
+  creating: boolean;
+  newTask: ReturnType<typeof emptyTask>;
+  requestId: string;
+};
 
 export default function WorkQueue({
   csrfToken,
   onSessionExpired,
   onDirtyChange,
   onBusyChange,
+  recovery,
+  onRecoveryChange,
 }: {
   csrfToken: string;
   onSessionExpired: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
+  recovery?: WorkQueueRecovery;
+  onRecoveryChange?: (value: WorkQueueRecovery | null) => void;
 }) {
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<Item[]>([]);
@@ -177,16 +204,16 @@ export default function WorkQueue({
   const [notice, setNotice] = useState("");
   const [refresh, setRefresh] = useState(0);
   const [conflict, setConflict] = useState(false);
-  const [item, setItem] = useState<Item | null>(null);
-  const [draft, setDraft] = useState<Item | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
+  const [item, setItem] = useState<Item | null>(recovery?.item || null);
+  const [draft, setDraft] = useState<Item | null>(recovery?.draft || null);
+  const [events, setEvents] = useState<Event[]>(recovery?.events || []);
   const [caseError, setCaseError] = useState("");
   const [caseNotice, setCaseNotice] = useState("");
   const [caseLoading, setCaseLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [newTask, setNewTask] = useState(emptyTask);
-  const [createRequestId, setCreateRequestId] = useState(() =>
-    crypto.randomUUID(),
+  const [creating, setCreating] = useState(recovery?.creating || false);
+  const [newTask, setNewTask] = useState(recovery?.newTask || emptyTask);
+  const [createRequestId, setCreateRequestId] = useState(
+    () => recovery?.requestId || crypto.randomUUID(),
   );
   const [createError, setCreateError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
@@ -198,11 +225,39 @@ export default function WorkQueue({
   dirtyListener.current = onDirtyChange;
   const busyListener = useRef(onBusyChange);
   busyListener.current = onBusyChange;
+  const recoveryListener = useRef(onRecoveryChange);
+  recoveryListener.current = onRecoveryChange;
+  const recoveredCase = useRef(recovery?.caseId);
   const dirty =
     !!item && !!draft && JSON.stringify(item) !== JSON.stringify(draft);
   const caseId = params.get("case");
   const createDirty =
     creating && JSON.stringify(newTask) !== JSON.stringify(emptyTask());
+  useEffect(() => {
+    recoveryListener.current?.(
+      dirty || createDirty
+        ? {
+            caseId,
+            item,
+            draft,
+            events,
+            creating,
+            newTask,
+            requestId: createRequestId,
+          }
+        : null,
+    );
+  }, [
+    dirty,
+    createDirty,
+    caseId,
+    item,
+    draft,
+    events,
+    creating,
+    newTask,
+    createRequestId,
+  ]);
   useEffect(() => {
     dirtyListener.current?.(dirty || createDirty);
   }, [dirty, createDirty]);
@@ -276,7 +331,11 @@ export default function WorkQueue({
           setItems([]);
           setTotal(0);
           setHasMore(false);
-          setError(cause.name === "TimeoutError" ? "Nalaganje nalogov traja predolgo. Poskusite znova." : cause.message || "Povezava ni uspela.");
+          setError(
+            cause.name === "TimeoutError"
+              ? "Nalaganje nalogov traja predolgo. Poskusite znova."
+              : cause.message || "Povezava ni uspela.",
+          );
         }
       })
       .finally(() => {
@@ -314,6 +373,18 @@ export default function WorkQueue({
     }
   }
   useEffect(() => {
+    if (
+      recoveredCase.current &&
+      recoveredCase.current === caseId &&
+      recovery?.item &&
+      recovery?.draft
+    ) {
+      recoveredCase.current = undefined;
+      setCaseNotice(
+        "Neshranjena obravnava pred potekom seje je obnovljena. Pred shranjevanjem preverite spremembe; novejša strežniška različica bo zaščitena pred prepisom.",
+      );
+      return;
+    }
     if (caseId) void open(caseId);
     else {
       caseRequest.current?.abort();
@@ -411,9 +482,15 @@ export default function WorkQueue({
   }
   async function save(status = draft?.status) {
     if (!draft || busy || !status) return;
-    if (status === "resolved" && item?.status !== "resolved" &&
+    if (
+      status === "resolved" &&
+      item?.status !== "resolved" &&
       draft.checklist.some((step) => !step.done) &&
-      !window.confirm("Nekateri predlagani koraki niso označeni kot opravljeni. Želite nalog vseeno zaključiti? Koraki bodo ostali nespremenjeni.")) return;
+      !window.confirm(
+        "Nekateri predlagani koraki niso označeni kot opravljeni. Želite nalog vseeno zaključiti? Koraki bodo ostali nespremenjeni.",
+      )
+    )
+      return;
     setBusy(true);
     setCaseError("");
     setCaseNotice("");
@@ -426,7 +503,10 @@ export default function WorkQueue({
       setItem(data.item);
       setDraft(structuredClone(data.item));
       setEvents(data.timeline);
-      const message = status === "resolved" ? "Nalog je zaključen. Najdete ga med zaključenimi nalogi." : "Spremembe naloga so shranjene.";
+      const message =
+        status === "resolved"
+          ? "Nalog je zaključen. Najdete ga med zaključenimi nalogi."
+          : "Spremembe naloga so shranjene.";
       setNotice(message);
       setCaseNotice(message);
       setRefresh((value) => value + 1);
@@ -441,7 +521,8 @@ export default function WorkQueue({
     }
   }
   const completed = draft?.checklist.filter((step) => step.done).length || 0;
-  const checklistValid = !!draft && draft.checklist.every((step) => step.text.trim());
+  const checklistValid =
+    !!draft && draft.checklist.every((step) => step.text.trim());
   const patch = (value: Partial<Item>) => {
     setCaseNotice("");
     setDraft((current) => (current ? { ...current, ...value } : current));
@@ -449,7 +530,8 @@ export default function WorkQueue({
   const filter = (key: keyof typeof filters, value: string | boolean) => {
     setPage(1);
     setFilters((current) => ({
-      ...current, [key]: value,
+      ...current,
+      [key]: value,
       ...(key === "status" ? { overdue: false } : {}),
       ...(key === "overdue" && value ? { status: "open" } : {}),
     }));
@@ -458,7 +540,12 @@ export default function WorkQueue({
     setPage(1);
     setQuery("");
     setDebounced("");
-    setFilters({ kind: "", priority: "", status: status === "overdue" ? "open" : status, overdue: status === "overdue" });
+    setFilters({
+      kind: "",
+      priority: "",
+      status: status === "overdue" ? "open" : status,
+      overdue: status === "overdue",
+    });
     setNotice("");
   }
   return (
@@ -469,7 +556,8 @@ export default function WorkQueue({
           <h2>Delovni nalogi in prejeta sporočila</h2>
           <p>
             Odprite nalog, preberite podatke in ga prevzemite v obravnavo.
-            Določite odgovorno osebo in rok, zapišite dogovor ter po opravljeni obravnavi zaključite nalog.
+            Določite odgovorno osebo in rok, zapišite dogovor ter po opravljeni
+            obravnavi zaključite nalog.
           </p>
         </div>
         <div className="work-intro-actions">
@@ -548,11 +636,13 @@ export default function WorkQueue({
                       }))
                     }
                   >
-              {Object.entries(categories).filter(([value]) => value !== "general").map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
+                    {Object.entries(categories)
+                      .filter(([value]) => value !== "general")
+                      .map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
                   </select>
                 </label>
                 <label>
@@ -666,7 +756,14 @@ export default function WorkQueue({
           <button
             key={stat.key}
             onClick={() => showSummary(stat.key)}
-            aria-pressed={!filters.kind && !filters.priority && !query && (stat.key === "overdue" ? filters.overdue : !filters.overdue && filters.status === stat.key)}
+            aria-pressed={
+              !filters.kind &&
+              !filters.priority &&
+              !query &&
+              (stat.key === "overdue"
+                ? filters.overdue
+                : !filters.overdue && filters.status === stat.key)
+            }
             className={
               stat.key === "overdue" && stat.value ? "work-stat-overdue" : ""
             }
@@ -762,13 +859,26 @@ export default function WorkQueue({
           {notice}
         </p>
       )}
-      {!loading && !error && <p className="work-result-count" role="status">{total ? `Prikaz ${((page - 1) * 20) + 1}–${Math.min(page * 20, total)} od ${total} nalogov` : "Ni najdenih nalogov"} · seznam je razvrščen po prioriteti, nato po datumu prejema.</p>}
+      {!loading && !error && (
+        <p className="work-result-count" role="status">
+          {total
+            ? `Prikaz ${(page - 1) * 20 + 1}–${Math.min(page * 20, total)} od ${total} nalogov`
+            : "Ni najdenih nalogov"}{" "}
+          · seznam je razvrščen po prioriteti, nato po datumu prejema.
+        </p>
+      )}
       <div className="admin-panel work-list" aria-busy={loading}>
         {error ? (
           <div className="admin-empty">
             <AlertCircle size={30} />
             <h3>Seznama nalogov ni bilo mogoče naložiti.</h3>
-            <button className="admin-button" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16} />Poskusi znova</button>
+            <button
+              className="admin-button"
+              onClick={() => setRefresh((value) => value + 1)}
+            >
+              <RefreshCw size={16} />
+              Poskusi znova
+            </button>
           </div>
         ) : loading ? (
           <p className="work-loading">Pridobivamo naloge …</p>
@@ -809,7 +919,10 @@ export default function WorkQueue({
                               : ""
                           }
                         >
-                          Rok: {new Intl.DateTimeFormat("sl-SI").format(new Date(`${entry.dueDate}T12:00:00`))}
+                          Rok:{" "}
+                          {new Intl.DateTimeFormat("sl-SI").format(
+                            new Date(`${entry.dueDate}T12:00:00`),
+                          )}
                         </i>
                       )}
                       {entry.notificationStatus === "failed" && (
@@ -833,9 +946,12 @@ export default function WorkQueue({
             <ListChecks size={34} />
             <h3>Ni nalogov za te filtre.</h3>
             <p>
-              Nove oddaje se pokažejo po osvežitvi seznama. Za pregled vseh nalogov počistite filtre.
+              Nove oddaje se pokažejo po osvežitvi seznama. Za pregled vseh
+              nalogov počistite filtre.
             </p>
-            <button className="admin-button" onClick={() => showSummary("all")}>Prikaži vse naloge</button>
+            <button className="admin-button" onClick={() => showSummary("all")}>
+              Prikaži vse naloge
+            </button>
           </div>
         )}
       </div>
@@ -860,9 +976,9 @@ export default function WorkQueue({
       </div>
       <p className="work-privacy">
         <Clock3 size={15} />
-        Nalogi so interni. Sprememba stanja, opombe in zaključek ne pošljejo odgovora obiskovalcu.
-        Obiskovalci nimajo dostopa do konzole. Nujne nevarnosti obravnavajte
-        prek ustrezne dežurne službe.
+        Nalogi so interni. Sprememba stanja, opombe in zaključek ne pošljejo
+        odgovora obiskovalcu. Obiskovalci nimajo dostopa do konzole. Nujne
+        nevarnosti obravnavajte prek ustrezne dežurne službe.
       </p>
       <dialog
         className="work-dialog"
@@ -896,7 +1012,12 @@ export default function WorkQueue({
             <X size={22} />
           </button>
         </div>
-        {caseNotice && <p className="work-saved work-dialog-notice" role="status"><CheckCheck size={17} />{caseNotice}</p>}
+        {caseNotice && (
+          <p className="work-saved work-dialog-notice" role="status">
+            <CheckCheck size={17} />
+            {caseNotice}
+          </p>
+        )}
         {caseError && (
           <div className="admin-message admin-message-error" role="alert">
             {caseError}
@@ -934,7 +1055,8 @@ export default function WorkQueue({
                   {Object.entries(item.payload)
                     .filter(
                       ([key, value]) =>
-                        key in labels && !['latitude','longitude'].includes(key) &&
+                        key in labels &&
+                        !["latitude", "longitude"].includes(key) &&
                         value !== "" &&
                         value !== null &&
                         value !== undefined,
@@ -947,15 +1069,36 @@ export default function WorkQueue({
                             : labels[key]}
                         </dt>
                         <dd>
-                          {key === "email" ? <a href={`mailto:${String(value)}`}>{String(value)}</a>
-                            : key === "phone" ? <a href={`tel:${String(value).replace(/[^+\d]/g, "")}`}>{String(value)}</a>
-                            : ["category", "subcategory", "service", "topics", "stallType"].includes(key) ? displayValue(value)
-                            : String(value)}
+                          {key === "email" ? (
+                            <a href={`mailto:${String(value)}`}>
+                              {String(value)}
+                            </a>
+                          ) : key === "phone" ? (
+                            <a
+                              href={`tel:${String(value).replace(/[^+\d]/g, "")}`}
+                            >
+                              {String(value)}
+                            </a>
+                          ) : [
+                              "category",
+                              "subcategory",
+                              "service",
+                              "topics",
+                              "stallType",
+                            ].includes(key) ? (
+                            displayValue(value)
+                          ) : (
+                            String(value)
+                          )}
                         </dd>
                       </div>
                     ))}
                 </dl>
-                <MapPointLink latitude={item.payload.latitude} longitude={item.payload.longitude} address={String(item.payload.address||'')}/>
+                <MapPointLink
+                  latitude={item.payload.latitude}
+                  longitude={item.payload.longitude}
+                  address={String(item.payload.address || "")}
+                />
                 {Boolean(item.payload.photoKey) && (
                   <a
                     href={`/api/admin/submissions/${item.id}/photo`}
@@ -995,13 +1138,45 @@ export default function WorkQueue({
               </section>
               <section className="work-treatment">
                 <h3>Obravnava naloga</h3>
-                <div className="work-actions" aria-label="Sprememba stanja naloga">
-                  <span className={`work-status status-${item.status}`}>{states[item.status]}</span>
-                  {item.status === "demo-saved" && <button className="admin-button" disabled={busy || !checklistValid} onClick={() => void save("in-progress")}>Začni obravnavo</button>}
-                  {closed(item) ? <button className="admin-button" disabled={busy || !checklistValid} onClick={() => void save("in-progress")}>Ponovno odpri nalog</button>
-                    : <button className="admin-button admin-primary" disabled={busy || !checklistValid} onClick={() => void save("resolved")}><CheckCheck size={16} />Zaključi nalog</button>}
+                <div
+                  className="work-actions"
+                  aria-label="Sprememba stanja naloga"
+                >
+                  <span className={`work-status status-${item.status}`}>
+                    {states[item.status]}
+                  </span>
+                  {item.status === "demo-saved" && (
+                    <button
+                      className="admin-button"
+                      disabled={busy || !checklistValid}
+                      onClick={() => void save("in-progress")}
+                    >
+                      Začni obravnavo
+                    </button>
+                  )}
+                  {closed(item) ? (
+                    <button
+                      className="admin-button"
+                      disabled={busy || !checklistValid}
+                      onClick={() => void save("in-progress")}
+                    >
+                      Ponovno odpri nalog
+                    </button>
+                  ) : (
+                    <button
+                      className="admin-button admin-primary"
+                      disabled={busy || !checklistValid}
+                      onClick={() => void save("resolved")}
+                    >
+                      <CheckCheck size={16} />
+                      Zaključi nalog
+                    </button>
+                  )}
                 </div>
-                <p className="work-action-help">Gumbi za stanje shranijo tudi spodnje spremembe. Za odgovor pošiljatelju uporabite njegov e-poštni naslov.</p>
+                <p className="work-action-help">
+                  Gumbi za stanje shranijo tudi spodnje spremembe. Za odgovor
+                  pošiljatelju uporabite njegov e-poštni naslov.
+                </p>
                 <div className="work-fields">
                   <label>
                     Stanje obravnave
@@ -1013,10 +1188,7 @@ export default function WorkQueue({
                       disabled={busy}
                     >
                       {Object.entries(states).map(([value, label]) => (
-                        <option
-                          key={value}
-                          value={value}
-                        >
+                        <option key={value} value={value}>
                           {label}
                         </option>
                       ))}
@@ -1068,7 +1240,10 @@ export default function WorkQueue({
                     {completed}/{draft.checklist.length}
                   </span>
                 </div>
-                <p className="work-action-help">Predlagane korake lahko prilagodite ali odstranite. Označite samo dejansko opravljena opravila.</p>
+                <p className="work-action-help">
+                  Predlagane korake lahko prilagodite ali odstranite. Označite
+                  samo dejansko opravljena opravila.
+                </p>
                 <div className="work-progress-bar">
                   <span
                     style={{
@@ -1162,7 +1337,8 @@ export default function WorkQueue({
                 </label>
                 {!checklistValid && (
                   <p className="work-complete-hint">
-                    Prazen korak dopolnite ali odstranite, preden shranite nalog.
+                    Prazen korak dopolnite ali odstranite, preden shranite
+                    nalog.
                   </p>
                 )}
                 <div className="work-save">
@@ -1173,11 +1349,7 @@ export default function WorkQueue({
                   </span>
                   <button
                     className="admin-button admin-primary"
-                    disabled={
-                      !dirty ||
-                      busy ||
-                      !checklistValid
-                    }
+                    disabled={!dirty || busy || !checklistValid}
                     onClick={() => void save()}
                   >
                     <Save size={17} />

@@ -89,6 +89,7 @@ test("Turnstile validates success, exact hostname, action, failures and replay",
   const env = {
     TURNSTILE_SECRET: "test-secret",
     TURNSTILE_HOSTNAMES: "kpv.example",
+    FORM_RATE_LIMITER: { limit: async () => ({ success: true }) },
   };
   const request = new Request(url("/api/contact"));
   for (const result of [

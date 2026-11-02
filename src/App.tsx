@@ -1,5 +1,6 @@
+import { CmsImage, CmsText } from "./content/ContentFields";
 import {
-  CmsLayout,
+  CmsLayout, nativeSection, cmsNative,
   CmsLink as Link,
   CmsAnchor,
   CustomCmsPage,
@@ -9,6 +10,7 @@ import PageMotion from "./components/PageMotion";
 import ContentBridge from "./content/ContentBridge";
 import { CmsPageImage, useSiteContent, telephone } from "./content/SiteContent";
 import {mapAddressUrl} from '../shared/location.js';
+import { readSavedAddress, saveHomeAddress, forgetHomeAddress, addressFromNavigation } from "./data/saved-address";
 import {
   NavLink,
   Route,
@@ -233,29 +235,8 @@ function Logo() {
   );
 }
 
-function readSavedAddress() {
-  try {
-    return localStorage.getItem("kpv-address") || "";
-  } catch {
-    return "";
-  }
-}
-function saveHomeAddress(address: string) {
-  try {
-    localStorage.setItem("kpv-address", address);
-  } catch {
-    /* Address persistence is optional. */
-  }
-}
-function forgetHomeAddress() {
-  try {
-    localStorage.removeItem("kpv-address");
-  } catch {
-    /* Storage may be disabled. */
-  }
-}
 function SiteSearch({ close }: { close: () => void }) {
-  const { layout } = useSiteContent();
+  const { layout, notices } = useSiteContent();
   const [query, setQuery] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -298,20 +279,22 @@ function SiteSearch({ close }: { close: () => void }) {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
-  const results =
+  const matches =
     query.trim().toLowerCase() === "/admin"
       ? [["Upravljanje portala", "Prijava za skrbnika", "/admin"]]
       : [
           ...searchable,
           ...layout.pages
             .filter((p) => p.path.startsWith("/strani/"))
-            .map((p) => [p.title, "Vsebinska stran", p.path]),
+            .map((p) => [p.title, p.blocks.flatMap(block => [block.title || "", block.text || "", ...(block.cards || []).flatMap(card => [card.title, card.text])]).join(" ").trim() || "Vsebinska stran", p.path]),
+          ...notices.filter(notice => notice.published !== false).map(notice => [notice.title, `${notice.area} · ${notice.summary}`, `/obvestila#${notice.id}`]),
         ].filter((v) =>
           normalize(query)
             .trim()
             .split(/\s+/)
             .every((word) => normalize(v[0] + " " + v[1]).includes(word)),
         );
+  const results = query.trim() ? matches.slice(0, 30) : searchable.slice(0, 6);
   return (
     <div className="search-overlay" onClick={close}>
       <section
@@ -339,7 +322,7 @@ function SiteSearch({ close }: { close: () => void }) {
           </button>
         </div>
         <p className="search-caption">
-          {query ? `${results.length} zadetkov` : "Priljubljene poti"}
+          {query.trim() ? `${matches.length} zadetkov` : "Pogosta opravila"}
         </p>
         <div className="search-results">
           {results.length ? (
@@ -347,17 +330,17 @@ function SiteSearch({ close }: { close: () => void }) {
               <Link key={to} to={to} onClick={close}>
                 <span>
                   <strong>{title}</strong>
-                  <small>{desc}</small>
+                  <small>{desc.length > 160 ? `${desc.slice(0, 157)}…` : desc}</small>
                 </span>
                 <ArrowUpRight size={19} />
               </Link>
             ))
           ) : (
             <p className="empty-state">
-              Ni zadetkov. Poskusite »odvoz«, »voda« ali »kontakt«.
-            </p>
+              <CmsText id="SiteSearch.p-1">{"Ni zadetkov. Poskusite »odvoz«, »voda« ali »kontakt«."}</CmsText></p>
           )}
         </div>
+        {query.trim() && matches.length > results.length && <p className="search-caption">Prikazujemo prvih {results.length} zadetkov. Dopolnite iskanje za natančnejši izbor.</p>}
       </section>
     </div>
   );
@@ -537,6 +520,7 @@ function Header() {
 function Home() {
   const navigate = useNavigate();
   const [address, setAddress] = useState(() => readSavedAddress());
+  const [addressError, setAddressError] = useState("");
   const [notices, setNotices] = useState<
     {
       id: string;
@@ -590,21 +574,18 @@ function Home() {
   ];
   return (
     <CmsLayout>
-      <section className="hero container">
+      <section key={nativeSection("Home.hero")} className="hero container">
         <div className="hero-copy">
           <div className="eyebrow">
             <span className="status-dot" />
             SKUPAJ ZA NAŠ KRAJ
           </div>
           <h1>
-            Čisto okolje.
-            <br />
-            Boljši <span>vsakdan.</span>
+            <CmsText id="Home.h1-1">{"Čisto okolje."}</CmsText><br />
+            <CmsText id="Home.h1-2">{"Boljši "}</CmsText><span><CmsText id="Home.hero-emphasis">vsakdan.</CmsText></span>
           </h1>
           <p>
-            Za vse, kar vaš dom in naš kraj potrebujeta.
-            <br className="desktop-break" /> Uredite preprosto, na enem mestu.
-          </p>
+            <CmsText id="Home.p-1">{"Za vse, kar vaš dom in naš kraj potrebujeta."}</CmsText><br className="desktop-break" /> <CmsText id="Home.p-2">{"Uredite preprosto, na enem mestu."}</CmsText></p>
           <div className="hero-actions">
             <Link className="button" to="/odpadki/urnik">
               Moj urnik odvoza
@@ -623,7 +604,7 @@ function Home() {
           </div>
         </div>
         <div className="hero-visual">
-          <img
+          <CmsImage fieldId="Home.hero-image"
             src="/images/ljubljanica.webp"
             alt="Zelena pokrajina in vijugasta struga Ljubljanice"
             fetchPriority="high"
@@ -639,11 +620,9 @@ function Home() {
             </span>
             <div>
               <strong>
-                Majhna dejanja.
-                <br />
-                Velike spremembe.
-              </strong>
-              <small>Za zeleno prihodnost naših krajev.</small>
+                <CmsText id="Home.strong-1">{"Majhna dejanja."}</CmsText><br />
+                <CmsText id="Home.strong-2">{"Velike spremembe."}</CmsText></strong>
+              <small><CmsText id="Home.small-1">{"Za zeleno prihodnost naših krajev."}</CmsText></small>
             </div>
           </div>
           <CmsAnchor
@@ -655,7 +634,7 @@ function Home() {
           </CmsAnchor>
         </div>
       </section>
-      <section
+      <section key={nativeSection("Home.quick-actions")}
         id="opravila"
         className="container quick-section"
         aria-label="Najpogostejša opravila"
@@ -679,21 +658,23 @@ function Home() {
           ))}
         </div>
       </section>
-      <section className="container home-address">
+      <section key={nativeSection("Home.address")} className="container home-address">
         <div className="address-heading">
           <span className="round-icon">
             <MapPin size={23} />
           </span>
           <div>
-            <h2>Vaš naslov. Vaše informacije.</h2>
-            <p>Odvozi in obvestila, ki zadevajo vaš dom.</p>
+            <h2><CmsText id="Home.h2-1">{"Vaš naslov. Vaše informacije."}</CmsText></h2>
+            <p><CmsText id="Home.p-3">{"Odvozi in obvestila, ki zadevajo vaš dom."}</CmsText></p>
           </div>
         </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            saveHomeAddress(address);
-            navigate("/moj-dom");
+            if (address.trim().length < 4) { setAddressError("Vpišite ulico ali naselje, hišno številko in kraj."); return; }
+            setAddressError("");
+            const persisted = saveHomeAddress(address);
+            navigate("/moj-dom", { state: persisted ? null : { initialAddress: address.trim(), storageUnavailable: true } });
           }}
         >
           <label className="sr-only" htmlFor="home-address">
@@ -703,24 +684,25 @@ function Home() {
           <input
             id="home-address"
             required
-            minLength={3}
+            minLength={4}
+            maxLength={250}
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onChange={(e) => { setAddress(e.target.value); setAddressError(""); }}
+            aria-invalid={!!addressError}
             placeholder="Vnesite ulico, hišno številko in kraj"
           />
           <button type="submit" aria-label="Prikaži podatke za naslov">
             <ArrowRight size={21} />
           </button>
         </form>
+        {addressError && <p className="svc-error" role="alert">{addressError}</p>}
       </section>
-      <section className="container home-notices">
+      <section key={nativeSection("Home.notices")} className="container home-notices">
         <div className="section-heading">
           <div>
             <span className="eyebrow">DOBRO JE VEDETI</span>
             <h2>
-              Aktualno v vašem kraju
-
-            </h2>
+              <CmsText id="Home.h2-2">{"Aktualno v vašem kraju"}</CmsText></h2>
           </div>
           <Link className="text-link" to="/obvestila">
             Vsa obvestila
@@ -741,14 +723,14 @@ function Home() {
                       <Droplets size={13} />
                     ) : n.category === "roads" ? (
                       <Trees size={13} />
-                    ) : (
+                    ) : n.category === "waste" ? (
                       <Recycle size={13} />
-                    )}{" "}
+                    ) : <Bell size={13} />}{" "}
                     {n.category === "water"
                       ? "OSKRBA Z VODO"
                       : n.category === "roads"
                         ? "CESTE IN ZAPORE"
-                        : "ODPADKI"}
+                        : n.category === "waste" ? "ODPADKI" : "SPLOŠNO"}
                   </span>
                   <span>
                     {new Date(n.date).toLocaleDateString("sl-SI", {
@@ -771,8 +753,8 @@ function Home() {
           ) : (
             <div className="panel notice-unavailable">
               <Bell size={24} />
-              <h3>Obvestila za vaš kraj</h3>
-              <p>Preverite objavljena obvestila.</p>
+              <h3><CmsText id="Home.h3-1">{"Obvestila za vaš kraj"}</CmsText></h3>
+              <p><CmsText id="Home.p-4">{"Preverite objavljena obvestila."}</CmsText></p>
               <Link className="text-link" to="/obvestila">
                 Odpri obvestila
                 <ArrowRight size={16} />
@@ -781,18 +763,16 @@ function Home() {
           )}
         </div>
       </section>
-      <section className="home-services-section">
+      <section key={nativeSection("Home.services")} className="home-services-section">
         <div className="container">
           <div className="section-heading">
             <div>
               <span className="eyebrow">VEDNO BLIZU VAS</span>
-              <h2>Vse za urejen dom in okolje.</h2>
+              <h2><CmsText id="Home.h2-3">{"Vse za urejen dom in okolje."}</CmsText></h2>
             </div>
             <p>
-              Prava pot do storitve.
-              <br />
-              Brez odvečnega iskanja.
-            </p>
+              <CmsText id="Home.p-5">{"Prava pot do storitve."}</CmsText><br />
+              <CmsText id="Home.p-6">{"Brez odvečnega iskanja."}</CmsText></p>
           </div>
           <div className="service-overview-grid">
             {[
@@ -831,38 +811,34 @@ function Home() {
           </div>
         </div>
       </section>
-      <section className="container depo-banner">
+      <section key={nativeSection("Home.depo")} className="container depo-banner">
         <div className="depo-art" aria-hidden="true">
           <span>
             depo<span>↗</span>
           </span>
-          <small>NOVA ZGODBA. ISTI PREDMET.</small>
+          <small><CmsText id="Home.small-2">{"NOVA ZGODBA. ISTI PREDMET."}</CmsText></small>
           <div className="depo-ring" />
         </div>
         <div className="depo-copy">
           <span className="eyebrow">PONOVNA UPORABA</span>
           <h2>
-            Nekomu odveč.
-            <br />
-            Vam ravno prav.
-          </h2>
+            <CmsText id="Home.h2-4">{"Nekomu odveč."}</CmsText><br />
+            <CmsText id="Home.h2-5">{"Vam ravno prav."}</CmsText></h2>
           <p>
-            Dobri predmeti si zaslužijo novo priložnost. Odkrijte DEPO, našo
-            trgovino ponovne uporabe.
-          </p>
+            <CmsText id="Home.p-7">{"Dobri predmeti si zaslužijo novo priložnost. Odkrijte DEPO, našo trgovino ponovne uporabe."}</CmsText></p>
           <Link className="text-link" to="/depo">
             Spoznajte DEPO
             <ArrowUpRight size={17} />
           </Link>
         </div>
       </section>
-      <section className="container help-strip">
+      <section key={nativeSection("Home.help")} className="container help-strip">
         <span className="round-icon">
           <Phone size={23} />
         </span>
         <div>
-          <h2>Včasih je najlažje poklicati.</h2>
-          <p>Tu smo, da skupaj najdemo odgovor.</p>
+          <h2><CmsText id="Home.h2-6">{"Včasih je najlažje poklicati."}</CmsText></h2>
+          <p><CmsText id="Home.p-8">{"Tu smo, da skupaj najdemo odgovor."}</CmsText></p>
         </div>
         <CmsAnchor className="text-link" href="tel:+38617502960">
           01 750 29 60
@@ -878,6 +854,7 @@ function Home() {
 }
 
 function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
+  const { settings } = useSiteContent();
   const data = {
     waste: {
       eyebrow: "ODPADKI IN LOČEVANJE",
@@ -988,12 +965,12 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
   return (
     <div className="container inner-page">
       <CmsLayout>
-        <div className="page-intro">
+        <div key={nativeSection("CategoryPage.page-intro")} className="page-intro">
           <span className="eyebrow">{data.eyebrow}</span>
           <h1>{data.title}</h1>
           <p>{data.intro}</p>
         </div>
-        <div className="category-grid">
+        <div key={nativeSection("CategoryPage.category-grid")} className="category-grid">
           {data.cards.map(([title, desc, to, Icon]) => {
             const Component = Icon as typeof Recycle;
             const content = (
@@ -1027,28 +1004,29 @@ function CategoryPage({ kind }: { kind: "waste" | "water" | "public" }) {
             );
           })}
         </div>
-        {kind === "water" && (
+        {cmsNative(nativeSection("CategoryPage.water-emergency"), (kind === "water" && (
           <div className="notice water-note">
             <ShieldCheck />
             <div>
-              <strong>Potrebujete nujno pomoč?</strong>
+              <strong><CmsText id="CategoryPage.strong-1">{"Potrebujete nujno pomoč?"}</CmsText></strong>
               <p>
-                Za nujne težave z vodovodom ali kanalizacijo pokličite dežurno
-                službo{" "}
-                <CmsAnchor href="tel:+38641364681">041 364 681</CmsAnchor>.
-                Za nujne primere ne uporabljajte obrazca.
-              </p>
+                <CmsText id="CategoryPage.p-1">{"Za nujne težave z vodovodom ali kanalizacijo pokličite dežurno službo"}</CmsText>{" "}
+                <CmsAnchor href={`tel:${telephone(settings.emergencyPhone)}`}>{settings.emergencyPhone}</CmsAnchor><CmsText id="CategoryPage.p-2">{". Za nujne primere ne uporabljajte obrazca."}</CmsText></p>
             </div>
           </div>
-        )}
+        )))}
       </CmsLayout>
     </div>
   );
 }
 
 function MyHome() {
-  const [address, setAddress] = useState(() => readSavedAddress());
-  const [saved, setSaved] = useState(() => readSavedAddress());
+  const location = useLocation(), navigate = useNavigate();
+  const initialAddress = addressFromNavigation(location.state) || readSavedAddress();
+  const [address, setAddress] = useState(initialAddress);
+  const [saved, setSaved] = useState(initialAddress);
+  const [addressError, setAddressError] = useState("");
+  const [storageMessage, setStorageMessage] = useState(location.state?.storageUnavailable ? "Brskalnik ne dovoljuje shranjevanja naslova. Naslov lahko vseeno uporabljate v tem obisku." : "");
   const [events, setEvents] = useState<
     { date: string; label: string; color: string }[]
   >([]);
@@ -1110,19 +1088,21 @@ function MyHome() {
   return (
     <div className="container inner-page">
       <CmsLayout>
-        <div className="page-intro">
+        <div key={nativeSection("MyHome.page-intro")} className="page-intro">
           <span className="eyebrow">VAŠE OSEBNO IZHODIŠČE</span>
-          <h1>Moj dom.</h1>
+          <h1><CmsText id="MyHome.h1-1">{"Moj dom."}</CmsText></h1>
           <p>
-            Vaš naslov si zapomnimo v tem brskalniku. Prijava in uporabniški
-            račun nista potrebna.
-          </p>
+            <CmsText id="MyHome.p-1">{"Vaš naslov si zapomnimo v tem brskalniku. Prijava in uporabniški račun nista potrebna."}</CmsText></p>
         </div>
-        <form
+        <form key={nativeSection("MyHome.address-form")}
           className="panel address-setting"
           onSubmit={(e) => {
             e.preventDefault();
-            saveHomeAddress(address);
+            if (address.trim().length < 4) { setAddressError("Vpišite ulico ali naselje, hišno številko in kraj."); return; }
+            setAddressError("");
+            const persisted = saveHomeAddress(address);
+            setStorageMessage(persisted ? "Naslov je shranjen v tem brskalniku." : "Brskalnik ne dovoljuje shranjevanja naslova. Naslov lahko vseeno uporabljate v tem obisku.");
+            if (location.state) navigate("/moj-dom", { replace: true, state: null });
             setEvents([]);
             setError("");
             setLoading(true);
@@ -1134,11 +1114,12 @@ function MyHome() {
             Naslov vašega doma
             <input
               required
-              minLength={3}
+              minLength={4}
               maxLength={250}
               autoComplete="street-address"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => { setAddress(e.target.value); setAddressError(""); }}
+              aria-invalid={!!addressError}
               placeholder="Tržaška cesta 1, Vrhnika"
             />
           </label>
@@ -1151,8 +1132,14 @@ function MyHome() {
               type="button"
               className="text-link"
               onClick={() => {
-                forgetHomeAddress();
+                if (!forgetHomeAddress()) {
+                  setStorageMessage("Brskalnik ni dovolil izbrisa shranjenega naslova. Odstranite ga v nastavitvah brskalnika.");
+                  return;
+                }
+                setStorageMessage("Shranjeni naslov je izbrisan.");
+                if (location.state) navigate("/moj-dom", { replace: true, state: null });
                 setSaved("");
+                setAddressError("");
                 setAddress("");
                 setEvents([]);
               }}
@@ -1162,19 +1149,25 @@ function MyHome() {
             </button>
           )}
         </form>
-        {saved && (
+        {addressError && <p key="personal-address-validation" className="svc-error" role="alert">{addressError}</p>}
+        {storageMessage && <p role="status" className="notice">{storageMessage}</p>}
+        {cmsNative(nativeSection("MyHome.schedule"), (saved && (
           <>
+            {address.trim() !== saved && <p className="notice" role="status">Naslov ste spremenili. Prikazani odvozi še veljajo za {saved}; za novi naslov izberite »Shrani naslov«.</p>}
             <div className="section-heading">
+              <div>
               <h2>
-                Naslednji odvozi{" "}
+                <CmsText id="MyHome.h2-1">{"Naslednji odvozi"}</CmsText>{" "}
 
               </h2>
-              <Link className="text-link" to="/odpadki/urnik">
+              <p>Naslov urnika: <strong>{saved}</strong></p>
+              </div>
+              <Link className="text-link" to="/odpadki/urnik" state={{ initialAddress: saved }}>
                 Celoten urnik
                 <ArrowRight size={17} />
               </Link>
             </div>
-            {scheduleWarning && !loading && !error && <div className="notice" role="status"><span>{scheduleWarning}</span><Link to="/odpadki/urnik">Preveri celoten urnik</Link></div>}
+            {scheduleWarning && !loading && !error && <div className="notice" role="status"><span>{scheduleWarning}</span><Link to="/odpadki/urnik" state={{ initialAddress: saved }}>Preveri celoten urnik</Link></div>}
             {loading ? (
               <div className="notice" role="status">
                 <span className="loading-spinner" />
@@ -1203,7 +1196,7 @@ function MyHome() {
                       })}
                     </span>
                     <h3>{ev.label}</h3>
-                    <small>Objavljeni datum odvoza</small>
+                    <small><CmsText id="MyHome.small-1">{"Objavljeni datum odvoza"}</CmsText></small>
                   </div>
                 ))}
               </div>
@@ -1214,20 +1207,19 @@ function MyHome() {
               </div>
             )}
           </>
-        )}
-        <div className="category-grid my-home-links">
+        )))}
+        <div key={nativeSection("MyHome.shortcuts")} className="category-grid my-home-links">
           <Link className="panel category-card" to="/obvestila#narocilo">
             <Bell />
-            <h2>Obvestila za moj dom</h2>
+            <h2><CmsText id="MyHome.h2-2">{"Obvestila za moj dom"}</CmsText></h2>
             <p>
-              Prijavite se na e-obvestila za svoje območje in naslov.
-            </p>
+              <CmsText id="MyHome.p-2">{"Prijavite se na e-obvestila za svoje območje in naslov."}</CmsText></p>
             <ArrowUpRight className="category-arrow" />
           </Link>
           <Link className="panel category-card" to="/prijavi">
             <MapPin />
-            <h2>Sporočite nam težavo</h2>
-            <p>Prijavite poškodbo infrastrukture v svoji okolici.</p>
+            <h2><CmsText id="MyHome.h2-3">{"Sporočite nam težavo"}</CmsText></h2>
+            <p><CmsText id="MyHome.p-3">{"Prijavite poškodbo infrastrukture v svoji okolici."}</CmsText></p>
             <ArrowUpRight className="category-arrow" />
           </Link>
         </div>
@@ -1240,45 +1232,26 @@ function Privacy() {
   return (
     <div className="container inner-page prose-page">
       <CmsLayout>
-        <div className="page-intro">
+        <div key={nativeSection("Privacy.page-intro")} className="page-intro">
           <span className="eyebrow">PODATKI IN ZASEBNOST</span>
-          <h1>Zasebnost in dostopnost.</h1>
-          <p>Kako obdelujemo podatke in uporabljamo zunanje storitve.</p>
+          <h1><CmsText id="Privacy.h1-1">{"Zasebnost in dostopnost."}</CmsText></h1>
+          <p><CmsText id="Privacy.p-1">{"Kako obdelujemo podatke in uporabljamo zunanje storitve."}</CmsText></p>
         </div>
-        <section className="panel">
-          <h2>Vaši podatki</h2>
+        <section key={nativeSection("Privacy.policy")} className="panel">
+          <h2><CmsText id="Privacy.h2-1">{"Vaši podatki"}</CmsText></h2>
           <p>
-            Naslov v razdelku Moj dom se shrani samo v lokalni pomnilnik tega
-            brskalnika. Izbrišete ga z gumbom »Pozabi naslov«. Analitičnih in
-            oglaševalskih piškotkov ne uporabljamo.
-          </p>
-          <h2>Obrazci in obravnava oddaj</h2><p>Vnesene podatke in fotografije shranimo za obravnavo vaše oddaje. Dostop imajo prijavljeni skrbniki portala. E-poštno obvestilo s podatki oddaje pošljemo nastavljenemu skrbniku prek Resend. Oddaja povpraševanja ali prijave na tržnico še ne potrjuje izvedbe ali termina in ne izvede plačila. Za vprašanja o podatkih in zahtevo za izbris pišite skrbniku portala na tomincjakob@gmail.com ter navedite referenco oddaje. Zahteve glede portala trenutno obravnava njegov skrbnik.</p>
-          <h2>Naročnina na e-obvestila</h2><p>Po prijavi pošljemo potrditveno povezavo. Šele po potrditvi uporabimo izbrano območje, naslov in teme za ciljno dostavo obvestil prek Resend. Osebna povezava v sporočilu omogoča spremembo nastavitev in odjavo. Po odjavi nove dostave ustavimo; že dostavljenih sporočil iz vašega predala ne moremo odstraniti. Za izbris evidenc pišite skrbniku portala.</p><h2>Zunanji ponudniki</h2>
+            <CmsText id="Privacy.p-2">{"Naslov v razdelku Moj dom se shrani samo v lokalni pomnilnik tega brskalnika. Izbrišete ga z gumbom »Pozabi naslov«. Analitičnih in oglaševalskih piškotkov ne uporabljamo."}</CmsText></p>
+          <h2><CmsText id="Privacy.h2-2">{"Obrazci in obravnava oddaj"}</CmsText></h2><p><CmsText id="Privacy.p-3">{"Vnesene podatke in fotografije shranimo za obravnavo vaše oddaje. Dostop imajo prijavljeni skrbniki portala. E-poštno obvestilo s podatki oddaje pošljemo nastavljenemu skrbniku prek Resend. Oddaja povpraševanja ali prijave na tržnico še ne potrjuje izvedbe ali termina in ne izvede plačila. Za vprašanja o podatkih ali zahtevo za izbris uporabite kontaktni obrazec in navedite referenco oddaje. Zahtevo obravnava skrbnik portala."}</CmsText></p>
+          <h2><CmsText id="Privacy.h2-3">{"Naročnina na e-obvestila"}</CmsText></h2><p><CmsText id="Privacy.p-4">{"Po prijavi pošljemo potrditveno povezavo. Šele po potrditvi uporabimo izbrano območje, naslov in teme za ciljno dostavo obvestil prek Resend. Osebna povezava v sporočilu omogoča spremembo nastavitev in odjavo. Po odjavi nove dostave ustavimo; že dostavljenih sporočil iz vašega predala ne moremo odstraniti. Za izbris evidenc pišite skrbniku portala."}</CmsText></p><h2><CmsText id="Privacy.h2-4">{"Zunanji ponudniki"}</CmsText></h2>
           <p>
-            Interaktivni zemljevidi nalagajo kartografske ploščice
-            OpenStreetMap, pri čemer ponudnik prejme vaš IP-naslov. Povezave do
-            Google Zemljevidov, Google Koledarja, uradne komunale in DEPO
-            odprejo zunanje storitve z lastnimi pravili zasebnosti.
-          </p>
+            <CmsText id="Privacy.p-5">{"Interaktivni zemljevidi nalagajo kartografske ploščice OpenStreetMap, pri čemer ponudnik prejme vaš IP-naslov. Povezave do Google Zemljevidov, Google Koledarja, uradne komunale in DEPO odprejo zunanje storitve z lastnimi pravili zasebnosti."}</CmsText></p>
           <p>
-            Oddaje obrazcev varuje Cloudflare Turnstile. Za varnostno
-            preverjanje Cloudflare obdeluje tehnične podatke o brskalniku in
-            naslov IP.
-            Vnesena vsebina in varnostni žeton se ne zapisujeta v javne
-            dnevnike; žetona ne hranimo med oddanimi sporočili. Podatke iz
-            javnih obrazcev za dostavo e-poštnega obvestila obdeluje Resend,
-            prejemnik pa je nastavljeni skrbnik portala. Fotografije hranimo zasebno v
-            Cloudflare R2 ter jih prek Resend pošljemo skrbniku portala kot
-            priponke k prijavi.
-          </p>
-          <h2>Dostopnost</h2>
+            <CmsText id="Privacy.p-6">{"Oddaje obrazcev varuje Cloudflare Turnstile. Za varnostno preverjanje Cloudflare obdeluje tehnične podatke o brskalniku in naslov IP. Vnesena vsebina in varnostni žeton se ne zapisujeta v javne dnevnike; žetona ne hranimo med oddanimi sporočili. Podatke iz javnih obrazcev za dostavo e-poštnega obvestila obdeluje Resend, prejemnik pa je nastavljeni skrbnik portala. Fotografije hranimo zasebno v Cloudflare R2 ter jih prek Resend pošljemo skrbniku portala kot priponke k prijavi."}</CmsText></p>
+          <h2><CmsText id="Privacy.h2-5">{"Dostopnost"}</CmsText></h2>
           <p>
-            Portal podpira upravljanje s tipkovnico, preskok na vsebino,
-            označena polja in zmanjšano gibanje. Zemljevid dopolnjujejo
-            besedilni seznami lokacij. Za težave pri dostopu do vsebine uporabite kontaktni obrazec.
-          </p>
+            <CmsText id="Privacy.p-7">{"Portal podpira upravljanje s tipkovnico, preskok na vsebino, označena polja in zmanjšano gibanje. Zemljevid dopolnjujejo besedilni seznami lokacij. Za težave pri dostopu do vsebine uporabite kontaktni obrazec."}</CmsText></p>
           <Link className="text-link" to="/kontakt">
-            Kontakti podjetja
+            Kontaktni obrazec in kontakti
             <ArrowRight size={17} />
           </Link>
         </section>
@@ -1301,14 +1274,14 @@ function Footer() {
           </span>
         </div>
         <div>
-          <h3>Za vaš vsakdan</h3>
+          <h3><CmsText global id="Footer.h3-1">{"Za vaš vsakdan"}</CmsText></h3>
           <Link to="/odpadki/urnik">Urnik odvoza</Link>
           <Link to="/odpadki/kam-z-odpadki">Kam z odpadkom?</Link>
           <Link to="/odpadki/lokacije">Zbirna mesta</Link>
           <Link to="/storitve">Naročite storitev</Link>
         </div>
         <div>
-          <h3>Naš kraj</h3>
+          <h3><CmsText global id="Footer.h3-2">{"Naš kraj"}</CmsText></h3>
           <Link to="/obvestila">Obvestila in motnje</Link>
           <Link to="/ceste">Ceste in zapore</Link>
           <Link to="/prijavi">Prijavite težavo</Link>
@@ -1316,7 +1289,7 @@ function Footer() {
           <Link to="/pokopalisce">Pokopališče</Link>
         </div>
         <div>
-          <h3>Ostanimo povezani</h3>
+          <h3><CmsText global id="Footer.h3-3">{"Ostanimo povezani"}</CmsText></h3>
           <CmsAnchor href={`tel:${telephone(settings.phone)}`}>
             {settings.phone}
             <ArrowUpRight size={13} />
@@ -1339,7 +1312,7 @@ function Footer() {
         <div>
           <Link to="/zasebnost">Zasebnost in dostopnost</Link>
           <CmsAnchor href="https://www.kpv.si" target="_blank" rel="noreferrer">
-            Uradna spletna stran
+            Spletna stran KPV
             <ArrowUpRight size={12} />
           </CmsAnchor>
         </div>
@@ -1404,6 +1377,8 @@ export default function App() {
         ? "Skupaj za lepši vsakdan"
         : location.pathname === "/admin"
           ? "Upravljanje portala"
+          : location.pathname === "/obvestila/narocnina"
+            ? "E-obvestila"
           : layout.pages.find((p) => p.path === location.pathname)?.title ||
             match?.[0] ||
             "Vaša komunala") + " · Komunala Vrhnika";
@@ -1431,6 +1406,7 @@ export default function App() {
                   "/moj-dom": "Moj dom",
                   "/o-podjetju": "O podjetju",
                   "/zasebnost": "Zasebnost in dostopnost",
+                  "/obvestila/narocnina": "E-obvestila",
                 }[location.pathname] ||
                 layout.pages.find((p) => p.path === location.pathname)?.title ||
                 "Stran"}

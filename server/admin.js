@@ -6,7 +6,10 @@ import {
   authenticateAdmin,
   handleAdminAuth,
   cleanupAdminAuth,
+  requireAdminScope,
 } from "./admin-auth.js";
+import { handleCmsEditor } from "./cms-editor.js";
+import { handlePrivacy } from './privacy.js';
 import { handleWork, getWorkItem, saveWorkItem } from "./work-queue.js";
 import { handleNotificationSettings } from "./notification-settings.js";
 import { createCampaign, processCampaigns } from "./subscriptions.js";
@@ -85,6 +88,8 @@ function sectionName(value) {
   return value;
 }
 async function content(env, admin = false) {
+  if (!env.DB && !env.LOCAL_STORAGE)
+    fail(503, 'Objavljeni podatki trenutno niso dosegljivi. Poskusite pozneje.');
   const sections = structuredClone(defaults);
   const revisions = {};
   const metadata = {};
@@ -111,10 +116,13 @@ async function content(env, admin = false) {
   return { sections, revisions, ...(admin ? { metadata } : {}) };
 }
 
-/** Public operational feeds retain safe defaults during an unavailable CMS read. */
+/** Defaults initialize missing sections; a failed published read must never invent availability. */
 export async function readPublished(env, section) {
   sectionName(section);
-  if (!env.DB) return structuredClone(defaults[section]);
+  if (!env.DB) {
+    if (env.LOCAL_STORAGE) return structuredClone(defaults[section]);
+    fail(503, "Objavljeni podatki trenutno niso dosegljivi. Poskusite pozneje.");
+  }
   try {
     const row = await env.DB.prepare(
       "SELECT value FROM cms_content WHERE section = ?",
@@ -126,7 +134,7 @@ export async function readPublished(env, section) {
       : structuredClone(defaults[section]);
     return section === "notices" ? value.filter(item => item.published !== false) : value;
   } catch {
-    return structuredClone(defaults[section]);
+    fail(503, "Objavljeni podatki trenutno niso dosegljivi. Poskusite pozneje.");
   }
 }
 async function save(env, section, value, expected, source = "edit") {
@@ -320,7 +328,14 @@ export async function handleAdmin(request, env = {}) {
     const session = await authenticateAdmin(request, env);
     const sessionResponse = await handleAdminAuth(request, env, session);
     if (sessionResponse) return sessionResponse;
+    const privacyResponse = await handlePrivacy(request, env, { session, json, body, fail });
+    if (privacyResponse) return privacyResponse;
+    const operational = /^\/api\/admin\/(?:work(?:\/|$)|submissions(?:\/|$)|subscribers$|notice-delivery$|privacy(?:\/|$))/.test(path);
+    if (!path.startsWith('/api/admin/notification-settings'))
+      requireAdminScope(session, operational ? 'operations' : 'content');
     const actor = { email: session.email, role: session.role };
+    const editorResponse = await handleCmsEditor(request, env, { json, body, fail, session });
+    if (editorResponse) return editorResponse;
     const notificationResponse = await handleNotificationSettings(request, env, { json, body, fail, actor });
     if (notificationResponse) return notificationResponse;
     const workResponse = await handleWork(request, env, {
@@ -331,13 +346,37 @@ export async function handleAdmin(request, env = {}) {
     });
     if (workResponse) return workResponse;
     const db = database(env);
-    if (path === '/api/admin/subscribers') {
-      allow(request,'GET');
-      const district=url.searchParams.get('district')||'';
-      if(district.length>80)fail(400,'Območje ni veljavno.');
-      const {results}=await db.prepare("SELECT email,address,district_id,status,topics FROM email_subscribers WHERE (?='' OR district_id=?) ORDER BY updated_at DESC LIMIT 50").bind(district,district).all();
-      const stats=await db.prepare("SELECT status,COUNT(*) AS count FROM email_subscribers WHERE (?='' OR district_id=?) GROUP BY status").bind(district,district).all();
-      return json({items:results.map(row=>({...row,topics:JSON.parse(row.topics)})),counts:Object.fromEntries(stats.results.map(row=>[row.status,row.count]))});
+    if (path === "/api/admin/subscribers") {
+      allow(request, "GET");
+      const district = url.searchParams.get("district") || "";
+      if (district.length > 80) fail(400, "Območje ni veljavno.");
+      const query = (url.searchParams.get("q") || "").trim();
+      if (query.length > 254)
+        fail(400, "Iskalni niz je predolg (največ 254 znakov).");
+      const cursor = url.searchParams.get("cursor") || "";
+      const parsed = cursor.match(/^(\d{1,16}):([A-Za-z0-9_-]{1,100})$/);
+      if (cursor && (!parsed || !Number.isSafeInteger(Number(parsed[1]))))
+        fail(400, "Položaj naročnikov ni veljaven. Ponovno odprite prvo stran.");
+      const cursorTime = parsed ? Number(parsed[1]) : 0;
+      const cursorId = parsed?.[2] || "";
+      const pattern = `%${query.replace(/[\\%_]/g, "\\$&")}%`;
+      const { results } = await db.prepare(`SELECT id,updated_at,email,address,district_id,status,topics FROM email_subscribers
+        WHERE (?='' OR district_id=?) AND (?='' OR email LIKE ? ESCAPE '\\' OR address LIKE ? ESCAPE '\\')
+        AND (?=0 OR updated_at<? OR (updated_at=? AND id<?))
+        ORDER BY updated_at DESC,id DESC LIMIT 51`)
+        .bind(district, district, query, pattern, pattern, parsed ? 1 : 0, cursorTime, cursorTime, cursorId)
+        .all();
+      const stats = await db.prepare(
+        "SELECT status,COUNT(*) AS count FROM email_subscribers WHERE (?='' OR district_id=?) GROUP BY status",
+      ).bind(district, district).all();
+      const items = results.slice(0, 50), last = items.at(-1);
+      return json({
+        items: items.map(({ id, updated_at, ...row }) => ({
+          ...row, topics: JSON.parse(row.topics),
+        })),
+        counts: Object.fromEntries(stats.results.map((row) => [row.status, row.count])),
+        nextCursor: results.length > 50 ? `${last.updated_at}:${last.id}` : null,
+      });
     }
     if (path === "/api/admin/notice-delivery") {
       allow(request, "POST");

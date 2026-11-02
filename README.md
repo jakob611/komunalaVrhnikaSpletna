@@ -2,6 +2,8 @@
 
 Portal: <https://kpv.jakobtominc.com> · uredništvo: `/admin`.
 
+Nadgradnja 1. 11. 2026: zasebni shranjeni osnutki, skupna transakcijska objava, načrtovane objave po slovenskem datumu, ločene pravice urednikov in obravnave oddaj ter lastniško orodje za izbris osebnih podatkov. Pred prvo objavo te različice uporabite dodajalne migracije. [Navodila za objavo, migracije in obratovanje](docs/OPERATIONS.md) · [stabilne vsebinske oznake in združljivost](docs/CMS-CONTENT.md).
+
 React/TypeScript/Vite in skupni Fetch API za Node.js ter Cloudflare Workers. D1 hrani vsebine, zasebne oddaje, naloge in seje; R2 fotografije; Resend prijavne kode, povabila in obvestila skrbniku.
 
 ## Lokalni zagon
@@ -20,7 +22,7 @@ Prijava zahteva dovoljeno e-pošto, osebno geslo in enkratno kodo. Lastnik uprav
 - **Koledar odvozov:** neposredno dodajanje dogodka ali koledarja s prihodnjimi objavljenimi odvozi v Google, Apple in Outlook; datoteka ostane neobvezna alternativa. [Navodila](docs/CALENDAR.md).
 - **Pokopališče:** sektorji, vrste, skupinsko dodajanje grobov, več oseb v istem grobu in umeščanje na načrt; iskanje, povečava in prikaz preverjenih položajev. Priloženi orientacijski osnutek urednik uporabi po izbiri. [Navodila](docs/CEMETERY.md).
 
-Podrobna slovenska navodila: [docs/ADMIN.md](docs/ADMIN.md). Vsebine imajo zgodovino in zaščito pred sočasnim prepisom. Pri delni napaki skupne objave že shranjeni deli ostanejo shranjeni, preostali ostanejo v osnutku.
+Podrobna slovenska navodila: [docs/ADMIN.md](docs/ADMIN.md). Vsebine imajo zgodovino in zaščito pred sočasnim prepisom. Skupna objava spletne strani je transakcijska: ob napaki ali konfliktu se ne objavi nobeno od izbranih področij.
 
 ## Podatki in pokritost
 

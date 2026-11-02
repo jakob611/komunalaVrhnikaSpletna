@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { verifyBot } from "./bot-protection.js";
+import { publicOrigin } from "./public-origin.js";
 
 const MINUTE = 60000;
 const HOUR = 60 * MINUTE;
@@ -64,6 +65,15 @@ function ownerEmail(env) {
     return email(env.ADMIN_OWNER_EMAIL || env.EMAIL_TO);
   } catch {
     fail(503, "Lastniški račun trenutno ni nastavljen.");
+  }
+}
+export function adminConfigurationReady(env) {
+  try {
+    secret(env);
+    ownerEmail(env);
+    return true;
+  } catch {
+    return false;
   }
 }
 function cookieName(request, env) {
@@ -141,6 +151,35 @@ async function user(env, address) {
     .prepare("SELECT * FROM admin_users WHERE email = ?")
     .bind(address)
     .first();
+}
+const accessScopes = new Set(["all", "content", "operations"]);
+async function accessScope(env, person) {
+  if (person.role === "owner") return "all";
+  const permission = await db(env)
+    .prepare("SELECT access_scope FROM admin_user_permissions WHERE email=?")
+    .bind(person.email)
+    .first();
+  // Existing editors keep their established access until the owner changes it.
+  return permission?.access_scope || "all";
+}
+export function requireAdminScope(session, required) {
+  if (!accessScopes.has(required))
+    throw new Error("Unknown admin access scope");
+  const scope =
+    session?.accessScope || session?.scope || session?.access_scope || "all";
+  if (
+    !session ||
+    (session.role !== "owner" && scope !== "all" && scope !== required)
+  )
+    fail(
+      403,
+      "Za to opravilo nimate omogočenega dostopa. Obrnite se na lastnika portala.",
+    );
+}
+function requestedScope(value) {
+  if (!accessScopes.has(value))
+    fail(400, "Izberite veljavno področje dostopa.");
+  return value;
 }
 function passwordHash(env, person) {
   if (person?.email === ownerEmail(env) && person.role === "owner")
@@ -220,7 +259,7 @@ const escape = (value) =>
   );
 async function mail(env, address, challengeId, value, purpose, expiresAt) {
   const invite = purpose === "enroll";
-  const href = `https://kpv.jakobtominc.com/admin${invite ? `?invite=${challengeId}` : ""}`;
+  const href = `${publicOrigin(env)}/admin${invite ? `?invite=${challengeId}` : ""}`;
   const title = invite
     ? "Povabilo v uredništvo KPV"
     : "Potrdite prijavo v uredništvo KPV";
@@ -327,7 +366,12 @@ function sessionPayload(row) {
     authenticated: true,
     csrfToken: row.csrf_token,
     expiresAt: new Date(row.expires_at).toISOString(),
-    user: { email: row.email, role: row.role },
+    scope: row.accessScope || "all",
+    user: {
+      email: row.email,
+      role: row.role,
+      accessScope: row.accessScope || "all",
+    },
   };
 }
 export async function authenticateAdmin(request, env) {
@@ -351,6 +395,8 @@ export async function authenticateAdmin(request, env) {
     .first();
   if (!row || !equal(row.password_tag, await passwordTag(env, row)))
     fail(401, "Prijava je potekla. Prijavite se znova.");
+  row.accessScope = await accessScope(env, row);
+  row.scope = row.accessScope;
   if (!["GET", "HEAD"].includes(request.method)) {
     sameOrigin(request);
     if (!equal(row.csrf_token, request.headers.get("x-csrf-token")))
@@ -381,6 +427,7 @@ async function createSession(request, env, person) {
       expires_at: expires,
       email: person.email,
       role: person.role,
+      accessScope: await accessScope(env, person),
     }),
     200,
     { "Set-Cookie": adminCookie(request, env, token, 8 * 3600) },
@@ -557,11 +604,20 @@ async function adminUsers(request, env, session) {
         "SELECT email,role,status,created_at,updated_at FROM admin_users ORDER BY role DESC,email",
       )
       .all();
-    return json({ items: results, ownerEmail: ownerEmail(env) });
+    return json({
+      items: await Promise.all(
+        results.map(async (person) => ({
+          ...person,
+          accessScope: await accessScope(env, person),
+        })),
+      ),
+      ownerEmail: ownerEmail(env),
+    });
   }
   if (path === "/api/admin/users" && request.method === "POST") {
     const input = await body(request);
     const address = email(input.email);
+    const scope = requestedScope(input.accessScope ?? "all");
     if (address === ownerEmail(env))
       fail(400, "Lastniški račun je že omogočen.");
     await limit(env, `invite:${await digest(session.email)}`, 10);
@@ -571,12 +627,18 @@ async function adminUsers(request, env, session) {
         409,
         "Ta urednik že ima dostop. Za ponastavitev najprej prekličite njegov dostop in ga ponovno povabite.",
       );
-    await db(env)
-      .prepare(
-        "INSERT INTO admin_users(email,role,status,password_hash,version,created_at,updated_at) VALUES(?,'editor','invited',NULL,1,?,?) ON CONFLICT(email) DO UPDATE SET role='editor',status='invited',password_hash=NULL,version=version+1,updated_at=excluded.updated_at",
-      )
-      .bind(address, Date.now(), Date.now())
-      .run();
+    await db(env).batch([
+      db(env)
+        .prepare(
+          "INSERT INTO admin_users(email,role,status,password_hash,version,created_at,updated_at) VALUES(?,'editor','invited',NULL,1,?,?) ON CONFLICT(email) DO UPDATE SET role='editor',status='invited',password_hash=NULL,version=version+1,updated_at=excluded.updated_at",
+        )
+        .bind(address, Date.now(), Date.now()),
+      db(env)
+        .prepare(
+          "INSERT INTO admin_user_permissions(email,access_scope) VALUES(?,?) ON CONFLICT(email) DO UPDATE SET access_scope=excluded.access_scope",
+        )
+        .bind(address, scope),
+    ]);
     const person = await user(env, address);
     try {
       await challenge(env, person, "enroll");
@@ -586,6 +648,31 @@ async function adminUsers(request, env, session) {
     }
     await audit(env, session.email, "invited", address);
     return json({ invited: true }, 201);
+  }
+  if (path === "/api/admin/users/scope") {
+    method(request, "POST");
+    const input = await body(request),
+      address = email(input.email),
+      scope = requestedScope(input.accessScope);
+    if (address === ownerEmail(env))
+      fail(400, "Lastnik ima vedno celoten dostop.");
+    const person = await user(env, address);
+    if (!person || person.role !== "editor")
+      fail(404, "Uredniški račun ne obstaja.");
+    await db(env).batch([
+      db(env)
+        .prepare(
+          "INSERT INTO admin_user_permissions(email,access_scope) VALUES(?,?) ON CONFLICT(email) DO UPDATE SET access_scope=excluded.access_scope",
+        )
+        .bind(address, scope),
+      db(env)
+        .prepare(
+          "UPDATE admin_users SET version=version+CASE WHEN status='active' THEN 1 ELSE 0 END,updated_at=? WHERE email=?",
+        )
+        .bind(Date.now(), address),
+    ]);
+    await audit(env, session.email, `scope-changed:${scope}`, address);
+    return json({ updated: true, accessScope: scope });
   }
   if (path === "/api/admin/users/revoke") {
     method(request, "POST");

@@ -6,7 +6,7 @@ Odprite `https://kpv.jakobtominc.com/admin` ali v javno iskanje vpišite `/admin
 
 Koda velja največ deset minut. Dovoljenih je pet poskusov; novo kodo lahko zahtevate po 60 sekundah. Ponovno pošiljanje razveljavi prejšnjo kodo in ne podaljša prvotnega prijavnega okna.
 
-Lastnik v **Dostop in skrbniki** povabi urednike. Povabilo velja 24 ur. Povabljeni potrdi kodo in nastavi geslo z najmanj 12 znaki. Uredniki lahko urejajo vsebine in obravnavajo naloge. Dostop skrbnikov in prejemnika obvestil spreminja samo lastnik. Odvzem dostopa ali novo povabilo razveljavi stare seje in kode urednika. Lastnikovega računa ni mogoče odstraniti iz konzole.
+Lastnik v **Dostop in skrbniki** povabi urednike. Povabilo velja 24 ur. Povabljeni potrdi kodo in nastavi geslo z najmanj 12 znaki. Lastnik izbere dostop do vsebin, obravnave oddaj in dostave obvestil ali obeh sklopov. Obstoječi uredniki ohranijo dosedanji široki dostop do izrecne spremembe pravic. Dostop skrbnikov in prejemnika obvestil spreminja samo lastnik. Odvzem dostopa ali novo povabilo razveljavi stare seje in kode urednika. Lastnikovega računa ni mogoče odstraniti iz konzole.
 
 ## Izberite opravilo
 
@@ -36,7 +36,7 @@ V enem urejevalniku so tri opravila. Med njimi lahko prehajate brez izgube skupn
 
 Slike lahko naložite neposredno ob urejanju. Dovoljeni so JPG, PNG in WebP do 5 MB. Naložena datoteka je javno dosegljiva; na stran jo dodate z izbiro in shranjevanjem vsebine. Fotografije prijav občanov ostanejo v ločeni zasebni shrambi.
 
-Glava in noga sta skupni vsem stranem. Enako besedilo ali ista slika, ki se na isti strani ponovi večkrat, uporablja skupno zamenjavo. Podatke urnikov, obvestil in kontaktov zato urejajte v njihovem vsebinskem področju. Dodane lastne razdelke urejate pod **Razdelki in meni**.
+Glava in noga sta skupni vsem stranem. Nova stabilna vsebinska polja se urejajo posamično. Pri še nemigriranih starih besedilih oziroma slikah lahko ostane skupna zamenjava ponovitev; urejevalnik to označi. Podatke urnikov, obvestil in kontaktov zato urejajte v njihovem vsebinskem področju. Dodane lastne razdelke urejate pod **Razdelki in meni**.
 
 Način **Urejanje** prestreže klik in izbere vsebino. **Preizkus** omogoča preizkus notranjih povezav in odpiranje razdelkov. Oddaja obrazcev in odpiranje zunanjih oken sta v predogledu izključena.
 
@@ -55,7 +55,7 @@ Poljuben HTML, CSS in skripti niso dovoljeni. Obrazci in zemljevidi ostanejo pro
 1. Izberite obvestilo ali kliknite **Dodaj obvestilo**. Iskanje in filtra objav ter osnutkov olajšajo pregled.
 2. Vnesite naslov, področje, območje, datum ter vsebino in navodila. Pri motnji navedite prizadete naslove, čas in ravnanje občanov.
 3. Izberite stanje: informacija, načrtovana dela oziroma motnja, motnja v teku ali zaključeno. Zaključek motnje in umik objave sta ločeni dejanji.
-4. Za objavo vključite **Prikaži na spletni strani** in shranite spremembe. Izključeno polje shrani uredniški osnutek, ki ni javen. Poznejši datum sam ne odloži objave.
+4. Za objavo vključite **Prikaži na spletni strani** in shranite spremembe. Izključeno polje shrani uredniški osnutek, ki ni javen. Poznejši datum sam ne odloži objave; za odloženo objavo uporabite Načrtovano objavo tega področja.
 5. Neobvezno vnesite obe koordinati za točko cestnih del. Brez točke je obvestilo še vedno vidno na seznamu.
 
 Predogled pokaže besedilo in oznake. Spremembe obvestil ne pošiljajo množične e-pošte naročnikom. Izbris začne veljati po shranjevanju področja.
@@ -142,3 +142,10 @@ Lokalni razvoj uporablja `.data/cms.sqlite` in skrivnost v prezrti `.dev.vars`. 
 Naročnik mora potrditi e-pošto v 24 urah. Odprtje povezave še ne aktivira naročnine; pritisniti mora **Potrdi naročnino**. Stari zapisi obrazca ostanejo med nalogi in se ne aktivirajo samodejno. Osebna povezava v vsakem sporočilu omogoča spremembo območja, naslova in tem ali takojšnjo odjavo. Umik/sprememba obvestila in odjava ustavita še neposlana sporočila. Dostavljeno sporočilo ostane v prejemnikovem predalu.
 
 En e-poštni naslov ima eno naročnino za en naslov. Ponovna prijava po potrditvi nadomesti prejšnji naslov in teme. Ujemanje upošteva šumnike, poštno številko, običajni okrajšavi »c.« in »ul.« ter popoln naslov brez vejice. Izrecno različni vrsti ulic, različni kraji in hišne pripone ostanejo ločeni. Razponi hiš se ob shranjevanju zavrnejo; sistem ne ugiba manjkajočih hiš ali prostih opisov območij.
+
+
+## Shranjeni osnutki in načrtovane objave
+
+**Shrani osnutek** ohrani zasebni osnutek v računu urednika brez javne objave. Ponovno ga odprete z **Odpri shranjeni osnutek**. Skupna objava spletne strani je transakcijska. **Načrtovana objava tega področja** shrani nespremenljiv posnetek za prihodnji slovenski datum; konflikt različic ali izgubljene pravice avtorja objavo ustavijo za pregled.
+
+Operativni dostop vključuje **Pošiljanje obvestil** brez pravice spreminjanja besedil. Lastnik ima tudi **Osebni podatki** s predogledom in potrditvijo izbrisa. Podrobnosti, migracije in meje izbrisa so v [OPERATIONS.md](OPERATIONS.md).

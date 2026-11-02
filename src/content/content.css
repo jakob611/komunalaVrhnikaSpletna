@@ -53,3 +53,19 @@
 .cms-inspecting .cms-native-component.cms-block-selected { display: block; }
 .cms-inspecting .cms-block-selected::before { content: "IZBRANI RAZDELEK"; display: block; position: sticky; top: 0; z-index: 20; width: max-content; max-width: 100%; padding: 5px 10px; background: #315c28; color: #fff; font: 700 11px system-ui; }
 .cms-inspecting .cms-spacer { min-height: 28px; background: repeating-linear-gradient(45deg,#edf3e4,#edf3e4 10px,#fff 10px,#fff 20px); border: 1px dashed #8eaa75; }
+
+aside.content-availability {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 14px 24px;
+  background: #fff5db;
+  border-bottom: 1px solid #e8d398;
+  color: #56441d;
+}
+aside.content-availability p { margin: 0; max-width: 760px; }
+aside.content-availability button { flex-shrink: 0; }
+@media (max-width: 680px) {
+  aside.content-availability { align-items: flex-start; flex-direction: column; gap: 10px; }
+}

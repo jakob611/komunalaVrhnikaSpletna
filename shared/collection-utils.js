@@ -5,9 +5,20 @@ export const COLLECTION_TYPES = Object.freeze({
   bio: "Biološki odpadki",
   residual: "Mešani komunalni odpadki",
 });
+// Share the accepted spelling variants between collection and notification rules.
+// A slash can mean a second house or an apartment: never guess which one.
+export function hasAmbiguousHouseNumbers(value) {
+  const normalized = normalizeAddressInput(value).replace(/\b(\d+)\s+([a-z])\b/gi, "$1$2");
+  return /\b\d+[a-z]?\s*(?:[-–—/]|\bdo\b)\s*\d+[a-z]?\b/i.test(normalized);
+}
+export function normalizeAddressInput(value) {
+  return String(value || "")
+    .replace(/\b(c|ul)\.(?=\s|\d|$)/gi, (_, kind) => kind.toLowerCase() === "c" ? "cesta " : "ulica ")
+    .replace(/\b(\d+)\s*-\s*([a-z])\b/gi, "$1$2");
+}
 export function addressTokens(value) {
   return (
-    String(value || "")
+    normalizeAddressInput(value)
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
@@ -41,6 +52,7 @@ function groupMatchesComponent(group, tokens) {
   });
 }
 function addressRuleMatch(address, pattern) {
+  if (hasAmbiguousHouseNumbers(address) || hasAmbiguousHouseNumbers(pattern)) return { matches: false, primary: false };
   const components = addressComponents(address);
   const groups = addressComponents(pattern).map((part) => part.tokens);
   if (!components.length || !groups.length) return { matches: false, primary: false };

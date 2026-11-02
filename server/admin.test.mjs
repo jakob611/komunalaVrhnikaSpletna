@@ -146,8 +146,9 @@ test('notice delivery and subscriber overview require authentication, CSRF, curr
  const publicContent=await (await handleAdmin(request('/api/content'),env)).text();assert.ok(!publicContent.includes('private-subscriber@example.com'));
 });
 
-test("public content works before DB setup and admin routes fail closed", async () => {
-  const response = await handleAdmin(request("/api/content"));
+test("public content fails closed without production storage while local initialization remains available", async () => {
+  assert.equal((await handleAdmin(request('/api/content'))).status, 503);
+  const response = await handleAdmin(request("/api/content"), { LOCAL_STORAGE: {} });
   const data = await response.json();
   assert.deepEqual(data.sections, defaults);
   assert.ok(Object.values(data.revisions).every((value) => value === 0));
@@ -594,9 +595,10 @@ test("CMS writes validate content, use revision CAS, keep atomic history and res
     4,
   );
   assert.deepEqual(await readPublished(env, "settings"), defaults.settings);
-  assert.deepEqual(await readPublished({}, "settings"), defaults.settings);
-  assert.deepEqual(
-    await readPublished(
+  await assert.rejects(readPublished({}, "settings"), error => error.status === 503);
+  assert.deepEqual(await readPublished({ LOCAL_STORAGE: {} }, "settings"), defaults.settings);
+  await assert.rejects(
+    readPublished(
       {
         DB: {
           prepare() {
@@ -606,7 +608,7 @@ test("CMS writes validate content, use revision CAS, keep atomic history and res
       },
       "settings",
     ),
-    defaults.settings,
+    error => error.status === 503,
   );
 });
 

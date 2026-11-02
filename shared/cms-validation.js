@@ -1,5 +1,5 @@
 // CMS content is plain data. Shared helpers have no runtime dependencies.
-import { normalizedAddress } from "./collection-utils.js";
+import { normalizedAddress, hasAmbiguousHouseNumbers } from "./collection-utils.js";
 import { validateLayout, validateLinks, CUSTOM_PAGE } from "./page-layout.js";
 import { validateDistricts, validateDeliveryFields } from "./notification-rules.js";
 import {validateTariffs} from './utility-pricing.js';
@@ -388,6 +388,8 @@ const validators = {
             array(route.addresses, `${label} – pravila naslovov`, 500, 1).map(
               (item) => {
                 const rule = text(item, `${label} – naslov`, 300);
+                if (hasAmbiguousHouseNumbers(rule))
+                  invalid(label, "hišne razpone vpišite kot posamezne naslove, vsakega v svojo vrstico; stanovanje navedite za vejico");
                 if (!normalizedAddress(rule))
                   invalid(
                     label,
@@ -712,5 +714,15 @@ export function validateSection(section, value) {
   const serialized = JSON.stringify(result);
   if (new TextEncoder().encode(serialized).byteLength > maxBytes)
     invalid(section, "vsebina presega največjo dovoljeno velikost 1 MB");
+  return JSON.parse(serialized);
+}
+
+/** Drafts use the same safe shape; future tariffs may be prepared without activating them. */
+export function validateDraftSection(section, value) {
+  if (section !== 'tariffs') return validateSection(section, value);
+  const result = validateTariffs(value);
+  const serialized = JSON.stringify(result);
+  if (new TextEncoder().encode(serialized).byteLength > maxBytes)
+    invalid(section, 'vsebina presega največjo dovoljeno velikost 1 MB');
   return JSON.parse(serialized);
 }

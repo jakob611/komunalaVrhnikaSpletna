@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import NoticeDelivery from './NoticeDelivery';
 import type { District } from './DistrictsEditor';
 import { Eye, Plus, Search, Trash2 } from "lucide-react";
@@ -16,17 +16,24 @@ const statuses = { info: "Informacija", planned: "Načrtovana dela / motnja", ac
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Ljubljana", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-export default function NoticesEditor({ value, onChange, disabled = false, districts, revision, csrfToken, dirty }: {
+export default function NoticesEditor({ value, onChange, disabled = false, districts, revision, csrfToken, dirty, canDeliver = true, onSessionExpired }: {
   value: EditableNotice[]; onChange: (value: EditableNotice[]) => void; disabled?: boolean;
-  districts: District[]; revision: number; csrfToken: string; dirty: boolean;
+  districts: District[]; revision: number; csrfToken: string; dirty: boolean; canDeliver?: boolean;
+  onSessionExpired?: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const item = value.find(n => n.id === selected);
   const [addressText,setAddressText]=useState('');
-  useEffect(()=>{setAddressText(item?.addressRules?.join('\n')||'');},[selected]);
-  useEffect(()=>{if(!dirty)setAddressText(item?.addressRules?.join('\n')||'');},[revision,dirty]);
+  const addressSignature = JSON.stringify(item?.addressRules || []);
+  const addressSource = useRef<{ id: string | null; signature: string }>({ id: null, signature: '[]' });
+  useEffect(()=>{
+    if(addressSource.current.id !== selected || addressSource.current.signature !== addressSignature){
+      setAddressText(item?.addressRules?.join('\n') || '');
+      addressSource.current = { id: selected, signature: addressSignature };
+    }
+  },[selected,addressSignature]);
   const shown = value.filter(n => normalize(`${n.title} ${n.area} ${n.summary}`).includes(normalize(query)) && (filter === "all" || (filter === "draft" ? n.published === false : n.published !== false))).sort((a,b) => b.date.localeCompare(a.date));
   const patch = (change: Partial<EditableNotice>) => onChange(value.map(n => n.id === selected ? { ...n, ...change } : n));
   function add() {
@@ -53,12 +60,12 @@ export default function NoticesEditor({ value, onChange, disabled = false, distr
         <label className="admin-field"><span>Vsebina in navodila za občane *</span><textarea rows={7} maxLength={5000} value={item.summary} onChange={e => patch({summary:e.target.value})} placeholder="Kaj se dogaja, kje, kdaj in kaj naj storijo občani?"/></label>
         <section className="notice-editor-preview"><h3>Koga zadeva to obvestilo?</h3><p>Besedilo območja zgoraj je opis za občane. Za dostavo po e-pošti prejemnike izberite tukaj.</p><label className="admin-checkbox"><input type="checkbox" checked={item.allDistricts===true} onChange={e=>patch({allDistricts:e.target.checked})}/>Vsa aktivna območja obveščanja</label>
           {!item.allDistricts&&<div className="admin-choice-grid">{districts.filter(d=>d.active).map(d=><label key={d.id} className="admin-checkbox"><input type="checkbox" checked={(item.districtIds||[]).includes(d.id)} onChange={e=>patch({districtIds:e.target.checked?[...(item.districtIds||[]),d.id]:(item.districtIds||[]).filter(id=>id!==d.id)})}/>{d.name}</label>)}</div>}
-          <label className="admin-field"><span>Omejitev na ulice ali hiše · neobvezno</span><textarea rows={3} value={addressText} placeholder={'Verd, Vrhnika\nTržaška cesta 48, Vrhnika'} onChange={e=>{setAddressText(e.target.value);patch({addressRules:e.target.value.split('\n').map(s=>s.trim()).filter(Boolean)});}}/><small>En naslov ali ulica na vrstico. Vedno dodajte kraj. Brez te omejitve prejmejo obvestilo vsi naročniki izbranih območij za izbrano temo. Hiša 1 ne vključuje 12 ali 1a. Razpon hiš vpišite kot posamezne naslove; prostega opisa »del ulice« sistem ne ugiba.</small></label>
+          <label className="admin-field"><span>Omejitev na ulice ali hiše · neobvezno</span><textarea rows={3} value={addressText} placeholder={'Verd, Vrhnika\nTržaška cesta 48, Vrhnika'} onChange={e=>{const rules=e.target.value.split('\n').map(s=>s.trim()).filter(Boolean);setAddressText(e.target.value);addressSource.current={id:selected,signature:JSON.stringify(rules)};patch({addressRules:rules});}}/><small>En naslov ali ulica na vrstico. Vedno dodajte kraj. Brez te omejitve prejmejo obvestilo vsi naročniki izbranih območij za izbrano temo. Hiša 1 ne vključuje 12 ali 1a. Razpon hiš vpišite kot posamezne naslove; prostega opisa »del ulice« sistem ne ugiba. Zapis 12/1 je dvoumen; stanovanje navedite za vejico, npr. »Verd 12, stanovanje 1, Vrhnika«.</small></label>
         </section>
         <p className="admin-muted">Datum je podatek za občane. Ne določa časa objave; vključeno obvestilo se prikaže takoj po shranjevanju.</p><LocationPicker latitude={item.latitude} longitude={item.longitude} onChange={(latitude,longitude)=>patch({latitude,longitude})} label="Točka obvestila · neobvezno"/>
         <label className="admin-checkbox notice-editor-publish"><input type="checkbox" checked={item.published !== false} onChange={e => patch({published:e.target.checked})}/><span><strong>Prikaži na spletni strani</strong><small>Sprememba začne veljati, ko zgoraj izberete »Shrani in objavi«.</small></span></label>
         <section className="notice-editor-preview" aria-label="Predogled obvestila"><span>Predogled · {item.published === false ? "osnutek" : "objava po shranjevanju"}</span><p>{categories[item.category]} · {statuses[item.status as keyof typeof statuses]} · {item.date}</p><h3>{item.title || "Naslov obvestila"}</h3><p className="notice-preview-body">{item.summary || "Vsebina obvestila se prikaže tukaj."}</p><small>{item.area || "Območje"}</small></section>
-        <NoticeDelivery noticeId={item.id} revision={revision} csrfToken={csrfToken} dirty={dirty}/>
+        {canDeliver && <NoticeDelivery noticeId={item.id} revision={revision} csrfToken={csrfToken} dirty={dirty} onSessionExpired={onSessionExpired}/>}
       </fieldset>}
     </div>
   </div>;
