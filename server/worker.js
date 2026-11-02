@@ -579,9 +579,11 @@ export async function handleRequest(request, env = {}, ctx) {
     const queued = emailEnabled(env);
     const receipt = {
       id, status: "demo-saved", demo: false, emailStatus: queued ? "queued" : "disabled",
-      message: queued
-        ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za skrbnika portala. Za povpraševanja in prijave na tržnico je potrebna ločena potrditev izvedbe oziroma termina."
-        : "Oddaja je shranjena za obravnavo. E-poštna obvestila trenutno niso vključena.",
+      message: (queued
+        ? "Oddaja je shranjena. E-poštno obvestilo je v čakalni vrsti za skrbnika portala."
+        : "Oddaja je shranjena za obravnavo. E-poštna obvestila trenutno niso vključena.") +
+        (route === "/api/requests" ? " Izvedbo in želeni termin storitve mora ločeno potrditi upravljavec." :
+          route === "/api/market" ? " Razpoložljivost stojnice, termin in končno ceno mora ločeno potrditi upravljavec tržnice." : ""),
     };
     if (upload) await store.putPhoto(upload.key, upload.bytes, upload.type);
     let result;

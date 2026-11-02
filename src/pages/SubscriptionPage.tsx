@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSiteContent } from "../content/SiteContent";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { NOTIFICATION_TOPICS } from "../../shared/notification-rules.js";
@@ -9,6 +9,11 @@ type Preferences = {
   districtId: string;
   topics: string[];
 };
+class SubscriptionRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
 export default function SubscriptionPage() {
   const location = useLocation(),
     navigate = useNavigate(),
@@ -23,6 +28,10 @@ export default function SubscriptionPage() {
         ? "unsubscribe"
         : "manage";
   const [manageToken, setManageToken] = useState("");
+  const context = JSON.stringify([token, action]);
+  const currentContext = useRef(context);
+  currentContext.current = context;
+  const mutation = useRef<symbol | null>(null);
   // Move older email links out of the address query before any API request.
   useEffect(() => {
     if (location.search && token)
@@ -39,6 +48,8 @@ export default function SubscriptionPage() {
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
+  const [inspectionAttempt, setInspectionAttempt] = useState(0);
+  const [canRetryInspection, setCanRetryInspection] = useState(false);
   async function request(
     data: Record<string, unknown> = { action: "inspect" },
   ) {
@@ -50,11 +61,14 @@ export default function SubscriptionPage() {
       signal: AbortSignal.timeout(15000),
     });
     const result = await response.json();
-    if (!response.ok) throw Error(result.error || "Zahteva ni uspela.");
+    if (!response.ok) throw new SubscriptionRequestError(result.error || "Zahteva ni uspela.", response.status);
     return result;
   }
   useEffect(() => {
     let active = true;
+    mutation.current = null;
+    setBusy(false);
+    setCanRetryInspection(false);
     setError("");
     setValue(null);
     setMessage("");
@@ -64,15 +78,21 @@ export default function SubscriptionPage() {
         if (active) setValue(data);
       })
       .catch((cause) => {
-        if (active) setError(cause.message);
+        if (!active) return;
+        setError(cause instanceof SubscriptionRequestError ? cause.message : "Nastavitev trenutno ni mogoče naložiti. Preverite povezavo in poskusite znova.");
+        setCanRetryInspection(!(cause instanceof SubscriptionRequestError) || cause.status >= 500 || cause.status === 408 || cause.status === 429);
       });
     return () => {
       active = false;
+      mutation.current = null;
     };
-  }, [token, action]);
+  }, [token, action, inspectionAttempt]);
   async function save(event: FormEvent, unsubscribe = false) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || mutation.current) return;
+    const attempt = Symbol("subscription mutation");
+    mutation.current = attempt;
+    const stillCurrent = () => mutation.current === attempt && currentContext.current === context;
     setBusy(true);
     setError("");
     setMessage("");
@@ -82,14 +102,18 @@ export default function SubscriptionPage() {
           ? { action: "unsubscribe" }
           : { ...value },
       );
+      if (!stillCurrent()) return;
       setMessage(data.message);
       if (data.manageToken) setManageToken(data.manageToken);
       if (unsubscribe || action === "unsubscribe" || action === "confirm")
         setValue(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Zahteva ni uspela.");
+      if (stillCurrent()) setError(cause instanceof Error ? cause.message : "Zahteva ni uspela.");
     } finally {
-      setBusy(false);
+      if (stillCurrent()) {
+        mutation.current = null;
+        setBusy(false);
+      }
     }
   }
   return (
@@ -107,6 +131,7 @@ export default function SubscriptionPage() {
             {error}
           </p>
         )}
+        {error && canRetryInspection && !value && <button type="button" className="button secondary" onClick={() => setInspectionAttempt(attempt => attempt + 1)}>Poskusi znova</button>}
         {message && (
           <p className="svc-success" role="status">
             {message}
@@ -166,7 +191,7 @@ export default function SubscriptionPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={save}>
+            <form onSubmit={save} onChange={() => { setMessage(""); setError(""); }}>
               <p>
                 Stanje:{" "}
                 {value.status === "active"

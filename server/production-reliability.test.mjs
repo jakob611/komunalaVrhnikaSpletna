@@ -40,6 +40,7 @@ test("public receipt retries survive a consumed challenge and concurrent first a
       assert.deepEqual(replies.map(reply => reply.status), [201, 201]);
       const receipts = await Promise.all(replies.map(reply => reply.json()));
       assert.deepEqual(receipts[0], receipts[1]);
+      assert.doesNotMatch(receipts[0].message, /tržnic|storitve|termin/);
       assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM contact_submissions").first()).n, 1);
       assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM email_outbox").first()).n, 1);
       const before = calls();
@@ -64,6 +65,26 @@ test("unverified first attempts create neither a retry receipt, citizen case nor
     for (const table of ["contact_submissions", "public_submission_requests", "public_form_limits", "email_outbox"])
       assert.equal((await env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n, 0);
   } finally { env.DB.close(); }
+});
+
+test("service enquiry receipts explain separate confirmation even when email is disabled", async () => {
+  for (const enabled of ["true", "false"]) {
+    const env = { ...environment(), EMAIL_ENABLED: enabled };
+    try {
+      await withVerifier("requests", async () => {
+        const response = await handleRequest(post("/api/requests", {
+          name: contact.name, email: contact.email, consent: true,
+          service: "bulky", address: "Verd 12, Vrhnika", message: "Odvoz kavča z dvorišča.",
+          requestId: crypto.randomUUID(), "cf-turnstile-response": "token",
+        }), env);
+        assert.equal(response.status, 201);
+        const receipt = await response.json();
+        assert.match(receipt.message, /Izvedbo in želeni termin storitve mora ločeno potrditi/);
+        assert.doesNotMatch(receipt.message, /tržnic|stojnice/);
+        assert.equal(receipt.emailStatus, enabled === "true" ? "queued" : "disabled");
+      });
+    } finally { env.DB.close(); }
+  }
 });
 
 test("failed atomic queue persistence leaves no receipt or case and a retry can succeed", async () => {
@@ -98,6 +119,7 @@ test("report retries fingerprint the actual image bytes and retain exactly one p
     await withVerifier("reports", async () => {
       const replies = await Promise.all([handleRequest(makeReport(), env), handleRequest(makeReport(), env)]);
       assert.deepEqual(replies.map(reply => reply.status), [201, 201]);
+      assert.doesNotMatch((await replies[0].json()).message, /tržnic|storitve|termin/);
       assert.equal(env.objects.size, 1);
       assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM submissions").first()).n, 1);
       assert.equal((await handleRequest(makeReport(1), env)).status, 409);
@@ -189,7 +211,9 @@ test("market requires an explicit published future date even when the published 
     await publish({dates:[proposed],closedDates:[]});
     assert.equal((await handleRequest(post("/api/market",body(unlisted)),env)).status,400);
     await withVerifier("market",async()=>{
-      assert.equal((await handleRequest(post("/api/market",body(proposed)),env)).status,201);
+      const response = await handleRequest(post("/api/market",body(proposed)),env);
+      assert.equal(response.status,201);
+      assert.match((await response.json()).message,/stojnice, termin in končno ceno/);
     });
     await publish({dates:[unlisted],closedDates:[proposed]});
     assert.equal((await handleRequest(post("/api/market",body(proposed)),env)).status,400);
