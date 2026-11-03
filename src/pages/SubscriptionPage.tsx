@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSiteContent } from "../content/SiteContent";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { NOTIFICATION_TOPICS } from "../../shared/notification-rules.js";
+import VerifiedAddressPicker, { type VerifiedAddress } from "../components/VerifiedAddressPicker";
 
 type Preferences = {
   status?: string;
   address: string;
   districtId: string;
   topics: string[];
+  addressId?: string;
 };
 class SubscriptionRequestError extends Error {
   constructor(message: string, readonly status: number) {
@@ -28,6 +30,7 @@ export default function SubscriptionPage() {
         ? "unsubscribe"
         : "manage";
   const [manageToken, setManageToken] = useState("");
+  const [verifiedAddress, setVerifiedAddress] = useState<VerifiedAddress | null>(null);
   const context = JSON.stringify([token, action]);
   const currentContext = useRef(context);
   currentContext.current = context;
@@ -73,6 +76,7 @@ export default function SubscriptionPage() {
     setValue(null);
     setMessage("");
     setManageToken("");
+    setVerifiedAddress(null);
     void request()
       .then((data) => {
         if (active) setValue(data);
@@ -90,6 +94,10 @@ export default function SubscriptionPage() {
   async function save(event: FormEvent, unsubscribe = false) {
     event.preventDefault();
     if (busy || mutation.current) return;
+    if (!unsubscribe && action === "manage" && !verifiedAddress) {
+      setError("Izberite preverjen naslov iz seznama.");
+      return;
+    }
     const attempt = Symbol("subscription mutation");
     mutation.current = attempt;
     const stillCurrent = () => mutation.current === attempt && currentContext.current === context;
@@ -100,7 +108,7 @@ export default function SubscriptionPage() {
       const data = await request(
         unsubscribe || action === "unsubscribe"
           ? { action: "unsubscribe" }
-          : { ...value },
+          : { ...value, ...(action === "manage" && verifiedAddress ? {address:verifiedAddress.address,addressId:verifiedAddress.id,districtId:verifiedAddress.municipalityId} : {}) },
       );
       if (!stillCurrent()) return;
       setMessage(data.message);
@@ -204,42 +212,11 @@ export default function SubscriptionPage() {
                 disabled={busy || value.status !== "active"}
                 style={{ border: 0, padding: 0 }}
               >
-                <label className="field">
-                  <span>Območje</span>
-                  <select
-                    value={value.districtId}
-                    onChange={(e) =>
-                      setValue({ ...value, districtId: e.target.value })
-                    }
-                  >
-                    {districts
-                      .filter((d) => d.active || d.id === value.districtId)
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                          {d.active ? "" : " (umaknjeno)"}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Celoten naslov</span>
-                  <input
-                    required
-                    minLength={3}
-                    maxLength={250}
-                    value={value.address}
-                    onChange={(e) =>
-                      setValue({ ...value, address: e.target.value })
-                    }
-                  />
-                </label>
-                <small>
-                  {
-                    districts.find((d) => d.id === value.districtId)
-                      ?.description
-                  }
-                </small>
+                <VerifiedAddressPicker key={`${token}:${action}`} id="managed-subscription-address" label="Celoten naslov" required disabled={busy || value.status !== "active"} value={value.address}
+                  onChange={address => {setMessage("");setError("");setValue(current=>current?{...current,address,addressId:undefined}:current);}}
+                  onSelect={record => {setVerifiedAddress(record); if(record)setValue(current=>current?{...current,address:record.address,addressId:record.id,districtId:record.municipalityId}:current);}}/>
+                <p role="status">Občina obveščanja: {verifiedAddress ? verifiedAddress.municipality : "določena bo po preverjanju naslova"}.</p>
+                {verifiedAddress&&!districts.some(d=>d.active&&d.id===verifiedAddress.municipalityId)&&<p className="svc-error">Za to občino obveščanje trenutno ni omogočeno. Obrnite se na KPV.</p>}
                 <fieldset className="svc-topics">
                   <legend>Teme obveščanja</legend>
                   {Object.entries(NOTIFICATION_TOPICS).map(([key, label]) => (
@@ -262,7 +239,7 @@ export default function SubscriptionPage() {
                 </fieldset>
                 <button
                   className="button"
-                  disabled={busy || !value.topics.length}
+                  disabled={busy || !value.topics.length || !verifiedAddress || !districts.some(d=>d.active&&d.id===verifiedAddress.municipalityId)}
                 >
                   Shrani nastavitve
                 </button>

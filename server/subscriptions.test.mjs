@@ -90,17 +90,17 @@ async function saveNotice(env, value = notice) {
     .run();
 }
 
-test("subscription requires valid district, exact preferences, consent and available delivery configuration", async () => {
+test("subscription requires a registered address, exact preferences, consent and available delivery configuration", async () => {
   const env = environment();
-  for (const change of [
-    { districtId: "unknown" },
-    { topics: [] },
-    { email: "bad\r\nBcc:a@b.com" },
-    { consent: false },
+  for (const [change,status] of [
+    [{ address: "Unknown street 99999, Vrhnika" },422],
+    [{ topics: [] },400],
+    [{ email: "bad\r\nBcc:a@b.com" },400],
+    [{ consent: false },400],
   ])
     await assert.rejects(
       signup(env, { ...prefs, ...change }),
-      (e) => e.status === 400,
+      (e) => e.status === status,
     );
   await assert.rejects(
     signup({ ...env, LOCAL_STORAGE: undefined, RESEND_API_KEY: undefined }),
@@ -269,15 +269,16 @@ test("realistic address variants reach only the intended confirmed households th
     { address: "Trzaska cesta 48 Vrhnika", match: true },
     { address: "Tržaška c. 48, 1360 Vrhnika", match: true },
     { address: "Tržaška 48 Vrhnika", match: true },
-    { address: "Tržaška cesta 48a, Vrhnika" },
-    { address: "Tržaška cesta 480, Vrhnika" },
-    { address: "Tržaška cesta 48 Borovnica" },
-    { address: "Tržaška cesta 48, Vrhnika", districtId: "borovnica" },
+    { address: "Tržaška cesta 48a, Vrhnika", rejected:true },
+    { address: "Tržaška cesta 480, Vrhnika", rejected:true },
+    { address: "Tržaška cesta 48 Borovnica", rejected:true },
+    { address: "Tržaška cesta 48, Vrhnika", districtId: "borovnica", match:true },
     { address: "Tržaška cesta 48, Vrhnika", topics: ["roads"] },
     { address: "Tržaška cesta 48, Vrhnika", pending: true },
   ];
   for (const [index, row] of rows.entries()) {
     const email = `household-${index}@example.com`;
+    if(row.rejected){await assert.rejects(signup(env,{...prefs,...row,email}),error=>error.status===422);assert.equal(await env.DB.prepare('SELECT id FROM email_subscribers WHERE email=?').bind(email).first(),null);continue;}
     await signup(env, { ...prefs, ...row, email });
     const subscriber = await env.DB.prepare(
       "SELECT * FROM email_subscribers WHERE email=?",
@@ -492,7 +493,7 @@ test("replacement email confirmation revokes previous management links and unsub
     }),
     env,
   );
-  assert.equal((await fresh.json()).address, "Cerkova 1, Borovnica");
+  assert.equal((await fresh.json()).address, "Cerkova ulica 1, Borovnica");
   const email = await env.DB.prepare(
     "SELECT message FROM email_outbox WHERE id LIKE 'subscriber-confirm-%' ORDER BY created_at DESC LIMIT 1",
   ).first();
@@ -581,12 +582,12 @@ test("confirmation resend is throttled, does not replace active preferences unti
   const env = environment();
   await signup(env);
   const active = await confirm(env);
-  await signup(env, { ...prefs, districtId: "borovnica" });
+  await signup(env, { ...prefs, address:"Cerkova ulica 1, Borovnica", districtId: "borovnica" });
   assert.equal((await subscriber(env)).district_id, "vrhnika");
   await env.DB.prepare(
     "UPDATE email_subscribers SET last_request=last_request-61000",
   ).run();
-  await signup(env, { ...prefs, districtId: "borovnica" });
+  await signup(env, { ...prefs, address:"Cerkova ulica 1, Borovnica", districtId: "borovnica" });
   const row = await subscriber(env);
   assert.equal(row.status, "active");
   assert.equal(row.district_id, "vrhnika");

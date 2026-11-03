@@ -46,6 +46,17 @@ function request(
 const call = (env, path, data, session, method, extra) =>
   handleAdmin(request(path, data, session, method, extra), env);
 
+test("non-ASCII forged CSRF of equal character length is rejected without an internal comparison failure", async () => {
+  const env = environment();
+  const owner = await createTestSession(env);
+  const response = await call(env, "/api/admin/users", { email: "never-invited@example.test" },
+    { ...owner, csrfToken: "é".repeat(owner.csrfToken.length) });
+  assert.equal(response.status, 403);
+  assert.equal((await call(env, "/api/admin/users", undefined, owner)).status, 200);
+  assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM admin_users WHERE email='never-invited@example.test'").first()).n, 0);
+  env.DB.close();
+});
+
 test("owner assigns a limited editorial scope and changing access invalidates an existing editor session", async () => {
   const env = environment(),
     owner = await createTestSession(env);

@@ -10,6 +10,7 @@ import { submissionAttempt, completedSubmission, savePublicSubmission, discardUn
 import { readiness } from "./readiness.js";
 import { servePublicPage, documentHeaders } from "./public-pages.js";
 import { processScheduledPublications } from "./scheduled-publications.js";
+import { queryOfficialAddresses, requireOfficialAddress } from "./address-registry.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -401,6 +402,7 @@ export async function handleRequest(request, env = {}, ctx) {
             mode: env.LOCAL_STORAGE ? "local-demo" : "managed",
           },
         });
+      if (route === "/api/addresses") return json(queryOfficialAddresses(url.searchParams));
       if (route === "/api/notices")
         return json({
           notices: await readPublished(env, "notices"),
@@ -420,12 +422,14 @@ export async function handleRequest(request, env = {}, ctx) {
         return new Response(calendar({address:selected?.name||'KPV',events},{name:`KPV – ${COLLECTION_TYPES[type]}`}),{headers:{...securityHeaders,'Cache-Control':'public, max-age=300','Content-Type':'text/calendar; charset=utf-8','Content-Disposition':'inline; filename="kpv-odvozi.ics"'}});
       }
       if (route === "/api/collection" || route === "/api/calendar") {
-        const address = field(
+        const inputAddress = field(
           { address: url.searchParams.get("address") },
           "address",
           3,
           250,
         );
+        const verifiedAddress = requireOfficialAddress(inputAddress,url.searchParams.has('addressId')?url.searchParams.get('addressId'):undefined);
+        const address = verifiedAddress.address;
         const configured = await readPublished(env, "collection");
         const schedule = managedCollection(address, configured);
         if (!schedule)
@@ -520,8 +524,9 @@ export async function handleRequest(request, env = {}, ctx) {
         payload = {
           ...person,
           address: field(data, "address", 3, 250),
+          ...(data.addressId === undefined ? {} : {addressId:data.addressId}),
           topics: [...new Set(data.topics)],
-          districtId: field(data, "districtId", 1, 80),
+          districtId: data.districtId,
         };
       } else if (route === "/api/requests") {
         payload = {

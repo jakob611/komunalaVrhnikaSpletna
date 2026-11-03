@@ -509,7 +509,7 @@ test("report without cloud photo storage fails before database save", async () =
 test("empty configured routes never generate invented public collection dates", async () => {
  const env={DB:{prepare:()=>({bind(){return this;},first:async()=>({value:'{"routes":[]}'})})}};
  for(const route of ["collection","calendar"]) {
- const response=await handleRequest(new Request(url('/api/'+route+'?address=Vrhnika')),env);
+ const response=await handleRequest(new Request(url('/api/'+route+'?address=Verd%2012%2C%20Vrhnika')),env);
  assert.equal(response.status,422);
  assert.ok((await response.json()).error.includes('zanesljivo'));
  }

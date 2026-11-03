@@ -39,6 +39,7 @@ import {
 import type { CollectionPoint, WasteCategory } from "../data/waste";
 import { CalendarDialog } from "../components/CalendarDialog";
 import { useSiteContent } from "../content/SiteContent";
+import VerifiedAddressPicker, { type VerifiedAddress } from "../components/VerifiedAddressPicker";
 import "./waste.css";
 
 function Intro({
@@ -546,6 +547,8 @@ export function CollectionPage() {
   const location = useLocation();
   const initialAddress = addressFromNavigation(location.state) || storedAddress();
   const [address, setAddress] = useState(initialAddress);
+  const [verifiedAddress, setVerifiedAddress] = useState<VerifiedAddress | null>(null);
+  const autoLoadInitial = useRef(!!initialAddress.trim());
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -556,13 +559,16 @@ export function CollectionPage() {
   );
   const request = useRef<AbortController | null>(null);
   useEffect(() => {
-    if (initialAddress.trim().length >= 4) void loadSchedule(initialAddress.trim());
     return () => request.current?.abort();
   }, []);
+  useEffect(() => {
+    if(verifiedAddress&&autoLoadInitial.current){autoLoadInitial.current=false;void loadSchedule(verifiedAddress.address);}
+  },[verifiedAddress]);
   async function lookup(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
-    await loadSchedule(address.trim());
+    if(!verifiedAddress){setError("Izberite preverjen naslov iz seznama.");return;}
+    await loadSchedule(verifiedAddress.address);
   }
   async function loadSchedule(requestedAddress: string) {
     setError("");
@@ -602,7 +608,7 @@ export function CollectionPage() {
         throw new Error("Prejeli smo neveljaven urnik. Poskusite znova.");
       if (controller.signal.aborted) return;
       setSchedule(data);
-      if (saveHomeAddress(requestedAddress)) setSaved(true);
+      if (saveHomeAddress(data.address || requestedAddress)) setSaved(true);
       else {
         setStorageMessage(
           "Brskalnik ne dovoljuje shranjevanja naslova. Urnik lahko vseeno uporabljate.",
@@ -630,7 +636,7 @@ export function CollectionPage() {
           eyebrow="ODPADKI · URNIK ODVOZA"
           title="Urnik odvoza odpadkov"
         >
-          Vpišite naslov za prikaz objavljenih datumov odvoza. Posamezne odvoze
+          Izberite naslov iz uradnega registra za prikaz objavljenih datumov odvoza. Posamezne odvoze
           lahko dodate v koledar.
         </Intro>
         <div key={nativeSection("CollectionPage.notice")} className="notice">
@@ -652,27 +658,19 @@ export function CollectionPage() {
             </div>
           </div>
           <form onSubmit={lookup} aria-busy={loading}>
-            <label className="field" htmlFor="collection-address">
-              Ulica, hišna številka in kraj
-            </label>
             <div className="waste-address-row">
-              <input
-                id="collection-address"
-                disabled={loading}
-                required
-                maxLength={250}
-                value={address}
-                onChange={(e) => {
-                  setAddress(e.target.value);
+              <VerifiedAddressPicker id="collection-address" label="Ulica, hišna številka in kraj" disabled={loading} required value={address}
+                onChange={(value,reason) => {
+                  if(reason==='input')autoLoadInitial.current=false;
+                  request.current?.abort();
+                  setLoading(false);
+                  setAddress(value);
                   setSaved(false);
                   setSchedule(null);
                   setError("");
                 }}
-                placeholder="Npr. Tržaška cesta 1, Vrhnika"
-                autoComplete="street-address"
-                aria-describedby="collection-address-help"
-              />
-              <button className="button" type="submit" disabled={loading}>
+                onSelect={setVerifiedAddress} describedBy="collection-address-help"/>
+              <button className="button" type="submit" disabled={loading || !verifiedAddress}>
                 {loading ? "Iščemo termine …" : "Prikaži urnik"}
                 <ArrowRight size={18} />
               </button>
@@ -681,8 +679,8 @@ export function CollectionPage() {
               {schedule
                 ? "Urnik je prikazan spodaj. Pri posameznem odvozu lahko izberete Dodaj v koledar."
                 : address
-                  ? "Preverite vneseni naslov in pritisnite Prikaži urnik."
-                  : "Vnesite tudi kraj: Vrhnika, Borovnica ali Log – Dragomer. Nato pritisnite Prikaži urnik."}
+                  ? "Izberite naslov med zadetki in pritisnite Prikaži urnik."
+                  : "Začnite z ulico ali naseljem in hišno številko. Nato izberite naslov iz seznama."}
             </p>
           </form>
           <div className="waste-address-meta">

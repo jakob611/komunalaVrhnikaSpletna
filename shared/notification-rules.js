@@ -69,6 +69,8 @@ export function matchesNotice(subscriber, notice) {
 }
 
 export function validatePreferences(value, districts) {
+  if(typeof value?.address==='string'&&hasAmbiguousHouseNumbers(value.address))
+    throw Object.assign(Error('Vnesite eno hišno številko. Zapis s poševnico ali razponom je dvoumen; stanovanje navedite za vejico, npr. »Verd 12, stanovanje 1, Vrhnika«.'),{status:400});
   if (!value || typeof value.name !== 'string' || value.name.trim().length < 2 || value.name.length > 120 ||
     typeof value.address !== 'string' || value.address.trim().length < 3 || value.address.length > 250 || /[<>\r\n]/.test(value.address) ||
     !districts.some(d => d.id === value.districtId && d.active) || !Array.isArray(value.topics) || !value.topics.length || value.topics.length > 4 || value.topics.some(t => !['water','roads','waste','general'].includes(t)))

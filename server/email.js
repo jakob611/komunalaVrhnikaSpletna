@@ -79,13 +79,20 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
   ]));
   const leases=claimed.filter((_,index)=>index%2===1);
   const settlements=[];
+  // A late response only owns its original lease. Privacy cancellation/deletion
+  // or a later delivery attempt must never be overwritten by this invocation.
+  const leaseWhere = "id=? AND status='pending' AND next_attempt=? AND attempts=?";
+  const leaseValues = row => [row.id,row.next_attempt,row.attempts];
+  const settle = (row, changes, ...values) => env.DB.prepare(
+    `UPDATE email_outbox SET ${changes} WHERE ${leaseWhere}`,
+  ).bind(...values,...leaseValues(row));
   let sentRequests=0;
   for (const lease of leases) {
     // A conditional lease prevents request and cron invocations from racing.
     const row=lease.results?.[0];
     if (!row) continue;
     if (!await subscriberDeliveryAllowed(env,row.id,now)) {
-      settlements.push(env.DB.prepare("UPDATE email_outbox SET status='failed',last_error='subscription_inactive' WHERE id=?").bind(row.id));
+      settlements.push(settle(row,"status='failed',last_error='subscription_inactive'"));
       continue;
     }
     let failure = 'network';
@@ -100,6 +107,16 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
         const content = Buffer.from(await object.arrayBuffer()).toString('base64');
         message.attachments = [{ filename: `fotografija.${row.photo_key.split('.').pop()}`, content }];
       }
+      // A row may have been cancelled/erased while an earlier batch item sent,
+      // rate limiting waited, or R2 loaded a photo. Recheck immediately before
+      // dispatch, including subscription changes after the initial check.
+      const owned = await env.DB.prepare(`SELECT id FROM email_outbox WHERE ${leaseWhere}`)
+        .bind(...leaseValues(row)).first();
+      if (!owned) continue;
+      if (!await subscriberDeliveryAllowed(env,row.id,now)) {
+        settlements.push(settle(row,"status='failed',last_error='subscription_inactive'"));
+        continue;
+      }
       const response = await fetcher('https://api.resend.com/emails', {
         method: 'POST', headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`,
           'Content-Type': 'application/json', 'Idempotency-Key': `submission/${row.id}` },
@@ -108,8 +125,7 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
       if (response.ok) {
         const data = await response.json();
         if (!data.id) throw new Error('Missing provider receipt');
-        settlements.push(env.DB.prepare(`UPDATE email_outbox SET status = 'sent', provider_id = ?, last_error = NULL
-          WHERE id = ?`).bind(data.id, row.id));
+        settlements.push(settle(row,"status='sent',provider_id=?,last_error=NULL",data.id));
         continue;
       }
       failure = `http_${response.status}`;
@@ -120,8 +136,7 @@ export async function deliverPending(env, { id = null, fetcher = fetch, now = Da
     }
     const status = transient && row.attempts < 8 ? 'pending' : 'failed';
     const next = now + Math.min(60, 5 * 2 ** (row.attempts - 1)) * 60000;
-    settlements.push(env.DB.prepare(`UPDATE email_outbox SET status = ?, next_attempt = ?, last_error = ? WHERE id = ?`)
-      .bind(status, next, failure, row.id));
+    settlements.push(settle(row,"status=?,next_attempt=?,last_error=?",status,next,failure));
     console.warn(JSON.stringify({ event: 'email_delivery', status, reason: failure }));
   }
   if(settlements.length)await env.DB.batch(settlements);

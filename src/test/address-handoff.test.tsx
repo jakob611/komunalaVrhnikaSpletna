@@ -8,6 +8,7 @@ import { CollectionPage } from "../pages/WastePages";
 import { CalendarDialog } from "../components/CalendarDialog";
 import { SiteContentProvider } from "../content/SiteContent";
 import defaults from "../../shared/site-defaults.json";
+import { addressApiResponse } from "./address-fixtures";
 
 vi.mock("../components/BotProtection", () => ({ default: () => null, resetProtection: vi.fn() }));
 const address = "Verd 12, Vrhnika";
@@ -16,6 +17,7 @@ function Location() { const { pathname, search } = useLocation(); return <output
 beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    const addressResponse = addressApiResponse(url); if (addressResponse) return addressResponse;
     if (url === "/api/notices") return Response.json({ notices: [] });
     return Response.json({ address, events: [event], complete: true, routes: { bio: { id: "verified-bio-route", name: "Verd", lastDate: "2090-11-03" } } });
   }));
@@ -46,7 +48,8 @@ describe("address continuity without unnecessary repeated entry", () => {
     localStorage.setItem("kpv-address", address);
     render(<MemoryRouter initialEntries={["/odpadki/urnik"]}><CollectionPage/></MemoryRouter>);
     await screen.findByText(event.label);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).startsWith("/api/collection"))).toHaveLength(1);
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).startsWith("/api/addresses?address="))).toBe(true);
   });
   it("clearly distinguishes an edited personal address from the still displayed saved-address schedule", async () => {
     localStorage.setItem("kpv-address", address);
@@ -54,17 +57,19 @@ describe("address continuity without unnecessary repeated entry", () => {
     await screen.findByText(event.label);
     fireEvent.change(screen.getByLabelText("Naslov vašega doma"), { target: { value: "Borovnica 1, Borovnica" } });
     expect(screen.getByText(/Prikazani odvozi še veljajo za Verd 12/)).toBeTruthy();
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).startsWith("/api/collection"))).toHaveLength(1);
   });
-  it("reuses a subscription address only on request and never guesses its district", () => {
+  it("reuses a subscription address only on request and derives its municipality after verification", async () => {
     localStorage.setItem("kpv-address", address);
     render(<MemoryRouter><SubscriptionForm/></MemoryRouter>);
     const field = screen.getByLabelText(/Ulica ali naselje, hišna številka in kraj/) as HTMLInputElement;
     expect(field.value).toBe("");
     fireEvent.click(screen.getByRole("button", { name: `Uporabi shranjeni naslov: ${address}` }));
     expect(field.value).toBe(address);
-    expect((screen.getByLabelText("Območje obveščanja") as HTMLSelectElement).value).toBe("");
-    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByText("Določena bo po izbiri naslova.")).toBeTruthy();
+    await screen.findByText("Občina Vrhnika");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe(`/api/addresses?address=${encodeURIComponent(address).replace(/%20/g, "+")}`);
+    expect(screen.queryByRole("combobox", {name: "Območje obveščanja"})).toBeNull();
   });
   it("restores the remembered service execution address without erasing the inquiry details", () => {
     localStorage.setItem("kpv-address", address);

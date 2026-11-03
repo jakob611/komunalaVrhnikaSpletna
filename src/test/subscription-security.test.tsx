@@ -2,6 +2,7 @@ import { it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import SubscriptionPage from "../pages/SubscriptionPage";
+import { addressApiResponse, addressFixtures, selectAddress } from "./address-fixtures";
 
 function CurrentLocation() {
   const location = useLocation();
@@ -21,8 +22,8 @@ function show(entry: string) {
 }
 
 it("moves legacy query links to a fragment and sends capabilities only in POST bodies", async () => {
-  const fetcher = vi.fn(async () =>
-    Response.json({
+  const fetcher = vi.fn(async (url: string, _init?: RequestInit) =>
+    addressApiResponse(url) ?? Response.json({
       action: "manage",
       status: "active",
       address: "Verd 1, Vrhnika",
@@ -32,12 +33,13 @@ it("moves legacy query links to a fragment and sends capabilities only in POST b
   );
   vi.stubGlobal("fetch", fetcher);
   show("/obvestila/narocnina?action=manage&token=personal-secret");
-  await screen.findByRole("button", { name: "Shrani nastavitve" });
+  const save = await screen.findByRole("button", { name: "Shrani nastavitve" });
+  await waitFor(() => expect(save.matches(":disabled")).toBe(false));
   expect(screen.getByTestId("location").textContent).toBe(
     "/obvestila/narocnina#action=manage&token=personal-secret",
   );
   expect(fetcher).toHaveBeenCalled();
-  for (const call of fetcher.mock.calls) {
+  for (const call of fetcher.mock.calls.filter(([url]) => !String(url).startsWith("/api/addresses"))) {
     const [url, init] = call as unknown as [string, RequestInit];
     expect(url).toBe("/api/subscriptions/manage");
     expect(init.method).toBe("POST");
@@ -46,11 +48,9 @@ it("moves legacy query links to a fragment and sends capabilities only in POST b
       action: "inspect",
     });
   }
-  fireEvent.change(screen.getByLabelText("Celoten naslov"), {
-    target: { value: "Verd 2, Vrhnika" },
-  });
+  await selectAddress("Celoten naslov", "Verd 2, Vrhnika");
   fireEvent.click(screen.getByRole("button", { name: "Shrani nastavitve" }));
-  await waitFor(() => expect(fetcher.mock.calls.length).toBeGreaterThan(1));
+  await waitFor(() => expect(fetcher.mock.calls.some(call => { const init=call[1] as RequestInit | undefined; return init?.body && JSON.parse(String(init.body)).address === "Verd 2, Vrhnika"; })).toBe(true));
   const [url, init] = fetcher.mock.calls.at(-1) as unknown as [
     string,
     RequestInit,
@@ -59,7 +59,10 @@ it("moves legacy query links to a fragment and sends capabilities only in POST b
   expect(JSON.parse(String(init.body))).toMatchObject({
     token: "personal-secret",
     address: "Verd 2, Vrhnika",
+    addressId: addressFixtures[1].id,
+    districtId: "vrhnika",
   });
+  expect(fetcher.mock.calls.every(([url]) => !String(url).includes("personal-secret"))).toBe(true);
 });
 
 it("a confirmation exposes a fresh management link without adding credentials to a request URL", async () => {

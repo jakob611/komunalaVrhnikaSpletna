@@ -4,6 +4,12 @@ import {
   NOTIFICATION_TOPICS,
 } from "../shared/notification-rules.js";
 import { publicOrigin } from "./public-origin.js";
+import { requireOfficialAddress } from "./address-registry.js";
+
+function verifiedPreferences(value, districts) {
+  const verified = requireOfficialAddress(value?.address, value?.addressId);
+  return validatePreferences({ ...value, address:verified.address, districtId:verified.municipalityId }, districts);
+}
 
 const encoder = new TextEncoder();
 const escape = (s) =>
@@ -151,7 +157,7 @@ export async function requestSubscription(
       !(env.EMAIL_ENABLED === "true" && env.RESEND_API_KEY && env.EMAIL_FROM))
   )
     fail(503, "Pošiljanje potrditve trenutno ni na voljo. Poskusite pozneje.");
-  const prefs = validatePreferences(data, districts);
+  const prefs = verifiedPreferences(data, districts);
   const email = String(data.email || "")
     .trim()
     .toLowerCase();
@@ -378,7 +384,7 @@ export async function subscriptionAction(
   }
   if (row.status !== "active")
     fail(400, "Za ponovno prijavo izpolnite obrazec in potrdite e-pošto.");
-  const prefs = validatePreferences(
+  const prefs = verifiedPreferences(
     { ...data, name: row.name },
     await readDistricts(),
   );

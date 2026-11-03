@@ -11,6 +11,7 @@ import ContentBridge from "./content/ContentBridge";
 import { CmsPageImage, useSiteContent, telephone } from "./content/SiteContent";
 import {mapAddressUrl} from '../shared/location.js';
 import { readSavedAddress, saveHomeAddress, forgetHomeAddress, addressFromNavigation } from "./data/saved-address";
+import VerifiedAddressPicker, { type VerifiedAddress } from "./components/VerifiedAddressPicker";
 import {
   NavLink,
   Route,
@@ -520,6 +521,7 @@ function Header() {
 function Home() {
   const navigate = useNavigate();
   const [address, setAddress] = useState(() => readSavedAddress());
+  const [verifiedAddress, setVerifiedAddress] = useState<VerifiedAddress | null>(null);
   const [addressError, setAddressError] = useState("");
   const [notices, setNotices] = useState<
     {
@@ -671,25 +673,19 @@ function Home() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (address.trim().length < 4) { setAddressError("Vpišite ulico ali naselje, hišno številko in kraj."); return; }
+            if (!verifiedAddress || verifiedAddress.address !== address.trim()) { setAddressError("Izberite svoj naslov med zadetki iz uradnega registra."); return; }
             setAddressError("");
             const persisted = saveHomeAddress(address);
             navigate("/moj-dom", { state: persisted ? null : { initialAddress: address.trim(), storageUnavailable: true } });
           }}
         >
-          <label className="sr-only" htmlFor="home-address">
-            Vaš naslov
-          </label>
-          <MapPin size={18} />
-          <input
+          <VerifiedAddressPicker
             id="home-address"
+            label="Vaš naslov"
             required
-            minLength={4}
-            maxLength={250}
             value={address}
-            onChange={(e) => { setAddress(e.target.value); setAddressError(""); }}
-            aria-invalid={!!addressError}
-            placeholder="Vnesite ulico, hišno številko in kraj"
+            onChange={(value) => { setAddress(value); setAddressError(""); }}
+            onSelect={setVerifiedAddress}
           />
           <button type="submit" aria-label="Prikaži podatke za naslov">
             <ArrowRight size={21} />
@@ -1024,7 +1020,9 @@ function MyHome() {
   const location = useLocation(), navigate = useNavigate();
   const initialAddress = addressFromNavigation(location.state) || readSavedAddress();
   const [address, setAddress] = useState(initialAddress);
-  const [saved, setSaved] = useState(initialAddress);
+  const [verifiedAddress, setVerifiedAddress] = useState<VerifiedAddress | null>(null);
+  const initialPending = useRef(initialAddress);
+  const [saved, setSaved] = useState("");
   const [addressError, setAddressError] = useState("");
   const [storageMessage, setStorageMessage] = useState(location.state?.storageUnavailable ? "Brskalnik ne dovoljuje shranjevanja naslova. Naslov lahko vseeno uporabljate v tem obisku." : "");
   const [events, setEvents] = useState<
@@ -1098,7 +1096,7 @@ function MyHome() {
           className="panel address-setting"
           onSubmit={(e) => {
             e.preventDefault();
-            if (address.trim().length < 4) { setAddressError("Vpišite ulico ali naselje, hišno številko in kraj."); return; }
+            if (!verifiedAddress || verifiedAddress.address !== address.trim()) { setAddressError("Izberite svoj naslov med zadetki iz uradnega registra."); return; }
             setAddressError("");
             const persisted = saveHomeAddress(address);
             setStorageMessage(persisted ? "Naslov je shranjen v tem brskalniku." : "Brskalnik ne dovoljuje shranjevanja naslova. Naslov lahko vseeno uporabljate v tem obisku.");
@@ -1110,24 +1108,17 @@ function MyHome() {
             setAttempt((previous) => previous + 1);
           }}
         >
-          <label className="field">
-            Naslov vašega doma
-            <input
-              required
-              minLength={4}
-              maxLength={250}
-              autoComplete="street-address"
-              value={address}
-              onChange={(e) => { setAddress(e.target.value); setAddressError(""); }}
-              aria-invalid={!!addressError}
-              placeholder="Tržaška cesta 1, Vrhnika"
-            />
-          </label>
+          <VerifiedAddressPicker id="personal-address" label="Naslov vašega doma" required value={address}
+            onChange={(value,reason) => { if(reason === "input") initialPending.current=""; setAddress(value); setAddressError(""); }}
+            onSelect={record => {
+              setVerifiedAddress(record);
+              if(record && initialPending.current) { initialPending.current=""; setSaved(record.address); setLoading(true); }
+            }}/>
           <button className="button">
             Shrani naslov
             <Check size={17} />
           </button>
-          {saved && (
+          {(saved || initialAddress) && (
             <button
               type="button"
               className="text-link"
@@ -1139,6 +1130,8 @@ function MyHome() {
                 setStorageMessage("Shranjeni naslov je izbrisan.");
                 if (location.state) navigate("/moj-dom", { replace: true, state: null });
                 setSaved("");
+                initialPending.current="";
+                setVerifiedAddress(null);
                 setAddressError("");
                 setAddress("");
                 setEvents([]);
@@ -1241,6 +1234,7 @@ function Privacy() {
           <h2><CmsText id="Privacy.h2-1">{"Vaši podatki"}</CmsText></h2>
           <p>
             <CmsText id="Privacy.p-2">{"Naslov v razdelku Moj dom se shrani samo v lokalni pomnilnik tega brskalnika. Izbrišete ga z gumbom »Pozabi naslov«. Analitičnih in oglaševalskih piškotkov ne uporabljamo."}</CmsText></p>
+          <p><CmsText id="Privacy.p-8">{"Med iskanjem naslova se vnos pošlje strežniku tega portala, ki išče v kopiji javnega registra naslovov GURS za tri občine. Vnosa ne pošiljamo zunanjemu geokodirniku in iz iskanj ne ustvarjamo evidence naročnikov. Za prikaz odvozov strežnik preveri izbrani naslov v objavljenem urniku. Izbira naslova ne dokazuje bivanja ali lastništva."}</CmsText></p>
           <h2><CmsText id="Privacy.h2-2">{"Obrazci in obravnava oddaj"}</CmsText></h2><p><CmsText id="Privacy.p-3">{"Vnesene podatke in fotografije shranimo za obravnavo vaše oddaje. Dostop imajo prijavljeni skrbniki portala. E-poštno obvestilo s podatki oddaje pošljemo nastavljenemu skrbniku prek Resend. Oddaja povpraševanja ali prijave na tržnico še ne potrjuje izvedbe ali termina in ne izvede plačila. Za vprašanja o podatkih ali zahtevo za izbris uporabite kontaktni obrazec in navedite referenco oddaje. Zahtevo obravnava skrbnik portala."}</CmsText></p>
           <h2><CmsText id="Privacy.h2-3">{"Naročnina na e-obvestila"}</CmsText></h2><p><CmsText id="Privacy.p-4">{"Po prijavi pošljemo potrditveno povezavo. Šele po potrditvi uporabimo izbrano območje, naslov in teme za ciljno dostavo obvestil prek Resend. Osebna povezava v sporočilu omogoča spremembo nastavitev in odjavo. Po odjavi nove dostave ustavimo; že dostavljenih sporočil iz vašega predala ne moremo odstraniti. Za izbris evidenc pišite skrbniku portala."}</CmsText></p><h2><CmsText id="Privacy.h2-4">{"Zunanji ponudniki"}</CmsText></h2>
           <p>

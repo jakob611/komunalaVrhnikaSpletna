@@ -1,0 +1,50 @@
+{
+  "name": "GURS – Register naslovov",
+  "url": "https://podatki.gov.si/dataset/register-naslovov/resource/85e6e060-9c44-4a03-85af-b89c27d11a38",
+  "service": "https://ipi.eprostor.gov.si/wfs-si-gurs-rn/ogc/features",
+  "collection": "SI.GURS.RN:REGISTER_NASLOVOV",
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "Vir: Geodetska uprava Republike Slovenije, Register naslovov (CC BY 4.0). Podatki so omejeni na tri občine; stanovanja so združena po hišni številki.",
+  "updatedAt": "2026-11-03T05:29:11.740Z",
+  "sha256": "5e5d8e37638dcb6018678730c05b9d28541764ae7d112c08d2e8776dd6c151d6",
+  "physicalAddresses": 6795,
+  "municipalities": [
+    {
+      "name": "Vrhnika",
+      "code": 140,
+      "id": "vrhnika",
+      "sourceRows": 7687,
+      "physicalAddresses": 4543,
+      "pages": 8
+    },
+    {
+      "name": "Borovnica",
+      "code": 5,
+      "id": "borovnica",
+      "sourceRows": 1847,
+      "physicalAddresses": 1114,
+      "pages": 2
+    },
+    {
+      "name": "Log-Dragomer",
+      "code": 208,
+      "id": "log-dragomer",
+      "sourceRows": 1472,
+      "physicalAddresses": 1138,
+      "pages": 2
+    }
+  ],
+  "fieldsRetained": [
+    "id",
+    "address",
+    "municipality",
+    "municipalityId",
+    "settlement",
+    "street",
+    "number",
+    "postcode",
+    "postTown"
+  ],
+  "excluded": "Apartment numbers, owners, people, coordinates and all other feature properties are not retained."
+}

@@ -123,3 +123,64 @@ test('verified form stores submission and outbox atomically, and config never ex
     assert.equal(e.DB.sql.prepare('SELECT COUNT(*) AS count FROM contact_submissions').get().count, 1);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+for (const change of ['cancel', 'erase']) test(`a claimed later message is not sent after privacy ${change} during an earlier delivery`, async () => {
+  const e = env();
+  await enqueue(e, { ...record, id: 'KPV-a-first' });
+  await enqueue(e, { ...record, id: 'KPV-b-private' });
+  const sent = [];
+  await deliverPending(e, { now, fetcher: async (_url, init) => {
+    sent.push(init.headers['Idempotency-Key']);
+    if (sent.length === 1) e.DB.sql.exec(change === 'erase'
+      ? "DELETE FROM email_outbox WHERE id='KPV-b-private'"
+      : "UPDATE email_outbox SET status='failed',last_error='privacy_erasure_pending' WHERE id='KPV-b-private'");
+    return Response.json({ id: 'accepted-first' });
+  } });
+  assert.deepEqual(sent, ['submission/KPV-a-first']);
+  if (change === 'cancel') assert.equal(e.DB.sql.prepare("SELECT status FROM email_outbox WHERE id='KPV-b-private'").get().status, 'failed');
+  else assert.equal(e.DB.sql.prepare("SELECT COUNT(*) AS n FROM email_outbox WHERE id='KPV-b-private'").get().n, 0);
+  e.DB.sql.close();
+});
+
+test('privacy cancellation during photo loading prevents the prepared message from leaving the worker', async () => {
+  const e = env();
+  await enqueue(e, { ...record, payload: { ...record.payload, photoKey: 'private.jpg' } });
+  e.PHOTOS = { get: async () => ({ arrayBuffer: async () => {
+    e.DB.sql.exec("UPDATE email_outbox SET status='failed',last_error='privacy_erasure_pending' WHERE id='KPV-test'");
+    return new Uint8Array([1, 2, 3]).buffer;
+  } }) };
+  let requests = 0;
+  await deliverPending(e, { now, fetcher: async () => { requests++; return Response.json({ id: 'must-not-be-sent' }); } });
+  assert.equal(requests, 0, 'cancelled private content must not leave worker');
+  assert.equal(row(e).status, 'failed');
+  assert.equal(row(e).last_error, 'privacy_erasure_pending');
+  e.DB.sql.close();
+});
+
+test('an in-flight accepted response cannot overwrite a privacy cancellation', async () => {
+  const e = env(); await enqueue(e);
+  await deliverPending(e, { now, fetcher: async () => {
+    e.DB.sql.exec("UPDATE email_outbox SET status='failed',last_error='privacy_erasure_pending' WHERE id='KPV-test'");
+    return Response.json({ id: 'already-in-flight-cannot-recall' });
+  } });
+  assert.equal(row(e).status, 'failed');
+  assert.equal(row(e).last_error, 'privacy_erasure_pending');
+  assert.equal(row(e).provider_id, null);
+  e.DB.sql.close();
+});
+
+test('a late transient response cannot revert a newer successful lease to pending', async () => {
+  const e = env(); await enqueue(e);
+  let started, release;
+  const firstStarted = new Promise(resolve => { started = resolve; });
+  const firstResponse = new Promise(resolve => { release = resolve; });
+  const first = deliverPending(e, { now, fetcher: async () => { started(); return firstResponse; } });
+  await firstStarted;
+  await deliverPending(e, { now: now + 360001, fetcher: async () => Response.json({ id: 'newer-provider-receipt' }) });
+  release(new Response('', { status: 429 }));
+  await first;
+  assert.equal(row(e).status, 'sent');
+  assert.equal(row(e).provider_id, 'newer-provider-receipt');
+  assert.equal(row(e).attempts, 2);
+  e.DB.sql.close();
+});

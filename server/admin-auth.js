@@ -34,7 +34,8 @@ const fail = (status, message) => {
 function equal(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length)
     return false;
-  return timingSafeEqual(encoder.encode(a), encoder.encode(b));
+  const left = encoder.encode(a), right = encoder.encode(b);
+  return left.byteLength === right.byteLength && timingSafeEqual(left, right);
 }
 function db(env) {
   if (!env.DB) fail(503, "Skrbniška shramba trenutno ni povezana.");

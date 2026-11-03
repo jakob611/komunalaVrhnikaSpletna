@@ -954,6 +954,8 @@ function Editor({
 
 export default function AdminPage() {
   const [session, setSession] = useState<Session | null>(null);
+  const currentSessionToken = useRef(session?.csrfToken);
+  currentSessionToken.current = session?.csrfToken;
   const [checking, setChecking] = useState(true);
   const [sections, setSections] = useState<Sections>({});
   const [revisions, setRevisions] = useState<Record<string, number>>({});
@@ -973,7 +975,7 @@ export default function AdminPage() {
   const [compactMenu, setCompactMenu] = useState(
     () => window.matchMedia("(max-width: 900px)").matches,
   );
-  const [history, setHistory] = useState<Version[] | null>(null);
+  const [history, setHistory] = useState<{ section: string; items: Version[] } | null>(null);
   const [advanced, setAdvanced] = useState(false);
   const [websiteHistorySection, setWebsiteHistorySection] =
     useState<string>("copy");
@@ -1085,6 +1087,8 @@ export default function AdminPage() {
   const visual = active === "copy" || active === "images" || active === "links";
 
   function expireSession() {
+    currentSessionToken.current = undefined;
+    setBusy(false);
     if (session)
       interruptedArea.current = { user: session.user.email, section: active };
     if (editing && session && draft !== null)
@@ -1236,6 +1240,7 @@ export default function AdminPage() {
       });
     return () => {
       mounted = false;
+      currentSessionToken.current = undefined;
     };
   }, []);
   useEffect(() => {
@@ -1439,6 +1444,11 @@ export default function AdminPage() {
   }
   async function saveDraft() {
     if (!editing || busy || draftLoading) return;
+    const section = active;
+    const sessionToken = currentSessionToken.current;
+    const submittedDraft = draft;
+    const stillCurrent = () =>
+      currentArea.current === section && currentSessionToken.current === sessionToken;
     setBusy(true);
     setError("");
     try {
@@ -1447,7 +1457,7 @@ export default function AdminPage() {
       const baseRevisions = Object.fromEntries(
         keys.map((key) => [key, revisions[key] ?? 0]),
       );
-      const result = await request<{ revision: number; savedAt: number }>(
+      const result = await request<{ revision: number; savedAt: number; value?: Json }>(
         `/api/admin/drafts/${active}`,
         {
           method: "PUT",
@@ -1458,31 +1468,37 @@ export default function AdminPage() {
           }),
         },
       );
-      setStoredDraft({ value: clone(value), baseRevisions, ...result });
+      if (!stillCurrent()) return;
+      const saved = result.value === undefined
+        ? value
+        : validateEditorDraft(section, result.value) as Json;
+      setStoredDraft({ ...result, value: clone(saved), baseRevisions });
+      setDraft(current => current === submittedDraft ? clone(saved) : current);
       setNotice(
         "Osnutek je zasebno shranjen za vaš račun. Javna stran ostaja nespremenjena.",
       );
     } catch (cause) {
-      failure(cause);
+      if (stillCurrent()) failure(cause);
     } finally {
-      setBusy(false);
+      if (stillCurrent()) setBusy(false);
     }
   }
   async function showHistory() {
+    const section = active === "website" ? websiteHistorySection : active;
     setBusy(true);
     setError("");
     try {
       const data = await request<{ items: Version[] }>(
-        `/api/admin/history/${active === "website" ? websiteHistorySection : active}`,
+        `/api/admin/history/${section}`,
       );
-      setHistory(data.items);
+      setHistory({ section, items: data.items });
     } catch (cause) {
       failure(cause);
     } finally {
       setBusy(false);
     }
   }
-  async function restore(revision: number) {
+  async function restore(section: string, revision: number) {
     if (
       !window.confirm(
         `Želite objaviti različico ${revision}? Trenutna vsebina ostane v zgodovini.${dirty ? " Neshranjene spremembe bodo zavržene." : ""}`,
@@ -1493,21 +1509,18 @@ export default function AdminPage() {
     setError("");
     try {
       const data = await request<{ revision: number; value?: Json }>(
-        `/api/admin/restore/${active === "website" ? websiteHistorySection : active}`,
+        `/api/admin/restore/${section}`,
         {
           method: "POST",
           body: JSON.stringify({
             revision,
-            currentRevision:
-              revisions[
-                active === "website" ? websiteHistorySection : active
-              ] ?? 0,
+            currentRevision: revisions[section] ?? 0,
           }),
         },
       );
       setHistory(null);
       if (data.value !== undefined) {
-        const key = active === "website" ? websiteHistorySection : active;
+        const key = section;
         setSections((old) => ({ ...old, [key]: data.value! }));
         setDraft((old) =>
           active === "website" && isObject(old)
@@ -2096,6 +2109,7 @@ export default function AdminPage() {
                           <span>Zgodovina področja</span>
                           <select
                             value={websiteHistorySection}
+                            disabled={busy}
                             onChange={(e) =>
                               setWebsiteHistorySection(e.target.value)
                             }
@@ -2807,7 +2821,7 @@ export default function AdminPage() {
       {history && (
         <Dialog
           error={error}
-          title={`Zgodovina · ${title}`}
+          title={`Zgodovina · ${sectionInfo[history.section]?.name || history.section}`}
           onClose={() => {
             if (!busy) setHistory(null);
           }}
@@ -2816,9 +2830,9 @@ export default function AdminPage() {
             Obnova objavi izbrano vsebino kot novo različico. Prejšnje različice
             ostanejo ohranjene.
           </p>
-          {history.length ? (
+          {history.items.length ? (
             <div className="admin-history-list">
-              {history.map((item) => (
+              {history.items.map((item) => (
                 <article key={item.revision}>
                   <div>
                     <strong>Različica {item.revision}</strong>
@@ -2833,16 +2847,12 @@ export default function AdminPage() {
                     disabled={
                       busy ||
                       item.revision ===
-                        revisions[
-                          active === "website" ? websiteHistorySection : active
-                        ]
+                        revisions[history.section]
                     }
-                    onClick={() => restore(item.revision)}
+                    onClick={() => restore(history.section, item.revision)}
                   >
                     {item.revision ===
-                    revisions[
-                      active === "website" ? websiteHistorySection : active
-                    ]
+                    revisions[history.section]
                       ? "Trenutna"
                       : "Obnovi"}
                   </button>

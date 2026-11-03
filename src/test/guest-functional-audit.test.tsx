@@ -10,6 +10,7 @@ import SubscriptionPage from "../pages/SubscriptionPage";
 import CemeteryPage from "../pages/CemeteryPage";
 import UtilityCalculator from "../components/UtilityCalculator";
 import type { SiteData } from "../content/SiteContent";
+import { addressApiResponse, selectAddress } from "./address-fixtures";
 
 const state = vi.hoisted(() => ({ sections: {} as SiteData }));
 vi.mock("../content/SiteContent", async () => {
@@ -34,6 +35,7 @@ beforeEach(() => {
   state.sections = structuredClone(defaults) as unknown as SiteData;
   localStorage.clear();
   vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    const addressResponse = addressApiResponse(url); if(addressResponse)return addressResponse;
     if (url.startsWith("/api/notices")) return response({ notices });
     if (url.startsWith("/api/collection")) return response({ address: "Verd 12, Vrhnika", events: [event], complete: true });
     return response({ id: "audit-receipt", message: "Submission saved for handling" });
@@ -83,7 +85,7 @@ describe("guest navigation and personal starting point", () => {
   it("G05 saves a personal address, shows its fetched events and forgets the address", async () => {
     show(<App/>, "/moj-dom");
     expect(screen.queryByText(event.label)).toBeNull();
-    fireEvent.change(screen.getByLabelText("Naslov vašega doma"), { target: { value: "Verd 12, Vrhnika" } });
+    await selectAddress("Naslov vašega doma");
     fireEvent.click(screen.getByRole("button", { name: "Shrani naslov" }));
     await screen.findByText(event.label);
     expect(localStorage.getItem("kpv-address")).toBe("Verd 12, Vrhnika");
@@ -94,15 +96,16 @@ describe("guest navigation and personal starting point", () => {
   it("G06 MyHome must explain when the browser refuses to remember an address", async () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Denied", "SecurityError"); });
     show(<App/>, "/moj-dom");
-    fireEvent.change(screen.getByLabelText("Naslov vašega doma"), { target: { value: "Verd 12, Vrhnika" } });
+    await selectAddress("Naslov vašega doma");
     fireEvent.click(screen.getByRole("button", { name: "Shrani naslov" }));
     await screen.findByText(event.label);
     expect(screen.getByText(/Brskalnik.*shranjevan/)).toBeTruthy();
   });
   it("G07 personal schedule failures offer retry without keeping old events", async () => {
     localStorage.setItem("kpv-address", "Verd 12, Vrhnika");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(response({ error: "Schedule unavailable" }, 503))
-      .mockResolvedValueOnce(response({ events: [event], complete: false, message: "Only BIO is confirmed" })));
+    const collection = vi.fn().mockResolvedValueOnce(response({ error: "Schedule unavailable" }, 503))
+      .mockResolvedValueOnce(response({ events: [event], complete: false, message: "Only BIO is confirmed" }));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? collection()));
     show(<App/>, "/moj-dom");
     await screen.findByText("Schedule unavailable");
     expect(screen.queryByText(event.label)).toBeNull();
@@ -159,11 +162,11 @@ describe("published information and self-service", () => {
     expect(button.matches(":disabled")).toBe(true);
     fireEvent.change(screen.getByLabelText("Ime in priimek"), { target: { value: "Audit Visitor" } });
     fireEvent.change(screen.getByLabelText("E-poštni naslov"), { target: { value: "audit@example.invalid" } });
-    fireEvent.change(screen.getByLabelText("Območje obveščanja"), { target: { value: "vrhnika" } });
-    fireEvent.change(screen.getByLabelText(/Ulica ali naselje, hišna številka in kraj/), { target: { value: "Verd 12, Vrhnika" } });
+    await selectAddress(/Ulica ali naselje, hišna številka in kraj/);
+    expect(screen.getByText("Občina Vrhnika")).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/Voda/));
     fireEvent.click(screen.getByLabelText(/Želim prejemati izbrana/));
-    vi.stubGlobal("fetch", vi.fn(async () => response({ message: "Confirm the link in your email" })));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? response({ message: "Confirm the link in your email" })));
     fireEvent.click(button);
     await screen.findByText("Confirm the link in your email");
     const init = vi.mocked(fetch).mock.calls[0][1]!;
@@ -177,9 +180,9 @@ describe("published information and self-service", () => {
     expect(screen.getByRole("link", { name: /Nova prijava/ }).getAttribute("href")).toBe("/obvestila#narocilo");
   });
   it("G12 collection marks a partial schedule and clears it when the address changes", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => response({ address: "Verd 12, Vrhnika", events: [event], complete: false, incompleteTypes: ["residual"] })));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? response({ address: "Verd 12, Vrhnika", events: [event], complete: false, incompleteTypes: ["residual"] })));
     show(<CollectionPage/>, "/odpadki/urnik");
-    fireEvent.change(screen.getByLabelText("Ulica, hišna številka in kraj"), { target: { value: "Verd 12, Vrhnika" } });
+    await selectAddress("Ulica, hišna številka in kraj");
     fireEvent.click(screen.getByRole("button", { name: "Prikaži urnik" }));
     await screen.findByText(event.label);
     expect(screen.getByRole("alert").textContent).toContain("delni urnik");
@@ -188,9 +191,9 @@ describe("published information and self-service", () => {
     expect(screen.queryByText(event.label)).toBeNull();
   });
   it("G13 malformed collection responses cannot produce a plausible schedule", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => response({ events: "not-an-array" })));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? response({ events: "not-an-array" })));
     show(<CollectionPage/>, "/odpadki/urnik");
-    fireEvent.change(screen.getByLabelText("Ulica, hišna številka in kraj"), { target: { value: "Verd 12, Vrhnika" } });
+    await selectAddress("Ulica, hišna številka in kraj");
     fireEvent.click(screen.getByRole("button", { name: "Prikaži urnik" }));
     await screen.findByRole("alert");
     expect(screen.queryByRole("link", { name: /Vsi prikazani termini/ })).toBeNull();
@@ -368,7 +371,7 @@ describe("guest forms and remaining interactive pages", () => {
   it("G22 the homepage preserves the entered address if browser persistence is blocked", async () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Denied", "SecurityError"); });
     show(<App/>);
-    fireEvent.change(screen.getByLabelText("Vaš naslov"), { target: { value: "Verd 12, Vrhnika" } });
+    await selectAddress("Vaš naslov");
     fireEvent.click(screen.getByRole("button", { name: "Prikaži podatke za naslov" }));
     await screen.findByText(event.label);
     expect((screen.getByLabelText("Naslov vašega doma") as HTMLInputElement).value).toBe("Verd 12, Vrhnika");

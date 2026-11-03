@@ -26,14 +26,14 @@ export default function DistrictsEditor({
       <div className="notice-editor-guide">
         <h2>Območja e-obveščanja</h2>
         <p>
-          Naročnik ob prijavi sam izbere območje svojega naslova. Začnite z
-          občinami; po potrebi dodajte naselja ali manjše predele. Pri obvestilu
-          izberete območja in po želji omejite še posamezne ulice oziroma hiše.
+          Občino novega naročnika določimo po izbranem naslovu iz uradnega
+          registra. Za posamezne ulice ali hiše pri obvestilu izberite občino
+          in dodajte prizadete naslove, vsak naslov v svojo vrstico.
         </p>
         <p>
-          Opis območja se prikaže pri prijavi. Z njim jasno povejte, kateri
-          naslovi sodijo sem. Opis ni seznam pravil: sistem naslovov ne razvršča
-          samodejno.
+          Opis je pojasnilo za urednike, ne pravilo za razvrščanje naslovov.
+          Dodatna območja ohranijo morebitne stare naročnike; nove prijave se
+          razvrščajo samo v tri občine. Območja niso povezana v hierarhijo.
         </p>
         <p>
           Obstoječega območja ne preimenujte v drug kraj: naročniki so vezani
@@ -67,7 +67,7 @@ export default function DistrictsEditor({
                 checked={d.active}
                 onChange={(e) => patch(d.id, { active: e.target.checked })}
               />
-              Na voljo za prijavo in pošiljanje
+              Aktivno za obveščanje{["vrhnika", "borovnica", "log-dragomer"].includes(d.id) ? " in nove prijave" : " obstoječih naročnikov"}
             </label>
           </article>
         ))}
