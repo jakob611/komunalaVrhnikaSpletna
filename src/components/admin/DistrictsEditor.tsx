@@ -53,7 +53,7 @@ export default function DistrictsEditor({
               />
             </label>
             <label className="admin-field">
-              <span>Kateri naslovi sodijo sem?</span>
+              <span>Opis območja za urednike</span>
               <textarea
                 maxLength={600}
                 rows={2}
@@ -71,24 +71,6 @@ export default function DistrictsEditor({
             </label>
           </article>
         ))}
-        <button
-          type="button"
-          className="admin-button"
-          disabled={value.length >= 100}
-          onClick={() =>
-            onChange([
-              ...value,
-              {
-                id: `obmocje-${crypto.randomUUID()}`,
-                name: "Novo območje",
-                description: "",
-                active: true,
-              },
-            ])
-          }
-        >
-          Dodaj območje obveščanja
-        </button>
       </fieldset>
       {canViewSubscribers && (
         <SubscriberOverview

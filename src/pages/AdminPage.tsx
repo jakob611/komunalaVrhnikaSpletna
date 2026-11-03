@@ -147,7 +147,7 @@ const sectionInfo: Record<
   districts: {
     name: "Območja e-obveščanja",
     description:
-      "Občine, naselja in predeli, na katere se naročniki prijavijo za e-obvestila.",
+      "Občino določimo po preverjenem naslovu. Posamezne ulice ali hiše izberete pri obvestilu.",
     group: "Vsebine",
   },
   tariffs: {
