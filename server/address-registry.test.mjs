@@ -32,6 +32,23 @@ test('official search is bounded, accent-insensitive, local-only and returns onl
   for(const query of ['q=abc&limit=21','q=abc&limit=0','q=abc&limit=1e1','q=a&q=b','q=abc&address=Verd12','q='+encodeURIComponent('x'.repeat(251))])assert.equal((await handleRequest(request('/api/addresses?'+query),{})).status,400,query);
 });
 
+test('address search ranks visible municipality matches before hidden postal aliases without dropping postal search',()=>{
+  const result=officialAddresses.query(new URLSearchParams({q:'Borovnica'}));
+  assert.equal(result.addresses.length,20);
+  assert.ok(result.addresses.every(row=>row.municipalityId==='borovnica'));
+  assert.equal(result.more,true);
+  const postal=officialAddresses.query(new URLSearchParams({q:'Bistra 1 Borovnica'}));
+  assert.ok(postal.addresses.some(row=>row.address==='Bistra 1, Vrhnika'));
+  assert.equal(requireOfficialAddress('Bistra 1, 1353 Borovnica').address,'Bistra 1, Vrhnika');
+  const rows=[
+    {...snapshot[0],id:'100400000000000001',address:'A 1, Vrhnika',street:'A',settlement:'A',municipality:'Vrhnika',municipalityId:'vrhnika',number:'1',postTown:'Borovnica'},
+    {...snapshot[0],id:'100400000000000002',address:'Z 1, Borovnica',street:'Z',settlement:'Z',municipality:'Borovnica',municipalityId:'borovnica',number:'1',postTown:'Borovnica'},
+  ];
+  const registry=createAddressRegistry(rows,source);
+  assert.deepEqual(registry.query(new URLSearchParams({q:'Borovnica'})).addresses.map(row=>row.id),[rows[1].id,rows[0].id]);
+  assert.equal(registry.query(new URLSearchParams({q:'Borovnica',limit:'1'})).addresses[0].id,rows[1].id);
+});
+
 test('exact official resolution canonicalizes known spelling/postal/apartment forms and never guesses house suffixes or contradictory places',()=>{
   const verd=requireOfficialAddress('Verd 12, Vrhnika');
   assert.equal(verd.id,'100400000155780921');
@@ -64,7 +81,14 @@ test('verified collection and calendar requests still require published KPV rout
     const unknown=await handleRequest(request('/api/collection?address=Imaginary%2099999%2C%20Vrhnika'),env);assert.equal(unknown.status,422);
     const canonical=requireOfficialAddress('Verd 12, Vrhnika');
     await env.DB.prepare("INSERT INTO cms_content(section,value,revision,updated_at) VALUES('collection','{\"routes\":[]}',1,1)").run();
-    for(const route of ['collection','calendar'])assert.equal((await handleRequest(request('/api/'+route+'?'+new URLSearchParams({address:canonical.address,addressId:canonical.id})),env)).status,422);
+    for(const route of ['collection','calendar']){
+      const missing=await handleRequest(request('/api/'+route+'?'+new URLSearchParams({address:canonical.address,addressId:canonical.id})),env);
+      assert.equal(missing.status,422);
+      const error=(await missing.json()).error;
+      assert.match(error,/preverjen naslov/);
+      assert.match(error,/objavljenih odvoznih območij/);
+      assert.doesNotMatch(error,/Vnesite ulico/);
+    }
     const collection={routes:[{id:'registered-test',name:'QA registered route',addresses:['Verd 12, Vrhnika'],events:[{id:'one',date:addDays(ljubljanaDate(),1),type:'packaging',label:'Synthetic published pickup',bin:''}]}]};
     await env.DB.prepare("UPDATE cms_content SET value=? WHERE section='collection'").bind(JSON.stringify(collection)).run();
     const result=await handleRequest(request('/api/collection?'+new URLSearchParams({address:'Verd 12',addressId:canonical.id})),env);assert.equal(result.status,200);const schedule=await result.json();assert.equal(schedule.address,canonical.address);assert.equal(schedule.events.length,1);

@@ -435,7 +435,7 @@ export async function handleRequest(request, env = {}, ctx) {
         if (!schedule)
           throw new ApiError(
             422,
-            "Za ta naslov ni mogoče zanesljivo določiti urnika. Vnesite ulico, hišno številko in kraj. Urnik preverite tudi na https://www.kpv.si/mDejavnosti/rzo/rzoUrnik.html.",
+            "Za ta preverjen naslov iz objavljenih odvoznih območij ni mogoče zanesljivo določiti urnika. Preverite izvirni urnik KPV na https://www.kpv.si/mDejavnosti/rzo/rzoUrnik.html ali pokličite 01 750 29 70.",
           );
         if (route === "/api/calendar")
           return new Response(

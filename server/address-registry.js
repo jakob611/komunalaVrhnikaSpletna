@@ -23,7 +23,7 @@ export function createAddressRegistry(rows,source) {
     const shortStreet = row.street.replace(/\b(?:cesta|ulica)\b/gi,'').trim();
     const shortPrimary = shortStreet ? `${shortStreet} ${row.number}` : primary;
     for(const prefix of new Set([primary,shortPrimary]))for(const alias of [prefix,row.address,`${prefix}, ${row.settlement}`,`${prefix}, ${row.municipality}`,`${prefix}, ${row.postcode} ${row.settlement}`,`${prefix}, ${row.postcode} ${row.municipality}`,`${prefix}, ${row.postcode} ${row.postTown}`])add(alias,row.id);
-    return{row,key:normalizeOfficialAddress(`${row.address} ${row.postcode} ${row.postTown}`)};
+    return{row,canonicalKey:normalizeOfficialAddress(row.address),key:normalizeOfficialAddress(`${row.address} ${row.postcode} ${row.postTown}`)};
   });
   indexed.sort((a,b)=>collator.compare(a.row.address,b.row.address)||a.row.id.localeCompare(b.row.id));
   const checked = value => {
@@ -59,7 +59,11 @@ export function createAddressRegistry(rows,source) {
       if(key.length<3)return{addresses:[],source:sourceInfo(),more:false};
       const tokens=key.split(' ');
       const matches=indexed.filter(item=>tokens.every(token=>item.key.includes(token)));
-      const ranked=[...matches.filter(item=>item.key.startsWith(key)),...matches.filter(item=>!item.key.startsWith(key))];
+      // Postal localities can cross municipality boundaries. Prefer the text
+      // shown in the picker before matches found only through a postal alias.
+      const visible=matches.filter(item=>tokens.every(token=>item.canonicalKey.includes(token)));
+      const postal=matches.filter(item=>!tokens.every(token=>item.canonicalKey.includes(token)));
+      const ranked=[...visible.filter(item=>item.canonicalKey.startsWith(key)),...visible.filter(item=>!item.canonicalKey.startsWith(key)),...postal];
       return{addresses:ranked.slice(0,Number(limitText)).map(item=>publicAddress(item.row)),source:sourceInfo(),more:ranked.length>Number(limitText)};
     },
   };
