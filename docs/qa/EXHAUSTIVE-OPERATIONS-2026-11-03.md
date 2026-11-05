@@ -1,4 +1,4 @@
-# Operational function audit — 3–4 November 2026
+# Operational function audit — 3–5 November 2026
 
 All **51/51** inventoried operational groups have execution evidence at the layer named below. The isolated app used loopback HTTP, independent SQLite and private files, real password and OTP handlers, and captured email. The run made zero production writes and sent zero external test emails.
 
@@ -70,6 +70,6 @@ The case and recipient replay defects reproduced with development StrictMode, wh
 
 ## Browser boundaries
 
-The in-app browser exercised owner sign-in, queue filtering, report photo display, treatment saves, checklist edits and the post-fix same-owner recovery flow. Brave blocked synthetic sign-in automation when another extension UI took focus. Later runs were blocked by the workstation's browser-use setting. AO28 exercised cancel and accept through controlled confirmation results and a real DOM beforeunload event. Native confirmation rendering and browser unload-dialog presentation remain blocked. For AO29, AO38 and AO40, transport assertions and rendered UI scenarios are separate runs. AO50 combines real editor HTTP actions with earlier observed browser draft/history actions.
+The in-app browser exercised owner sign-in, queue filtering, report photo display, treatment saves, checklist edits and the post-fix same-owner recovery flow. An early Brave sign-in attempt was interrupted when another extension UI took focus, and later runs were temporarily blocked by the workstation's browser-use setting. On 5 November, Brave completed a genuine local owner password/OTP login and later signed out, returning to the login screen with the confirmation “Varno ste se odjavili.” AO28 exercised cancel and accept through controlled confirmation results and a real DOM beforeunload event. Native confirmation control and browser unload-dialog presentation remain unverified because the automation could not reliably control the native dialog. Closing the isolated test tab resolved that block without changing settings. For AO29, AO38 and AO40, transport assertions and rendered UI scenarios are separate runs. AO50 combines real editor HTTP actions with earlier observed browser draft/history actions.
 
 Harness corrections included UUID-shaped subscriber IDs, expected order in recipient set comparison, the actual 410 response for a mismatched privacy reference, descriptive schedule error strings and matching the private photo adapter to the stored files.
