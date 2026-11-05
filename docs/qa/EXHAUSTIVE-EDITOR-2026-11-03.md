@@ -2,7 +2,7 @@
 
 The editor audit used an isolated copy of the published content, a synthetic owner account and a local mail capture. It exercised 333 loopback HTTP requests, browser workflows and focused component and server tests. Production content and real account data were outside this run.
 
-Work browser control later returned “Local browser use is disabled in Work settings.” The table distinguishes observed browser actions, real API and scheduled-worker outcomes, controlled tests, and the browser interactions that could not be repeated. The earlier [editor action inventory](ADMIN-EDITOR-2026-11-01.md) defines the 63 entries.
+Work browser control was temporarily disabled. It returned on 5 November and the root agent verified the corrected address preview after a genuine local owner password/OTP login. Browser control then stopped at a native confirmation because the safety check could not establish the current URL. Its cancel/accept outcome remains unverified. The table distinguishes observed browser actions, real API and scheduled-worker outcomes, controlled tests, and the browser interactions that could not be repeated. The earlier [editor action inventory](ADMIN-EDITOR-2026-11-01.md) defines the 63 entries.
 
 ## Defects fixed
 
@@ -67,7 +67,7 @@ Work browser control later returned “Local browser use is disabled in Work set
 | AE44 | HTTP published 30 dates per fraction. Component/rules exercised recurrence, interval, inclusive bounds and deduplication. Browser generator remains unverified. |
 | AE45 | Shared rules and rendered controls exercised selection across pages, atomic collision rejection, a successful bulk move with preserved event IDs, and both cancellation and acceptance of bulk deletion. Browser multi-page bulk move/delete and native confirmation remain unverified. |
 | AE46 | HTTP fixture contained 90 events. Component paginated over 25, retained selection across pages, cleared it on filter and returned to page one. Browser controls remain unverified. |
-| AE47 | HTTP exact houses produced full, BIO-only, ambiguity and no-route outcomes; invalid slash rules left publication unchanged. The fixed component requires official selection, rejects bogus queries and uses the selected canonical address for independent fractions. Browser retest after this fix remains unverified. |
+| AE47 | HTTP exact houses produced full, BIO-only, ambiguity and no-route outcomes; invalid slash rules left publication unchanged. The fixed component requires official selection, rejects bogus queries and uses the selected canonical address for independent fractions. Actual browser retest on 5 November rejected `Verd 99999`, then selected the exact registered `Verd 12, Vrhnika` option and displayed all three expected routes and upcoming dates. |
 | AE48 | HTTP published and read cemetery structure and multiple people with unknown dates. Component created an empty cemetery and populated it. Browser onboarding remains unverified. |
 | AE49 | Component sector rename preserved identity and duplicate bulk insertion was atomic. Browser duplicate sector/row and cancel controls remain unverified. |
 | AE50 | Server lookup covered secondary occupants and diacritics. A rendered search for the secondary occupant selected the matching grave in another sector and updated both sector and row controls. Browser selecting that result remains unverified. |
