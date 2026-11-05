@@ -2014,8 +2014,27 @@ main:focus {
   .header-inner {
     gap: 8px;
   }
+  .site-header .brand {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .site-header .brand-symbol {
+    flex: none;
+  }
+  .site-header .brand > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .site-header .cms-brand-image {
+    max-width: min(145px, 100%);
+  }
   .header-actions {
     gap: 3px;
+    flex-shrink: 0;
   }
   .header-actions .icon-button {
     width: 44px;

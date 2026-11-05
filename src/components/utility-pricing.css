@@ -5,8 +5,12 @@
   align-items: start;
   margin-bottom: 28px;
 }
+.utility-workspace > * {
+  min-width: 0;
+}
 .utility-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 .utility-form h2 {
@@ -206,7 +210,7 @@
 }
 @media (max-width: 850px) {
   .utility-workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media print {
