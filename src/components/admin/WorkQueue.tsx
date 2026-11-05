@@ -287,6 +287,7 @@ export default function WorkQueue({
         : AbortSignal.timeout(20000),
     });
     const body = await response.json().catch(() => ({}));
+    init.signal?.throwIfAborted();
     if (!response.ok) {
       if (response.status === 401) expired.current();
       if (response.status === 409) setConflict(true);
@@ -379,12 +380,15 @@ export default function WorkQueue({
       recovery?.item &&
       recovery?.draft
     ) {
-      recoveredCase.current = undefined;
       setCaseNotice(
         "Neshranjene spremembe so obnovljene. Preverite jih pred shranjevanjem. Če je medtem kdo spremenil nalog, ga boste morali znova naložiti.",
       );
       return;
     }
+    // Keep the recovered case while its URL is unchanged. Replayed effect
+    // setup must not fetch the saved record over an unsaved recovery draft.
+    // Leaving the case clears this identity so a later open reloads normally.
+    recoveredCase.current = undefined;
     if (caseId) void open(caseId);
     else {
       caseRequest.current?.abort();
@@ -1020,7 +1024,7 @@ export default function WorkQueue({
         {caseError && (
           <div className="admin-message admin-message-error" role="alert">
             {caseError}
-            {conflict && (
+            {(conflict || (!item && !caseLoading)) && (
               <button
                 className="admin-button"
                 onClick={() => {

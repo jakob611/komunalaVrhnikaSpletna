@@ -11,6 +11,7 @@ import { readiness } from "./readiness.js";
 import { servePublicPage, documentHeaders } from "./public-pages.js";
 import { processScheduledPublications } from "./scheduled-publications.js";
 import { queryOfficialAddresses, requireOfficialAddress } from "./address-registry.js";
+import { publicOrigin } from "./public-origin.js";
 
 const PHOTO_LIMIT = 5 * 1024 * 1024;
 const JSON_LIMIT = 32 * 1024;
@@ -187,6 +188,10 @@ function foldLine(line) {
   return lines.join("\r\n");
 }
 export function calendar(schedule, options = {}) {
+  const sourceUrl = options.sourceUrl || 'https://kpv.jakobtominc.com/odpadki/urnik';
+  const deliveryNote = options.subscription
+    ? 'Naročnina prikazuje objavljene odvoze. Posodobitve prevzame vaša koledarska aplikacija; prikaz sprememb je lahko zamaknjen.'
+    : 'Uvoženi koledar se ne posodablja samodejno; spremembe preverite na ' + sourceUrl + '.';
   const stamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -219,7 +224,7 @@ export function calendar(schedule, options = {}) {
       `DTEND;VALUE=DATE:${addDays(event.date, 1).replace(/-/g, "")}`,
       `SUMMARY:${safeICS(event.label)}`,
       `LOCATION:${safeICS(schedule.address)}`,
-      `DESCRIPTION:${safeICS("Urnik odvoza KPV. Uvoženi koledar se ne posodablja samodejno; spremembe preverite na https://kpv.jakobtominc.com/odpadki/urnik." + (recurrence.length ? " Ponavljanje vsebuje samo objavljene datume, vključno s potrjenimi izjemami." : ""))}`,
+      `DESCRIPTION:${safeICS("Urnik odvoza KPV. " + deliveryNote + (options.subscription ? ' Preverite tudi ' + sourceUrl + '.' : '') + (recurrence.length ? " Ponavljanje vsebuje samo objavljene datume, vključno s potrjenimi izjemami." : ""))}`,
     );
     lines.push(...recurrence);
     lines.push("END:VEVENT");
@@ -369,6 +374,11 @@ async function report(request) {
 export async function handleRequest(request, env = {}, ctx) {
   const url = new URL(request.url);
   const route = url.pathname;
+  if (request.method === 'HEAD' && ['/api/calendar','/api/calendar/feed'].includes(route)) {
+    const response = await handleRequest(new Request(request,{method:'GET'}),env,ctx);
+    await response.body?.cancel();
+    return new Response(null,{status:response.status,headers:response.headers});
+  }
   if (!route.startsWith("/api/")) {
     try {
       return await servePublicPage(request, env, () => readPublished(env, "layout"));
@@ -419,7 +429,7 @@ export async function handleRequest(request, env = {}, ctx) {
         // A removed/emptied route remains an empty valid feed, so subscribers
         // can refresh instead of receiving an expired-event error indefinitely.
         const events=(selected?.events||[]).filter(event=>event.type===type&&event.date>=from).map(event=>({...event,id:`${routeId}-${event.id}`})).sort((a,b)=>a.date.localeCompare(b.date));
-        return new Response(calendar({address:selected?.name||'KPV',events},{name:`KPV – ${COLLECTION_TYPES[type]}`}),{headers:{...securityHeaders,'Cache-Control':'public, max-age=300','Content-Type':'text/calendar; charset=utf-8','Content-Disposition':'inline; filename="kpv-odvozi.ics"'}});
+        return new Response(calendar({address:selected?.name||'KPV',events},{name:`KPV – ${COLLECTION_TYPES[type]}`,subscription:true,sourceUrl:publicOrigin(env)+'/odpadki/urnik'}),{headers:{...securityHeaders,'Cache-Control':'public, max-age=300','Content-Type':'text/calendar; charset=utf-8','Content-Disposition':'inline; filename="kpv-odvozi.ics"'}});
       }
       if (route === "/api/collection" || route === "/api/calendar") {
         const inputAddress = field(
@@ -439,7 +449,7 @@ export async function handleRequest(request, env = {}, ctx) {
           );
         if (route === "/api/calendar")
           return new Response(
-            calendar(schedule, calendarOptions(url.searchParams, schedule)),
+            calendar(schedule, {...calendarOptions(url.searchParams, schedule),sourceUrl:publicOrigin(env)+'/odpadki/urnik'}),
             {
               headers: {
                 ...securityHeaders,

@@ -76,6 +76,25 @@ describe("guest navigation and personal starting point", () => {
     await screen.findByRole("heading", { level: 1, name: "O podjetju in spletni strani" });
     await waitFor(() => expect(document.querySelector(".menu-toggle")?.getAttribute("aria-expanded")).toBe("false"));
   });
+  it("G30 follows a configured navigation entry and exposes the skip and contact destinations", async () => {
+    state.sections.layout.navigation = [{ id: "waste-map", label: "Zbirna mesta v bližini", url: "/odpadki/lokacije", variant: "text" }];
+    show(<App/>);
+    const nav = screen.getByRole("navigation", { name: "Glavna navigacija" });
+    expect(within(nav).queryByRole("button", { name: /^Možnosti:/ })).toBeNull();
+    fireEvent.click(within(nav).getByRole("link", { name: "Zbirna mesta v bližini" }));
+    await waitFor(() => expect(screen.getByTestId("guest-location").textContent).toContain('"pathname":"/odpadki/lokacije"'));
+    const main = screen.getByRole("main");
+    expect(screen.getByRole("link", { name: "Preskoči na vsebino" }).getAttribute("href")).toBe(`#${main.id}`);
+    expect(main.tabIndex).toBe(-1);
+    const footer = screen.getByRole("contentinfo");
+    expect(within(footer).getByRole("link", { name: state.sections.settings.email }).getAttribute("href")).toBe(`mailto:${state.sections.settings.email}`);
+    expect(within(footer).getByRole("link", { name: state.sections.settings.phone }).getAttribute("href")).toMatch(/^tel:\+?\d+$/);
+    fireEvent.click(within(footer).getByRole("link", { name: "Vsi kontakti" }));
+    await waitFor(() => expect(screen.getByTestId("guest-location").textContent).toContain('"pathname":"/kontakt"'));
+    expect(screen.getByRole("link", { name: "Domov" }).getAttribute("href")).toBe("/");
+    fireEvent.click(within(footer).getByRole("link", { name: `${state.sections.settings.siteName} – domov` }));
+    await waitFor(() => expect(screen.getByTestId("guest-location").textContent).toContain('"pathname":"/"'));
+  });
   it("G04 general homepage announcements must not be labeled as waste notices", async () => {
     show(<App/>);
     const card = await screen.findByRole("link", { name: /Office opening announcement/ });
@@ -104,7 +123,7 @@ describe("guest navigation and personal starting point", () => {
   it("G07 personal schedule failures offer retry without keeping old events", async () => {
     localStorage.setItem("kpv-address", "Verd 12, Vrhnika");
     const collection = vi.fn().mockResolvedValueOnce(response({ error: "Schedule unavailable" }, 503))
-      .mockResolvedValueOnce(response({ events: [event], complete: false, message: "Only BIO is confirmed" }));
+      .mockResolvedValueOnce(response({ address: "Verd 12, Vrhnika", events: [event], complete: false, message: "Only BIO is confirmed" }));
     vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? collection()));
     show(<App/>, "/moj-dom");
     await screen.findByText("Schedule unavailable");
@@ -190,12 +209,17 @@ describe("published information and self-service", () => {
     fireEvent.change(screen.getByLabelText("Ulica, hišna številka in kraj"), { target: { value: "Borovnica 1" } });
     expect(screen.queryByText(event.label)).toBeNull();
   });
-  it("G13 malformed collection responses cannot produce a plausible schedule", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? response({ events: "not-an-array" })));
+  it.each([
+    { events: "not-an-array" },
+    { events: [{ ...event, date: "2090-02-30" }] },
+    { events: [event], routes: { bio: { id: "route", name: "Route", lastDate: "invalid" } } },
+    { events: [event], incompleteTypes: "residual" },
+  ])("G13 malformed collection response %j cannot produce a plausible schedule", async (payload) => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => addressApiResponse(url) ?? response({ address: "Verd 12, Vrhnika", ...payload })));
     show(<CollectionPage/>, "/odpadki/urnik");
     await selectAddress("Ulica, hišna številka in kraj");
     fireEvent.click(screen.getByRole("button", { name: "Prikaži urnik" }));
-    await screen.findByRole("alert");
+    expect((await screen.findByRole("alert")).textContent).toContain("Prejeli smo neveljaven urnik");
     expect(screen.queryByRole("link", { name: /Vsi prikazani termini/ })).toBeNull();
   });
   it("G14 waste wizard recovery must use the published item list when an item is in another group", () => {

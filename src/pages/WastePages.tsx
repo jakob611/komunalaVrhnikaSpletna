@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { addressFromNavigation, readSavedAddress as storedAddress, saveHomeAddress } from "../data/saved-address";
+import { isCollectionSchedule, type CollectionSchedule } from "../data/collection-response";
 import {
   ArrowRight,
   CalendarDays,
@@ -525,18 +526,7 @@ export function WasteWizardPage() {
   );
 }
 
-type CollectionEvent = {
-  id: string;
-  date: string;
-  type: string;
-  label: string;
-  color: string;
-};
-type Schedule = {
-  address: string; events: CollectionEvent[]; complete?: boolean;
-  incompleteTypes?: string[]; ambiguousTypes?: string[]; expiredTypes?: string[];
-  routes?: Record<string, { id: string; name: string; lastDate: string }>;
-};
+type CollectionEvent = CollectionSchedule["events"][number];
 const collectionLabels: Record<string, string> = {
   packaging: "Mešana embalaža", bio: "Biološki odpadki", residual: "Mešani komunalni odpadki",
 };
@@ -549,7 +539,7 @@ export function CollectionPage() {
   const [address, setAddress] = useState(initialAddress);
   const [verifiedAddress, setVerifiedAddress] = useState<VerifiedAddress | null>(null);
   const autoLoadInitial = useRef(!!initialAddress.trim());
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [schedule, setSchedule] = useState<CollectionSchedule | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -603,8 +593,8 @@ export function CollectionPage() {
             "Urnika trenutno ni mogoče pridobiti. Poskusite znova čez trenutek.",
         );
       }
-      const data = (await response.json()) as Schedule;
-      if (!Array.isArray(data.events))
+      const data: unknown = await response.json();
+      if (!isCollectionSchedule(data))
         throw new Error("Prejeli smo neveljaven urnik. Poskusite znova.");
       if (controller.signal.aborted) return;
       setSchedule(data);

@@ -10,7 +10,7 @@ import WorkQueue from "../components/admin/WorkQueue";
 import type { CemeteryData } from "../data/cemetery";
 
 describe("citizen workflows", () => {
-  it("keeps direct calendar opening when future collections are included", () => {
+  it("opens Google's verified subscription shortcut and retains its supported URL fallback", () => {
     const events = [
       {
         id: "one",
@@ -50,9 +50,13 @@ describe("citizen workflows", () => {
     const link = screen.getByRole("link", { name: /Odpri Google/ });
     const url = new URL(link.getAttribute("href")!, "https://kpv.example");
     expect(url.hostname).toBe("calendar.google.com");
-    expect(new URL(url.searchParams.get("cid")!).pathname).toBe(
-      "/api/calendar/feed",
-    );
+    expect(url.pathname).toBe('/calendar/render');
+    const feed = new URL(url.searchParams.get('cid')!);
+    expect(feed.protocol).toBe('webcal:');
+    expect(feed.pathname).toBe('/api/calendar/feed');
+    expect(feed.searchParams.get('route')).toBe('bio-verD');
+    fireEvent.click(screen.getByText('Če Google ne doda koledarja'));
+    expect(screen.getByRole('button',{name:'Kopiraj povezavo'})).toBeTruthy();
     expect(screen.queryByText(/Nastavitve → Uvoz/)).toBeNull();
     expect(screen.queryByText("Embalaža")).toBeNull();
   });

@@ -10,6 +10,7 @@ import {
   shiftCollectionDate,
 } from "./collection-utils.js";
 import { validateSection } from "./cms-validation.js";
+import official from "./official-collection-2026.json" with { type: "json" };
 const event = (date, type = "bio", id = `${type}-${date}`) => ({
   id,
   date,
@@ -21,6 +22,24 @@ const route = (id, addresses, events = [event("2027-01-01")]) => ({
   name: id,
   addresses,
   events,
+});
+
+test("Borovnica schedule abbreviations match registered settlements without guessing the residual vehicle", () => {
+  for (const [name, packaging, ambiguous] of [
+    ["Breg", "official-emb-bor-k2", true],
+    ["Dol", "official-emb-bor-b7", true],
+    ["Laze", "official-emb-bor-b7", false],
+  ]) {
+    const address = `${name} pri Borovnici 1, Borovnica`;
+    const result = matchCollectionSchedule(address, official.routes);
+    assert.equal(result.matches.packaging.route?.id, packaging);
+    assert.equal(result.matches.residual.ambiguous, ambiguous);
+    assert.equal(addressRuleMatches(address, `${name}, Ljubljana`), false);
+    assert.equal(addressRuleMatches(`${name} pri Borovnici 1, Vrhnika`, `${name}, Borovnica`), false);
+    assert.equal(addressRuleMatches(address, `${name} 11, Borovnica`), false);
+    const samePlace = [route("short", [`${name}, Borovnica`]), route("full", [`${name} pri Borovnici, Borovnica`])];
+    assert.equal(matchCollectionRoute(address, samePlace).ambiguous, true);
+  }
 });
 
 test("district rules use whole words and house numbers, normalize diacritics and allow qualified streets", () => {

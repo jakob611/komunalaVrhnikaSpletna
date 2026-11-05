@@ -12,6 +12,7 @@ import { CmsPageImage, useSiteContent, telephone } from "./content/SiteContent";
 import {mapAddressUrl} from '../shared/location.js';
 import { readSavedAddress, saveHomeAddress, forgetHomeAddress, addressFromNavigation } from "./data/saved-address";
 import VerifiedAddressPicker, { type VerifiedAddress } from "./components/VerifiedAddressPicker";
+import { isCollectionSchedule } from "./data/collection-response";
 import {
   NavLink,
   Route,
@@ -1050,7 +1051,7 @@ function MyHome() {
       .then(async (r) => {
         const d = await r.json();
         if (!r.ok) throw Error(d.error || "Naslova ni mogoče prikazati.");
-        if (!Array.isArray(d.events))
+        if (!isCollectionSchedule(d))
           throw Error("Prejetega urnika ni mogoče prikazati. Poskusite znova.");
         return d;
       })

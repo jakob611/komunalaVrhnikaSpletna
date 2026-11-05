@@ -11,6 +11,7 @@ export function calendarLinks(options: {
   origin?: string;
   today?: string;
 }): {
+  googleFromUrl: string;
   once: CalendarDestinations;
   upcoming: CalendarDestinations | null;
   feed: string | null;

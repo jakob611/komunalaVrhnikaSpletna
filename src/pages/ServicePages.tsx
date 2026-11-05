@@ -947,7 +947,7 @@ export function ReportPage() {
                       : "Omogoči premikanje zemljevida"}
                     <MapPin size={16} />
                   </button>
-                  <div className="svc-map-wrap">
+                  <div className="svc-map-wrap" role="region" aria-label="Izberite mesto težave na zemljevidu">
                     <MapContainer
                       center={draftPosition || [45.964, 14.298]}
                       zoom={draftPosition ? 15 : 13}
@@ -956,7 +956,6 @@ export function ReportPage() {
                       touchZoom={false}
                       keyboard={false}
                       className="svc-map"
-                      aria-label="Izberite mesto težave na zemljevidu"
                     >
                       <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -1953,7 +1952,7 @@ function ContactForm() {
               name="subject"
               required
               minLength={3}
-              maxLength={200}
+              maxLength={180}
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
               placeholder={

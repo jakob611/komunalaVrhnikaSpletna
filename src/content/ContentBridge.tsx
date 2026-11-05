@@ -30,7 +30,7 @@ export default function ContentBridge() {
     >();
     const pictures = new WeakMap<
       HTMLImageElement,
-      { original: string; originalSrc: string; alt: string; applied: string }
+      { original: string; originalSrc: string; alt: string; applied: string; appliedAlt: string }
     >();
     let frame = 0;
     let selectedBlock = "";
@@ -78,19 +78,24 @@ export default function ContentBridge() {
         if (image.closest(ignored)) return;
         const src = image.getAttribute("src") || "";
         let item = pictures.get(image);
+        // React can update src and alt independently. Reuse the last base alt
+        // only when the DOM still contains the value we applied ourselves.
+        const baseAlt = item && image.alt === item.appliedAlt ? item.alt : image.alt;
         if (!item || src !== item.applied)
           item = {
             original: image.dataset.cmsOriginal || src,
             originalSrc: src,
-            alt: image.alt,
+            alt: baseAlt,
             applied: src,
+            appliedAlt: image.alt,
           };
+        else item.alt = baseAlt;
         const change = override(images, item.original, pageFor(image));
         item.applied = change?.url || item.originalSrc;
+        item.appliedAlt = change?.alt ?? item.alt;
         pictures.set(image, item);
         if (item.applied !== src) image.src = item.applied;
-        if (image.alt !== (change?.alt ?? item.alt))
-          image.alt = change?.alt ?? item.alt;
+        if (image.alt !== item.appliedAlt) image.alt = item.appliedAlt;
       });
       const slot = root!.querySelector<HTMLElement>("[data-cms-image-slot]");
       if (slot) {
@@ -124,6 +129,7 @@ export default function ContentBridge() {
       childList: true,
       subtree: true,
       characterData: true,
+      attributeFilter: ["src", "alt"],
     });
     scan();
     const message = (event: MessageEvent) => {
@@ -360,10 +366,9 @@ export default function ContentBridge() {
       }
       root!.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
         const item = pictures.get(image);
-        if (item && image.getAttribute("src") === item.applied) {
-          image.src = item.originalSrc;
-          image.alt = item.alt;
-        }
+        if (!item) return;
+        if (image.getAttribute("src") === item.applied) image.src = item.originalSrc;
+        if (image.alt === item.appliedAlt) image.alt = item.alt;
       });
     };
   }, [pathname, data.copy, data.images]);

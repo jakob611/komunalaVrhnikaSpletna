@@ -59,6 +59,24 @@ describe("address continuity without unnecessary repeated entry", () => {
     expect(screen.getByText(/Prikazani odvozi še veljajo za Verd 12/)).toBeTruthy();
     expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).startsWith("/api/collection"))).toHaveLength(1);
   });
+  it("rejects an invalid collection date on My Home and reloads a valid schedule on retry", async () => {
+    localStorage.setItem("kpv-address", address);
+    let attempts = 0;
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      const registered = addressApiResponse(url);
+      if (registered) return registered;
+      if (url.startsWith("/api/collection")) {
+        return Response.json({ address, events: [++attempts === 1 ? { ...event, date: "2090-02-30" } : event] });
+      }
+      return Response.json({ notices: [] });
+    }));
+    render(<MemoryRouter initialEntries={["/moj-dom"]}><App/></MemoryRouter>);
+    await screen.findByText(/Prejetega urnika ni mogoče prikazati/);
+    expect(screen.queryByText(event.label)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Poskusi znova" }));
+    await screen.findByText(event.label);
+    expect(attempts).toBe(2);
+  });
   it("reuses a subscription address only on request and derives its municipality after verification", async () => {
     localStorage.setItem("kpv-address", address);
     render(<MemoryRouter><SubscriptionForm/></MemoryRouter>);

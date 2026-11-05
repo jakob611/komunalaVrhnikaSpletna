@@ -11,7 +11,15 @@ test("calendar providers use the actual published origin after a domain change",
   assert.equal(new URL(links.once.apple).origin, "https://portal.example.si");
   const google = new URL(links.once.google);
   assert.match(google.searchParams.get("details"), /https:\/\/portal\.example\.si\/odpadki\/urnik/);
-  assert.equal(new URL(new URL(links.upcoming.google).searchParams.get("cid")).origin, "https://portal.example.si");
+  const googleSubscription=new URL(links.upcoming.google);
+  assert.equal(googleSubscription.pathname, "/calendar/render");
+  assert.equal(new URL(googleSubscription.searchParams.get('cid')).protocol,'webcal:');
+  assert.equal(new URL(googleSubscription.searchParams.get('cid')).host,'portal.example.si');
+  assert.equal(new URL(links.googleFromUrl).pathname,'/calendar/r/settings/addbyurl');
+  const subscription = new URL(links.feed);
+  assert.equal(subscription.origin, "https://portal.example.si");
+  assert.equal(subscription.searchParams.get("route"), "published-route");
+  assert.equal(subscription.searchParams.get("type"), "bio");
   assert.equal(new URL(new URL(links.upcoming.outlook).searchParams.get("url")).origin, "https://portal.example.si");
   assert.match(links.upcoming.apple, /^webcal:\/\/portal\.example\.si\//);
   assert.equal(new URL(links.feed).searchParams.get("address"), null);

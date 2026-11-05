@@ -32,12 +32,25 @@ export function normalizedAddress(value) {
 }
 const houseNumber = /^\d+[a-z]?$/;
 const roadDesignators = new Set(["cesta", "ulica", "pot", "trg", "naselje", "gric"]);
-function addressComponents(value) {
-  return String(value || "").split(/,|(?=\bob[cč]ina\b)/i).map((part) => {
+// KPV abbreviates these three settlements in its Borovnica schedules.
+// Require the municipality component before interpreting a short name.
+const borovnicaSettlementNames = new Set(["breg", "dol", "laze"]);
+function addressComponents(value, collectionAliases = false) {
+  const components = String(value || "").split(/,|(?=\bob[cč]ina\b)/i).map((part) => {
     const tokens = addressTokens(part);
     const municipality = tokens[0] === "obcina";
     return { tokens: municipality ? tokens.slice(1) : tokens, municipality };
   }).filter((part) => part.tokens.length);
+  const hasBorovnica = collectionAliases && components.length > 1 && components.some(({ tokens }) =>
+    tokens.length === 1 && tokens[0] === "borovnica",
+  );
+  if (!hasBorovnica) return components;
+  return components.map((part) => {
+    const [name, ...rest] = part.tokens;
+    if (part.municipality || !borovnicaSettlementNames.has(name)) return part;
+    if (rest.length && !(rest.length === 1 && houseNumber.test(rest[0]))) return part;
+    return { ...part, tokens: [name, "pri", "borovnici", ...rest] };
+  });
 }
 function groupMatchesComponent(group, tokens) {
   return tokens.some((_, start) => {
@@ -51,10 +64,10 @@ function groupMatchesComponent(group, tokens) {
     return next === undefined || houseNumber.test(next) || roadDesignators.has(next);
   });
 }
-function addressRuleMatch(address, pattern) {
+function addressRuleMatch(address, pattern, collectionAliases = false) {
   if (hasAmbiguousHouseNumbers(address) || hasAmbiguousHouseNumbers(pattern)) return { matches: false, primary: false };
-  const components = addressComponents(address);
-  const groups = addressComponents(pattern).map((part) => part.tokens);
+  const components = addressComponents(address, collectionAliases);
+  const groups = addressComponents(pattern, collectionAliases).map((part) => part.tokens);
   if (!components.length || !groups.length) return { matches: false, primary: false };
   const numbered = components.findIndex((part) => !part.municipality && part.tokens.some((token, index) => index > 0 && houseNumber.test(token)));
   const primaryIndex = numbered >= 0 ? numbered : Math.max(0, components.findIndex((part) => !part.municipality));
@@ -74,21 +87,22 @@ export function matchCollectionRoute(address, routes) {
   const matches = routes.flatMap((route) => {
     const qualifiedRules = new Map();
     for (const pattern of route.addresses) {
-      const groups = addressComponents(pattern);
+      const groups = addressComponents(pattern, true);
       if (groups.length > 1) {
         const key = groups[0].tokens.join(" ");
         qualifiedRules.set(key, [...(qualifiedRules.get(key) || []), pattern]);
       }
     }
     return route.addresses.flatMap((pattern) => {
-        const { matches, primary } = addressRuleMatch(address, pattern);
+        const { matches, primary } = addressRuleMatch(address, pattern, true);
         if (!matches) return [];
-        const groups = addressComponents(pattern);
+        const groups = addressComponents(pattern, true);
+        const tokenCount = groups.reduce((length, part) => length + part.tokens.length + Number(part.municipality), 0);
         const qualified = groups.length === 1 ? qualifiedRules.get(groups[0].tokens.join(" ")) : null;
         // A bare settlement alias is useful for "Verd 12". When a municipality
         // is supplied, use its declared qualified variants instead of accepting
         // a contradictory address such as "Verd 12, Ljubljana".
-        if (hasLocalityContext && qualified?.length && !qualified.some((rule) => addressRuleMatches(address, rule))) return [];
+        if (hasLocalityContext && qualified?.length && !qualified.some((rule) => addressRuleMatch(address, rule, true).matches)) return [];
         const firstPart = addressTokens(pattern.split(",")[0]);
         const house = firstPart.length > 1 && houseNumber.test(firstPart.at(-1));
         return [{
@@ -97,7 +111,7 @@ export function matchCollectionRoute(address, routes) {
           specificity:
             (house ? 1_000_000_000 : 0) +
             (primary ? 1_000_000 : 0) +
-            addressTokens(pattern).length * 1000,
+            tokenCount * 1000,
         }];
       });
   });

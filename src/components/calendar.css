@@ -307,6 +307,9 @@
   margin: 0 0 8px;
   color: #7b8872;
 }
+.calendar-google-feed label {display:block;margin:12px 0 6px;font-weight:600;}
+.calendar-google-feed input {width:100%;min-width:0;border:1px solid #cbd8c7;border-radius:6px;padding:10px;font:inherit;color:#284c39;background:#fff;}
+.calendar-google-feed .button {min-height:44px;margin-bottom:10px;}
 .calendar-footer {
   border-top: 1px solid #e2e9db;
   padding: 17px 25px 15px;

@@ -66,7 +66,11 @@ export function calendarLinks({
       "/api/calendar/feed?" +
       new URLSearchParams({ route: routeId, type: event.type, from: today })
     : null;
+  // The HTTPS cid failed in Google's UI. Its legacy render + webcal shortcut
+  // imported the real dated events after Google's asynchronous first fetch.
+  const subscription = feed?.replace(/^https?:/, "webcal:");
   return {
+    googleFromUrl: "https://calendar.google.com/calendar/r/settings/addbyurl",
     once: {
       google: "https://calendar.google.com/calendar/render?" + google,
       apple: once,
@@ -76,13 +80,12 @@ export function calendarLinks({
     upcoming: feed
       ? {
           google:
-            "https://calendar.google.com/calendar/u/0/r?" +
-            new URLSearchParams({ cid: feed }),
-          apple: feed.replace(/^https?:/, "webcal:"),
+            "https://calendar.google.com/calendar/render?" + new URLSearchParams({cid:subscription}),
+          apple: subscription,
           outlook:
             `https://${microsoftHost}/calendar/0/addfromweb/?` +
             new URLSearchParams({ url: feed, name: `KPV – ${event.label}` }),
-          other: feed.replace(/^https?:/, "webcal:"),
+          other: subscription,
         }
       : null,
     feed,

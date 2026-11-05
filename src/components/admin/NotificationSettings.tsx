@@ -94,6 +94,7 @@ export default function NotificationSettings({
       signal: init.signal || AbortSignal.timeout(20000),
     });
     const data = await response.json().catch(() => ({}));
+    init.signal?.throwIfAborted();
     if (!response.ok) {
       if (response.status === 401) listeners.current.onSessionExpired();
       if (response.status === 409) setConflict(true);
@@ -102,13 +103,13 @@ export default function NotificationSettings({
     return data;
   }
   useEffect(() => {
-    if (recovered.current) {
-      recovered.current = false;
+    if (recovered.current && refresh === 0) {
       setNotice(
         "Neshranjeni naslov je obnovljen. Preverite ga pred shranjevanjem. Če je lastnik medtem shranil drug naslov, boste morali najprej naložiti nove nastavitve.",
       );
       return;
     }
+    recovered.current = false;
     const controller = new AbortController();
     setLoading(true);
     setError("");

@@ -46,6 +46,8 @@ export function CalendarDialog({
     [repeat, setRepeat] = useState(false),
     [outlookWork, setOutlookWork] = useState(false),
     [opened, setOpened] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const copyAttempt = useRef(0);
   const links = calendarLinks({ event, address, routeId, outlookWork, origin: window.location.origin });
   const series = events.filter((item) => item.type === event.type);
   const destination =
@@ -53,6 +55,21 @@ export function CalendarDialog({
   const external =
     destination.startsWith("https://calendar.google.com/") ||
     destination.startsWith("https://outlook.");
+  useEffect(() => {
+    ++copyAttempt.current;
+    setCopyState("idle");
+    return () => { ++copyAttempt.current; };
+  }, [calendar, repeat, links.feed]);
+  async function copyFeed() {
+    if (!links.feed) return;
+    const attempt = ++copyAttempt.current;
+    try {
+      await navigator.clipboard.writeText(links.feed);
+      if (attempt === copyAttempt.current) setCopyState("copied");
+    } catch {
+      if (attempt === copyAttempt.current) setCopyState("failed");
+    }
+  }
   useEffect(() => {
     const previous =
       document.activeElement instanceof HTMLElement
@@ -157,7 +174,7 @@ export function CalendarDialog({
                     <strong>{names[key]}</strong>
                     <small>
                       {key === "google"
-                        ? "Android, iPhone ali računalnik"
+                        ? repeat ? "Naročnino dodajte na računalniku" : "Android, iPhone ali računalnik"
                         : key === "apple"
                           ? "iPhone, iPad ali Mac"
                           : key === "outlook"
@@ -203,6 +220,17 @@ export function CalendarDialog({
             </span>
           </label>
           {!links.upcoming && <p className="calendar-action-note">Za ta odvoz lahko dodate posamezni datum. Naročnina na prihodnje termine je na voljo, ko je potrjeno odvozno območje.</p>}
+          {repeat && calendar === "google" && <p className="calendar-action-note">Naročnino dodajte v spletnem Google Koledarju na računalniku. Prvi uvoz se lahko prikaže z zamikom. Nato jo lahko uporabljate tudi v aplikaciji na telefonu.</p>}
+          {repeat && calendar === "google" && links.feed && <details className="calendar-help calendar-google-feed">
+            <summary>Če Google ne doda koledarja</summary>
+            <p>Kopirajte povezavo in odprite Google Koledar. Povezavo prilepite v polje za URL koledarja in potrdite dodajanje.</p>
+            <button type="button" className="button" onClick={copyFeed}>Kopiraj povezavo</button>
+            {copyState === "copied" && <p role="status">Povezava je kopirana.</p>}
+            {copyState === "failed" && <p role="alert">Samodejno kopiranje ni uspelo. Označite in kopirajte povezavo iz spodnjega polja.</p>}
+            <label htmlFor="calendar-feed-url">Povezava do urnika</label>
+            <input id="calendar-feed-url" type="url" readOnly value={links.feed} onFocus={event=>event.currentTarget.select()}/>
+            <p><a href={links.googleFromUrl} target="_blank" rel="noreferrer">Odpri dodajanje koledarja iz povezave</a></p>
+          </details>}
           {repeat && (
             <details className="calendar-help">
               <summary>Trenutno objavljeni datumi ({series.length})</summary>
@@ -252,7 +280,9 @@ export function CalendarDialog({
             <ArrowUpRight size={18} />
           </a>
           <p className="calendar-action-note" role="status">
-            {opened
+            {repeat && calendar === 'google'
+              ? 'V Google Koledarju potrdite dodajanje. Prvi uvoz in poznejše posodobitve vodi Google.'
+              : opened
               ? "Dodajanje potrdite v izbranem koledarju. Odprtje povezave še ne shrani dogodka."
               : repeat
                 ? "Enkrat potrdite dodajanje koledarja s prihodnjimi odvozi."

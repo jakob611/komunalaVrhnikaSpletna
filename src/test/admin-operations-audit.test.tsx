@@ -1,4 +1,5 @@
 import { afterEach, it, expect, vi } from "vitest";
+import { StrictMode } from "react";
 import {
   render,
   screen,
@@ -165,6 +166,106 @@ it("AO13 unsaved operational notes survive session expiry and same-person reauth
   expect(sessionStorage.length).toBe(0);
 });
 
+it("AO13 effect replay after reauthentication does not reload over the recovered operational draft", async () => {
+  const fetcher = backend();
+  const entry = "/admin?case=KPV-one";
+  window.history.replaceState(null, "", entry);
+  render(<StrictMode><MemoryRouter initialEntries={[entry]}><AdminPage /></MemoryRouter></StrictMode>);
+  fireEvent.change(await screen.findByLabelText(/Interne opombe/), {
+    target: { value: "Preserve this unsaved note across effect replay" },
+  });
+  fireEvent.change(screen.getByLabelText("Odgovorna oseba ali ekipa"), {
+    target: { value: "Recovered maintenance team" },
+  });
+  fireEvent.change(screen.getByLabelText("Rok obravnave"), {
+    target: { value: "2026-12-01" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Shrani obravnavo" }));
+  await screen.findByRole("button", { name: "Prijavi audit uporabnika" });
+  await act(async () => { await Promise.resolve(); });
+  fireEvent.click(screen.getByRole("button", { name: "Prijavi audit uporabnika" }));
+  await screen.findByText(/Neshranjene spremembe so obnovljene/);
+  await waitFor(() => expect((screen.getByLabelText(/Interne opombe/) as HTMLTextAreaElement).value)
+    .toBe("Preserve this unsaved note across effect replay"));
+  expect((screen.getByLabelText("Odgovorna oseba ali ekipa") as HTMLInputElement).value).toBe("Recovered maintenance team");
+  expect((screen.getByLabelText("Rok obravnave") as HTMLInputElement).value).toBe("2026-12-01");
+  fireEvent.click(screen.getByRole("button", { name: "Shrani obravnavo" }));
+  await screen.findAllByText("Spremembe naloga so shranjene.");
+  const writes = fetcher.mock.calls.filter(([, init]) => init?.method === "PUT");
+  expect(writes).toHaveLength(2);
+  expect(JSON.parse(String(writes[1][1]?.body)).notes).toBe("Preserve this unsaved note across effect replay");
+  expect(JSON.parse(String(writes[1][1]?.body)).assignee).toBe("Recovered maintenance team");
+  expect(JSON.parse(String(writes[1][1]?.body)).dueDate).toBe("2026-12-01");
+});
+
+it("AO28 cancel retains dirty case and task values, while accepting discard releases the unload guard", async () => {
+  const fetcher = backend();
+  const confirmation = vi.spyOn(window, "confirm").mockReturnValue(false);
+  const beforeUnload = () => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  try {
+    view("/admin?case=KPV-one");
+    fireEvent.change(await screen.findByLabelText(/Interne opombe/), { target: { value: "Dirty case note" } });
+    expect(beforeUnload()).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Zapri obravnavo" }));
+    expect((screen.getByLabelText(/Interne opombe/) as HTMLTextAreaElement).value).toBe("Dirty case note");
+    confirmation.mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Zapri obravnavo" }));
+    await waitFor(() => expect(screen.queryByLabelText(/Interne opombe/)).toBeNull());
+    expect(beforeUnload()).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Nov interni nalog" }));
+    fireEvent.change(screen.getByLabelText(/Naslov naloga · obvezno/), { target: { value: "Dirty task title" } });
+    expect(beforeUnload()).toBe(true);
+    confirmation.mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Zapri nov interni nalog" }));
+    expect((screen.getByLabelText(/Naslov naloga · obvezno/) as HTMLInputElement).value).toBe("Dirty task title");
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Pregled" }));
+    expect(screen.getByLabelText(/Naslov naloga · obvezno/)).toBeTruthy();
+    confirmation.mockReturnValue(true);
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Pregled" }));
+    await screen.findByRole("heading", { level: 1, name: "Pregled portala" });
+    expect(screen.queryByLabelText(/Naslov naloga · obvezno/)).toBeNull();
+    expect(beforeUnload()).toBe(false);
+    expect(fetcher.mock.calls.some(([, init]) => ["PUT", "POST"].includes(init?.method || ""))).toBe(false);
+  } finally {
+    confirmation.mockRestore();
+  }
+});
+
+it("AO29 failed case loading offers retry without leaving the case", async () => {
+  const fetcher = backend(), base = fetcher.getMockImplementation()!;
+  let failDetail = true;
+  fetcher.mockImplementation(async (path, init) => {
+    if (path === "/api/admin/work/KPV-one" && failDetail) {
+      failDetail = false;
+      return Response.json({ error: "Shramba nalogov trenutno ni na voljo." }, { status: 503 });
+    }
+    return base(path, init);
+  });
+  view("/admin?case=KPV-one");
+  await screen.findByText("Shramba nalogov trenutno ni na voljo.");
+  fireEvent.click(screen.getByRole("button", { name: "Ponovno naloži nalog" }));
+  await screen.findByLabelText(/Interne opombe/);
+  expect(screen.queryByText("Shramba nalogov trenutno ni na voljo.")).toBeNull();
+});
+
+it("AO29 a late 401 from a closed case does not interrupt the current session", async () => {
+  const fetcher = backend(), base = fetcher.getMockImplementation()!;
+  let complete!: (response: Response) => void;
+  fetcher.mockImplementation(async (path, init) =>
+    path === "/api/admin/work/KPV-one"
+      ? new Promise<Response>(resolve => { complete = resolve; })
+      : base(path, init));
+  view("/admin?case=KPV-one");
+  fireEvent.click(await screen.findByRole("button", { name: "Zapri obravnavo" }));
+  await act(async () => complete(Response.json({ error: "Obsolete expiry" }, { status: 401 })));
+  expect(screen.queryByRole("button", { name: "Prijavi audit uporabnika" })).toBeNull();
+  expect(screen.getByRole("heading", { level: 1, name: "Delovni nalogi" })).toBeTruthy();
+});
+
 it("AO13 an operational draft from an expired session is never given to a different signed-in person", async () => {
   backend();
   view("/admin?case=KPV-one");
@@ -272,7 +373,7 @@ it("AO38 direct campaign, subscriber and privacy requests ask the parent to reco
   await waitFor(() => expect(expired).toHaveBeenCalledTimes(3));
 });
 
-it("AO40 an owner notification recipient draft and its revision baseline survive same-person session recovery", async () => {
+it("AO40 a recovered notification recipient and revision survive effect replay after sign-in", async () => {
   const fetcher = backend(),
     base = fetcher.getMockImplementation()!;
   const settings = {
@@ -286,6 +387,7 @@ it("AO40 an owner notification recipient draft and its revision baseline survive
     enabled: true,
   };
   let expired = false;
+  let finishReload: ((response: Response) => void) | undefined;
   fetcher.mockImplementation(async (path: string, init?: RequestInit) => {
     if (path !== "/api/admin/notifications") return base(path, init);
     if (init?.method === "PUT") {
@@ -300,9 +402,11 @@ it("AO40 an owner notification recipient draft and its revision baseline survive
         revision: 3,
       });
     }
-    return Response.json(settings);
+    return expired
+      ? new Promise<Response>(resolve => { finishReload = resolve; })
+      : Response.json(settings);
   });
-  view();
+  render(<StrictMode><MemoryRouter><AdminPage /></MemoryRouter></StrictMode>);
   await nav("E-poštna obvestila");
   fireEvent.change(await screen.findByLabelText(/Prejemnik novih obvestil/), {
     target: { value: "new-office@example.test" },
@@ -311,6 +415,8 @@ it("AO40 an owner notification recipient draft and its revision baseline survive
   fireEvent.click(
     await screen.findByRole("button", { name: "Prijavi audit uporabnika" }),
   );
+  await act(async () => { await Promise.resolve(); });
+  await act(async () => { finishReload?.(Response.json(settings)); });
   await waitFor(() =>
     expect(
       (screen.getByLabelText(/Prejemnik novih obvestil/) as HTMLInputElement)

@@ -52,7 +52,7 @@ Več: [docs/SERVICES.md](docs/SERVICES.md). OpenStreetMap ohrani navedbo vira. P
 
 ## E-obvestila po naslovih
 
-Območja upravljate v **Območja e-obveščanja**. Občine so pripravljene; dodate lahko naselja ali predele. Ob prijavi naročnik izbere območje, teme in celoten naslov. E-poštna potrditev velja 24 ur; stari zapisi obrazca se zaradi nepotrjenega lastništva e-pošte ne aktivirajo samodejno. Vsak e-naslov ima eno naročnino; spremembe prek nove prijave se uveljavijo šele po potrditvi. Osebna povezava v sporočilu omogoča takojšnjo spremembo nastavitev ali odjavo.
+Občine upravljate v **Območja e-obveščanja**. Naročnik izbere naslov iz uradnega registra in teme, portal pa določi občino po naslovu. E-poštna potrditev velja 24 ur. Stari zapisi obrazca se zaradi nepotrjenega lastništva e-pošte ne aktivirajo samodejno. Vsak e-naslov ima eno naročnino. Spremembe prek nove prijave se uveljavijo po potrditvi. Osebna povezava v sporočilu omogoča takojšnjo spremembo nastavitev ali odjavo.
 
 Pri obvestilu določite območja ter po potrebi celotne ulice ali posamezne hišne številke (eno pravilo na vrstico, dodajte kraj). Shranite, izberite **Preveri prejemnike in dostavo** in nato potrdite pošiljanje. Podvojeno pošiljanje iste različice je blokirano. Umik ali sprememba obvestila ustavi še neposlane kopije; že dostavljene pošte ni mogoče preklicati.
 

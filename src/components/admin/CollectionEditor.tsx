@@ -22,6 +22,7 @@ import {
   type CollectionRoute,
   type CollectionType,
 } from "../../../shared/collection-utils.js";
+import VerifiedAddressPicker, { type VerifiedAddress } from "../VerifiedAddressPicker";
 import "./collection-editor.css";
 export type { CollectionData } from "../../../shared/collection-utils.js";
 
@@ -68,6 +69,7 @@ export default function CollectionEditor({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [testAddress, setTestAddress] = useState("");
+  const [verifiedTestAddress, setVerifiedTestAddress] = useState<VerifiedAddress | null>(null);
   const [gen, setGen] = useState({
     type: "packaging" as CollectionType,
     start: today(),
@@ -109,8 +111,8 @@ export default function CollectionEditor({
       };
     }
   }, [gen]);
-  const match = testAddress.trim()
-    ? matchCollectionSchedule(testAddress, value.routes)
+  const match = verifiedTestAddress
+    ? matchCollectionSchedule(verifiedTestAddress.address, value.routes)
     : null;
   const filtered = useMemo(
     () =>
@@ -842,15 +844,15 @@ export default function CollectionEditor({
         <Search size={20} />
         <div>
           <h3>3. Preverite razporeditev naslova</h3>
-          <label>
-            Preizkusni naslov
-            <input
-              value={testAddress}
-              onChange={(event) => setTestAddress(event.target.value)}
-              placeholder="Npr. Tržaška cesta 1, Vrhnika"
-            />
-          </label>
-          {hasAmbiguousHouseNumbers(testAddress) && <p className="collection-alert error" role="alert">Vnesite eno hišno številko. Zapis s poševnico ali razponom ni dovolj natančen; stanovanje dodajte za vejico.</p>}
+          <VerifiedAddressPicker
+            id="collection-test-address"
+            label="Preizkusni naslov"
+            value={testAddress}
+            onChange={setTestAddress}
+            onSelect={setVerifiedTestAddress}
+            disabled={disabled}
+            resolveValue={false}
+          />
           {match && (
             <p
               role="status"
