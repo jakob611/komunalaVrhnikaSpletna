@@ -3,13 +3,15 @@
 Na `/odpadki/urnik` poiščite svoj naslov in pri terminu izberite **Dodaj v koledar**.
 
 1. Izberite **Google Koledar**, **Apple Koledar**, **Outlook** ali drugo aplikacijo.
-2. Za en termin pustite **Vključi tudi prihodnje odvoze te vrste** izključeno. Gumb odpre dodajanje posameznega dogodka; v koledarju ga potrdite. Google ohrani prejšnjo neposredno povezavo, Outlook odpre svoj obrazec, Apple uporabi prejšnjo povezavo za aplikacijo.
+2. Za en termin pustite **Vključi tudi prihodnje odvoze te vrste** izključeno. Google in Outlook odpreta obrazec za dogodek, Apple in druge aplikacije pa povezavo do datoteke za izbrani datum. Dodajanje potrdite v svojem koledarju.
 3. Za prihodnje odvoze vključite možnost. Isti glavni gumb odpre dodajanje koledarja v izbranem ponudniku oziroma aplikaciji. Datoteke ni treba ročno prenašati ali uvažati.
 4. Pri službenem/šolskem Outlooku vključite **Službeni ali šolski račun Microsoft 365**.
 
+Naročnino na Google Koledar dodajte na računalniku. Prvi uvoz lahko traja, koledar pa je nato na voljo tudi v aplikaciji na telefonu. Če neposredna povezava ne uspe, razprite **Če Google ne doda koledarja**, kopirajte povezavo in odprite dodajanje koledarja iz povezave. Prilepite jo v Googlovo polje za URL in potrdite dodajanje.
+
 Prihodnji odvozi so ločen koledar z dejanskimi objavljenimi termini izbrane vrste odpadkov za odvozno območje. Praznični premiki, izpusti in poznejše objave se upoštevajo ob osvežitvi. Čas osveževanja določa aplikacija oziroma ponudnik; spremembe niso nujno vidne takoj. Odstranitev naročnine uredite v svoji aplikaciji.
 
-Posamezni dogodek je kopija in se ne osvežuje. Prenos datoteke ostaja samo pod **Druga možnost dodajanja**, če aplikacija povezave ne odpre. Stari izvozi `.ics` so še podprti.
+Posamezni dogodek je kopija in se ne osvežuje. Datoteko lahko prenesete pod **Prenos datoteke za koledar**, če aplikacija povezave ne odpre. Stari izvozi `.ics` so še podprti.
 
 ## Za urednika
 
