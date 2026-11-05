@@ -15,6 +15,8 @@ import type {
   CmsButton,
 } from "../../../shared/page-layout";
 import "./layout-editor.css";
+import { mergeNativeBlocks } from "../../../shared/page-layout";
+import { canonicalNativeBlocks } from "../../content/native-sections";
 type Native = { id: string; title: string };
 const uid = () => crypto.randomUUID();
 const typeNames: Record<CmsBlock["type"], string> = {
@@ -26,15 +28,6 @@ const typeNames: Record<CmsBlock["type"], string> = {
   callout: "Poudarjeno obvestilo",
   spacer: "Razmik",
 };
-const nativeBlock = (item: Native): CmsBlock => ({
-  id: item.id,
-  type: "native",
-  nativeId: item.id,
-  tone: "plain",
-  align: "left",
-  width: "wide",
-  hidden: false,
-});
 const emptyButton = (): CmsButton => ({
   id: uid(),
   label: "Več informacij",
@@ -72,27 +65,57 @@ const makeBlock = (type: CmsBlock["type"]): CmsBlock => ({
 });
 export default function LayoutEditor({
   value,
-  onChange,
+  onChange: onLayoutChange,
   pages,
   disabled = false,
+  previewData, page, onPageChange, initialSelected = "", onEditContent, media = [], onUpload, hasMoreMedia=false, mediaLoading=false, onMoreMedia,
 }: {
   value: CmsLayoutData;
   onChange: (next: CmsLayoutData) => void;
   pages: string[][];
   disabled?: boolean;
+  previewData?: Record<string, unknown>;
+  page?: string; onPageChange?: (page: string) => void; initialSelected?: string;
+  hasMoreMedia?:boolean;mediaLoading?:boolean;onMoreMedia?:()=>void;
+  onEditContent?: () => void; media?: {id: string; url: string; name?: string}[];
+  onUpload?: (file: File) => Promise<{url: string} | undefined>;
 }) {
-  const [path, setPath] = useState("/");
+  const latest = useRef({ value, onChange: onLayoutChange });
+  latest.current = { value, onChange: onLayoutChange };
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const onChange = (next: CmsLayoutData) => {
+    if (!mounted.current) return;
+    latest.current.value = next;
+    latest.current.onChange(next);
+  };
+  async function uploadImage(file: File, targetPath: string, targetId: string) {
+    if (!onUpload) return;
+    try {
+      const item = await onUpload(file);
+      if (!item || !mounted.current) return;
+      const current = latest.current.value;
+      const page = current.pages.find(page => page.path === targetPath);
+      if (!page?.blocks.some(block => block.id === targetId && block.type === 'image')) return;
+      onChange({ ...current, pages: current.pages.map(page => page.path === targetPath
+        ? { ...page, blocks: page.blocks.map(block => block.id === targetId ? { ...block, image: item.url } : block) }
+        : page) });
+    } catch { if (mounted.current) setError('Slike ni bilo mogoče naložiti. Poskusite znova.'); }
+  }
+  const [localPath, setLocalPath] = useState("/");
+  const path = page ?? localPath;
+  const setPath = (next: string) => { setLocalPath(next); onPageChange?.(next); };
   const [native, setNative] = useState<Native[]>([]);
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(initialSelected);
   const [type, setType] = useState<CmsBlock["type"]>("text");
   const [newTitle, setNewTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
-  const [menu, setMenu] = useState(false);
+  const properties = useRef<HTMLFieldSetElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const current = value.pages.find((p) => p.path === path);
-  const blocks = current?.blocks ?? native.map(nativeBlock);
+  const blocks = mergeNativeBlocks(canonicalNativeBlocks(path, current?.blocks), native);
   const block = blocks.find((b) => b.id === selected);
   const allPages = [
     ...pages,
@@ -142,6 +165,7 @@ export default function LayoutEditor({
         frame.current?.contentWindow?.postMessage(
           {
             type: "kpv-cms-update",
+            ...previewData,
             layout: value,
             mode: "edit",
             tool: "layout",
@@ -180,11 +204,14 @@ export default function LayoutEditor({
   }, [path, value]);
   useEffect(() => {
     frame.current?.contentWindow?.postMessage(
-      { type: "kpv-cms-update", layout: value, mode: "edit", tool: "layout" },
+      { type: "kpv-cms-update", ...previewData, layout: value, mode: "edit", tool: "layout", selectedBlock: selected },
       location.origin,
     );
-  }, [value, ready]);
+  }, [value, ready, previewData, selected]);
+  const labelFor = (item: CmsBlock, index: number) => `${index + 1}. ${item.title || native.find(n => n.id === item.nativeId)?.title || typeNames[item.type]}`;
   function move(index: number, by: number) {
+    if (index + by < 0 || index + by >= blocks.length) return;
+    setSelected(blocks[index].id);
     const next = [...blocks];
     const [target] = next.splice(index, 1);
     next.splice(index + by, 0, target);
@@ -228,7 +255,6 @@ export default function LayoutEditor({
         ["O podjetju", "/o-podjetju"],
       ].map(([label, url]) => ({ id: uid(), label, url, variant: "text" })),
     });
-    setMenu(true);
   }
   return (
     <div className="layout-editor">
@@ -266,11 +292,11 @@ export default function LayoutEditor({
         </button>
       </div>
       <p className="layout-hint">
-        Premikajte razdelke, dodajte besedila, slike, kartice in delujoče gumbe.
-        V predogledu kliki izbirajo vsebino. Obstoječi obrazci in zemljevidi
-        ohranijo svoje delovanje; njihova vsebina se ureja v področnih
-        urejevalnikih.
+        Kliknite razdelek v seznamu ali predogledu. Izbrani razdelek se obarva zeleno.
+        Puščici premakneta samo ta razdelek za eno mesto. Skrit razdelek lahko
+        kadar koli znova prikažete.
       </p>
+      {block && <div className="layout-selection-summary"><strong>Izbrano: {labelFor(block, blocks.indexOf(block))}{block.hidden ? " · skrito" : ""}</strong><button type="button" className="admin-button admin-small" onClick={() => properties.current?.scrollIntoView({block: "start", behavior: "auto"})}>Uredi nastavitve razdelka ↓</button></div>}
       {error && (
         <p className="admin-error" role="alert">
           {error}
@@ -298,8 +324,7 @@ export default function LayoutEditor({
             />
             {!path.startsWith("/strani/") && (
               <small>
-                Glavni naslov v vsebini spreminjate v razdelku »Besedila na
-                straneh«.
+                Glavni naslov spreminjate pod »Besedila, slike in povezave«.
               </small>
             )}
           </label>
@@ -312,6 +337,7 @@ export default function LayoutEditor({
               >
                 <button
                   className="layout-select"
+                  aria-pressed={item.id === selected}
                   onClick={() => setSelected(item.id)}
                 >
                   <small>
@@ -319,21 +345,21 @@ export default function LayoutEditor({
                     {typeNames[item.type]}
                   </small>
                   <strong>
-                    {item.title ||
-                      native.find((n) => n.id === item.nativeId)?.title ||
-                      typeNames[item.type]}
+                    {labelFor(item, index)}
                   </strong>
                 </button>
                 <div className="layout-row-actions">
                   <button
-                    aria-label={`Premakni razdelek ${index + 1} navzgor`}
+                    aria-label={`Premakni ${labelFor(item, index)} navzgor`}
+                    title="Premakni za eno mesto navzgor"
                     disabled={disabled || index === 0}
                     onClick={() => move(index, -1)}
                   >
                     <ArrowUp size={16} />
                   </button>
                   <button
-                    aria-label={`Premakni razdelek ${index + 1} navzdol`}
+                    aria-label={`Premakni ${labelFor(item, index)} navzdol`}
+                    title="Premakni za eno mesto navzdol"
                     disabled={disabled || index === blocks.length - 1}
                     onClick={() => move(index, 1)}
                   >
@@ -341,6 +367,7 @@ export default function LayoutEditor({
                   </button>
                   <button
                     aria-label={`${item.hidden ? "Prikaži" : "Skrij"} razdelek ${index + 1}`}
+                    title={item.hidden ? "Prikaži na spletni strani" : "Skrij s spletne strani"}
                     disabled={disabled}
                     onClick={() =>
                       update(
@@ -357,6 +384,7 @@ export default function LayoutEditor({
                       aria-label={`Odstrani razdelek ${index + 1}`}
                       disabled={disabled}
                       onClick={() => {
+                        if (!window.confirm(`Odstranite razdelek »${labelFor(item, index)}«?`)) return;
                         update(blocks.filter((b) => b.id !== item.id));
                         setSelected("");
                       }}
@@ -409,10 +437,11 @@ export default function LayoutEditor({
                 ) {
                   onChange({
                     ...value,
-                    pages: value.pages.filter((p) => p.path !== path),
+                    pages: path.startsWith("/strani/")
+                      ? value.pages.map((p) => p.path === path ? { ...p, blocks: [] } : p)
+                      : value.pages.filter((p) => p.path !== path),
                   });
                   setSelected("");
-                  if (path.startsWith("/strani/")) setPath("/");
                 }
               }}
             >
@@ -432,8 +461,9 @@ export default function LayoutEditor({
         </div>
       </div>
       {block && (
-        <fieldset className="admin-panel layout-properties" disabled={disabled}>
-          <legend>{typeNames[block.type]} · nastavitve</legend>
+        <fieldset ref={properties} className="admin-panel layout-properties" disabled={disabled}>
+          <legend>Urejate: {labelFor(block, blocks.indexOf(block))}</legend>
+          <p className="layout-hint">Te nastavitve veljajo samo za izbrani razdelek.</p>
           <div className="layout-property-grid">
             <label className="admin-field">
               <span>Poravnava besedila</span>
@@ -477,11 +507,11 @@ export default function LayoutEditor({
             )}
           </div>
           {block.type === "native" && (
-            <p>
-              Obstoječi funkcionalni razdelek. Besedila in povezave urejajte v
-              vizualnih urejevalnikih, podatke pa v ustreznem področju. Razdelek
-              lahko premaknete ali skrijete.
-            </p>
+            <div>
+              <p>Tukaj spreminjate razporeditev in vidnost obstoječega razdelka.
+              Podatke urnikov, obvestil in obrazcev urejajte v njihovem področju.</p>
+              {onEditContent && <button type="button" className="admin-button" onClick={onEditContent}>Uredi besedilo ali sliko v tem razdelku</button>}
+            </div>
           )}
           {["text", "callout", "cards"].includes(block.type) && (
             <>
@@ -506,7 +536,7 @@ export default function LayoutEditor({
           {block.type === "image" && (
             <>
               <label className="admin-field">
-                <span>Slika · javni naslov iz knjižnice Datoteke</span>
+                <span>Naslov slike</span>
                 <input
                   value={block.image || ""}
                   onChange={(e) => patch({ image: e.target.value })}
@@ -521,6 +551,11 @@ export default function LayoutEditor({
               </label>
             </>
           )}
+          {block.type === "image" && <>
+            {block.image && <img className="admin-selected-image" src={block.image} alt={block.alt || "Predogled slike"} />}
+            {onUpload && <label className="admin-button website-upload">Naloži in uporabi sliko<input type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void uploadImage(file, path, block.id); }} /></label>}
+            {!!media.length && <details><summary>Izberi sliko iz knjižnice</summary><div className="admin-image-picker">{media.map(item => <button key={item.id} type="button" onClick={() => patch({image: item.url})} aria-label={`Uporabi ${item.name || "sliko"}`}><img src={item.url} alt={item.name || "Slika"} loading="lazy" /></button>)}</div>{hasMoreMedia&&<button type="button" className="admin-button" disabled={disabled||mediaLoading} onClick={onMoreMedia}>{mediaLoading?'Nalagamo …':'Naloži starejše slike'}</button>}</details>}
+          </>}
           {block.type === "spacer" && (
             <label className="admin-field">
               <span>Višina razmika</span>
@@ -866,8 +901,7 @@ export default function LayoutEditor({
           </button>
         </div>
         <p>
-          Stran objavite s shranjevanjem. Da bo dosegljiva, dodajte povezavo v
-          meni ali gumb.
+          Stran objavite z gumbom »Shrani in objavi«. Da jo bodo obiskovalci lahko našli, dodajte povezavo v meni ali gumb.
         </p>
       </details>
     </div>

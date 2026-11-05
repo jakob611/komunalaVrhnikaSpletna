@@ -1,5 +1,6 @@
 import {
   Children,
+  Fragment,
   cloneElement,
   isValidElement,
   useEffect,
@@ -16,10 +17,15 @@ import { useSiteContent, contentKey } from "./SiteContent";
 import type {
   CmsBlock,
   CmsLayoutData,
-  CmsLinkOverride,
 } from "../../shared/page-layout";
-import { safeDestination, safePicture } from "../../shared/page-layout";
+import { safeDestination, safePicture, mergeNativeBlocks } from "../../shared/page-layout";
 import "./page-composer.css";
+import { canonicalNativeBlocks } from "./native-sections";
+export { nativeSection } from "./native-sections";
+export function cmsNative(id: string, node: ReactNode): ReactNode {
+  if (node === null || node === undefined || typeof node === "boolean") return node;
+  return isValidElement(node) ? cloneElement(node, { key: id }) : <Fragment key={id}>{node}</Fragment>;
+}
 
 export const isCmsPreview = () =>
   window.parent !== window &&
@@ -30,7 +36,7 @@ const textOf = (children: ReactNode): string =>
     .map((child) =>
       typeof child === "string" || typeof child === "number"
         ? String(child)
-        : isValidElement(child) && typeof child.type === "string"
+        : isValidElement(child)
           ? textOf((child.props as { children?: ReactNode }).children)
           : "",
     )
@@ -170,12 +176,13 @@ function CustomBlock({ block }: { block: CmsBlock }) {
     /* Invalid draft images never load. */
   }
   if (block.type === "spacer")
-    return <div className={`cms-spacer ${block.size}`} aria-hidden="true" />;
+    return <div className={`cms-spacer ${block.size}`} data-cms-block-id={block.id} data-cms-custom-block="true" aria-hidden="true" />;
   return (
     <section
       className={`cms-block cms-tone-${block.tone} cms-align-${block.align} cms-width-${block.width}`}
       data-motion-section
       data-cms-block-id={block.id}
+      data-cms-custom-block="true"
     >
       {block.type === "image" ? (
         picture && (
@@ -232,7 +239,8 @@ export function CmsLayout({ children }: { children: ReactNode }) {
   const native = Children.toArray(children).map((node, index) => {
     const element = isValidElement(node) ? node : null;
     const props = element?.props as Record<string, unknown> | undefined;
-    const id = `native-${contentKey(String(element?.key ?? index)).slice(0, 16)}`;
+    const explicit = String(element?.key ?? "").match(/(?:^|\$)(native-[a-f0-9]{16})$/)?.[1];
+    const id = explicit ?? `native-${contentKey(String(element?.key ?? index)).slice(0, 16)}`;
     const title = sectionName(props, index);
     return { id, title, node };
   });
@@ -263,15 +271,19 @@ export function CmsLayout({ children }: { children: ReactNode }) {
   }, [pathname, signature]);
   const layout = preview || data.layout;
   const configuration = layout.pages.find((p) => p.path === pathname);
-  if (!configuration) return <>{children}</>;
+  if (!configuration && !isCmsPreview()) return <>{children}</>;
+  // The service guide previously used the currently selected service as its React key.
+  // Retain layouts saved from any service while giving the guide one permanent identity.
+  const configured = canonicalNativeBlocks(pathname, configuration?.blocks);
+  const effective = { blocks: mergeNativeBlocks(configured, native) };
   const used = new Set(
-    configuration.blocks
+    effective.blocks
       .filter((b) => b.type === "native")
       .map((b) => b.nativeId),
   );
   return (
     <>
-      {configuration.blocks.map((block) => {
+      {effective.blocks.map((block) => {
         if (block.hidden) return null;
         if (block.type !== "native")
           return <CustomBlock key={block.id} block={block} />;

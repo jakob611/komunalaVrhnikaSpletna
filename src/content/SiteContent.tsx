@@ -8,9 +8,11 @@ import {
 } from "react";
 import defaults from "../../shared/site-defaults.json";
 import type { CollectionPoint, WasteCategory } from "../data/waste";
-import type { Grave } from "../data/cemetery";
+import type { CemeteryData } from "../data/cemetery";
+import type {TariffData} from '../../shared/utility-pricing.js';
 import "./content.css";
 import type { CmsLayoutData, CmsLinkOverride } from "../../shared/page-layout";
+import { useLocation } from "react-router-dom";
 
 export type CopyOverride = {
   page: string;
@@ -36,7 +38,9 @@ export type SiteData = Omit<
   | "market"
   | "layout"
   | "links"
+  | "tariffs"
 > & {
+  tariffs:TariffData;
   layout: CmsLayoutData;
   links: CmsLinkOverride[];
   market: { dates: string[]; closedDates: string[] };
@@ -50,10 +54,7 @@ export type SiteData = Omit<
   }[];
   copy: CopyOverride[];
   images: ImageOverride[];
-  cemetery: {
-    plan: { width: number; height: number; imageUrl: string | null };
-    graves: Grave[];
-  };
+  cemetery: CemeteryData;
   notices: {
     id: string;
     title: string;
@@ -62,15 +63,23 @@ export type SiteData = Omit<
     date: string;
     summary: string;
     status: string;
-    latitude: number;
-    longitude: number;
+    districtIds?: string[];
+    allDistricts?: boolean;
+    addressRules?: string[];
+    latitude: number | null;
+    longitude: number | null;
+    published?: boolean;
   }[];
 };
 const initial = defaults as unknown as SiteData;
 const Context = createContext<SiteData>(initial);
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
   const [data, setData] = useState(initial);
+  const [status, setStatus] = useState<"loading" | "ready" | "unavailable" | "stale">("loading");
+  const [attempt, setAttempt] = useState(0);
+  const published = useRef(false);
   const previewDraft = useRef<Partial<SiteData>>({});
   useEffect(() => {
     if (window.parent === window) return;
@@ -84,7 +93,10 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       previewDraft.current = {
         ...previewDraft.current,
         ...(event.data.layout ? { layout: event.data.layout } : {}),
+        ...(event.data.settings ? { settings: event.data.settings } : {}),
         ...(Array.isArray(event.data.links) ? { links: event.data.links } : {}),
+        ...(Array.isArray(event.data.copy) ? { copy: event.data.copy } : {}),
+        ...(Array.isArray(event.data.images) ? { images: event.data.images } : {}),
       };
       setData((current) => ({ ...current, ...previewDraft.current }));
     };
@@ -93,25 +105,36 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     let active = true;
+    let refreshSequence = 0;
+    let pending: AbortController | null = null;
     const refresh = async () => {
+      pending?.abort();
+      const sequence = ++refreshSequence;
       const controller = new AbortController();
+      pending = controller;
       const timer = window.setTimeout(() => controller.abort(), 12000);
       try {
         const response = await fetch("/api/content", {
           signal: controller.signal,
           cache: "no-store",
         });
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Published content is unavailable");
         const body = await response.json();
-        if (active && body.sections)
+        if (!body.sections || typeof body.sections !== "object" ||
+          Object.keys(initial).some(key => !Object.hasOwn(body.sections, key)))
+          throw new Error("Published content is incomplete");
+        if (active && sequence === refreshSequence) {
           setData({
-            ...initial,
             ...body.sections,
             _revisions: body.revisions || {},
             ...previewDraft.current,
           });
+          published.current = true;
+          setStatus("ready");
+        }
       } catch {
-        /* Bundled defaults keep the public portal usable if the CMS is unavailable. */
+        if (active && sequence === refreshSequence)
+          setStatus(published.current ? "stale" : "unavailable");
       } finally {
         clearTimeout(timer);
       }
@@ -123,10 +146,28 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", visible);
     return () => {
       active = false;
+      pending?.abort();
       document.removeEventListener("visibilitychange", visible);
     };
-  }, []);
-  return <Context.Provider value={data}>{children}</Context.Provider>;
+  }, [attempt]);
+  const admin = pathname.replace(/\/+$/, "") === "/admin";
+  const retry = () => { if (!published.current) setStatus("loading"); setAttempt(value => value + 1); };
+  return <Context.Provider value={data}>
+    {admin || status === "ready" || status === "stale" ? <>
+      {!admin && status === "stale" && <aside className="content-availability" role="alert">
+        <p>Prikazujemo zadnjo uspešno naloženo objavo. Aktualnosti podatkov trenutno ne moremo preveriti.</p>
+        <button className="button secondary" onClick={retry}>Preveri znova</button>
+      </aside>}
+      {children}
+    </> : <main id="main" className="container inner-page" tabIndex={-1}>
+      {status === "loading" ? <p role="status">Nalagamo objavljene podatke …</p> : <section className="panel content-availability" role="alert">
+        <h1>Podatkov trenutno ni mogoče naložiti.</h1>
+        <p>Poskusite znova. Kontakte in nujna obvestila lahko preverite na spletni strani KPV.</p>
+        <button className="button" onClick={retry}>Poskusi znova</button>{" "}
+        <a className="text-link" href="https://www.kpv.si/">Spletna stran KPV</a>
+      </section>}
+    </main>}
+  </Context.Provider>;
 }
 export const useSiteContent = () => useContext(Context);
 export function telephone(value: string) {
@@ -138,15 +179,7 @@ export function telephone(value: string) {
       : number;
 }
 
-// Stable content identifiers, not credentials. Hashes never execute or interpret saved text.
-export function contentKey(value: string) {
-  return Array.from({ length: 8 }, (_, index) => {
-    let hash = 2166136261 ^ Math.imul(index + 1, 0x9e3779b1);
-    for (let i = 0; i < value.length; i++)
-      hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
-    return (hash >>> 0).toString(16).padStart(8, "0");
-  }).join("");
-}
+export { contentKey } from "./content-key";
 
 export function CmsPageImage({ page }: { page: string }) {
   const data = useSiteContent();

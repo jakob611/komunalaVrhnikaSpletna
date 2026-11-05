@@ -5,6 +5,7 @@ import {
   safePicture,
   validateLayout,
   validateLinks,
+  mergeNativeBlocks,
 } from "./page-layout.js";
 import { validateSection, PUBLIC_PAGES } from "./cms-validation.js";
 const block = {
@@ -18,6 +19,17 @@ const block = {
     { id: "contact", label: "Kontakt", url: "/kontakt", variant: "primary" },
   ],
 };
+
+test("restored layouts retain hidden sections and expose newly added native sections for editing", () => {
+  const hidden = { id: "hidden", type: "native", nativeId: "old", hidden: true };
+  const saved = [block, hidden];
+  const merged = mergeNativeBlocks(saved, [{id: "old"}, {id: "new"}]);
+  assert.deepEqual(merged.slice(0, 2), saved);
+  assert.equal(merged[2].nativeId, "new");
+  assert.equal(merged[2].hidden, false);
+  assert.equal(mergeNativeBlocks(merged, [{id: "old"}, {id: "new"}]).length, 3);
+  assert.equal(saved.length, 2);
+});
 test("publishing accepts bounded ordered blocks and custom page paths", () => {
   const value = {
     pages: [

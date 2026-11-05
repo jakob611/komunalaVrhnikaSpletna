@@ -1,0 +1,10 @@
+export type NotificationTopic = 'water' | 'roads' | 'waste' | 'general';
+export type NotificationDistrict = {id:string;name:string;description:string;active:boolean};
+export type NotificationPreferences = {name:string;address:string;districtId:string;topics:NotificationTopic[]};
+export type NotificationTarget = {published?:boolean;category:string;allDistricts?:boolean;districtIds?:string[];addressRules?:string[]};
+export const NOTIFICATION_TOPICS: Readonly<Record<NotificationTopic,string>>;
+export function notificationAddressMatches(address:string,rule:string):boolean;
+export function validateDistricts(value:unknown):NotificationDistrict[];
+export function validateDeliveryFields(value:NotificationTarget):Pick<NotificationTarget,'allDistricts'|'districtIds'|'addressRules'>;
+export function matchesNotice(subscriber:{status:string;address:string;districtId:string;topics:string[]},notice:NotificationTarget):boolean;
+export function validatePreferences(value:unknown,districts:NotificationDistrict[]):NotificationPreferences;

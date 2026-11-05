@@ -9,7 +9,7 @@ import {
 } from "./SiteContent";
 
 const ignored =
-  "script,style,textarea,input,select,option,svg,canvas,iframe,[data-cms-skip],.leaflet-container,.cemetery-detail,.cemetery-results,[role='status'],[role='alert']";
+  "script,style,textarea,input,select,option,svg,canvas,iframe,[data-cms-skip],[data-cms-field-key],.leaflet-container,.cemetery-detail,.cemetery-results,[role='status'],[role='alert']";
 const clean = (value: string) => value.replace(/\s+/g, " ").trim();
 
 export default function ContentBridge() {
@@ -30,9 +30,11 @@ export default function ContentBridge() {
     >();
     const pictures = new WeakMap<
       HTMLImageElement,
-      { original: string; originalSrc: string; alt: string; applied: string }
+      { original: string; originalSrc: string; alt: string; applied: string; appliedAlt: string }
     >();
     let frame = 0;
+    let selectedBlock = "";
+    let selectionChanged = false;
     let highlighted: Element | null = null;
     const pageFor = (element: Element) =>
       element.closest(".site-header,.utility-bar,footer") ? "*" : pathname;
@@ -76,19 +78,24 @@ export default function ContentBridge() {
         if (image.closest(ignored)) return;
         const src = image.getAttribute("src") || "";
         let item = pictures.get(image);
+        // React can update src and alt independently. Reuse the last base alt
+        // only when the DOM still contains the value we applied ourselves.
+        const baseAlt = item && image.alt === item.appliedAlt ? item.alt : image.alt;
         if (!item || src !== item.applied)
           item = {
             original: image.dataset.cmsOriginal || src,
             originalSrc: src,
-            alt: image.alt,
+            alt: baseAlt,
             applied: src,
+            appliedAlt: image.alt,
           };
+        else item.alt = baseAlt;
         const change = override(images, item.original, pageFor(image));
         item.applied = change?.url || item.originalSrc;
+        item.appliedAlt = change?.alt ?? item.alt;
         pictures.set(image, item);
         if (item.applied !== src) image.src = item.applied;
-        if (image.alt !== (change?.alt ?? item.alt))
-          image.alt = change?.alt ?? item.alt;
+        if (image.alt !== item.appliedAlt) image.alt = item.appliedAlt;
       });
       const slot = root!.querySelector<HTMLElement>("[data-cms-image-slot]");
       if (slot) {
@@ -106,6 +113,13 @@ export default function ContentBridge() {
           !!slot.style.backgroundImage,
         );
       }
+      root!.querySelectorAll(".cms-block-selected").forEach(node => node.classList.remove("cms-block-selected"));
+      const selected = Array.from(root!.querySelectorAll<HTMLElement>("[data-cms-block-id]")).find(node => node.dataset.cmsBlockId === selectedBlock);
+      if (selected) {
+        selected.classList.add("cms-block-selected");
+        if (selectionChanged) selected.scrollIntoView({ block: "center", behavior: "auto" });
+      }
+      selectionChanged = false;
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(scan);
@@ -115,6 +129,7 @@ export default function ContentBridge() {
       childList: true,
       subtree: true,
       characterData: true,
+      attributeFilter: ["src", "alt"],
     });
     scan();
     const message = (event: MessageEvent) => {
@@ -125,6 +140,10 @@ export default function ContentBridge() {
         event.data?.type !== "kpv-cms-update"
       )
         return;
+      if (Object.hasOwn(event.data, "selectedBlock")) {
+        selectionChanged = selectedBlock !== event.data.selectedBlock;
+        selectedBlock = event.data.selectedBlock;
+      }
       if (Array.isArray(event.data.copy)) copy = event.data.copy;
       if (Array.isArray(event.data.images)) images = event.data.images;
       if (event.data.mode === "edit" || event.data.mode === "interact")
@@ -161,6 +180,14 @@ export default function ContentBridge() {
       event.preventDefault();
       event.stopImmediatePropagation();
       const target = raw.closest("svg") ? raw.closest("a,button") || raw : raw;
+      if (target.closest(".brand,.footer-brand .cms-brand-image")) {
+        window.parent.postMessage({type: "kpv-cms-brand-select"}, location.origin);
+        return;
+      }
+      if (tool !== "layout" && target.closest("[data-cms-custom-block]")) {
+        window.parent.postMessage({type: "kpv-cms-block-select", id: target.closest<HTMLElement>("[data-cms-block-id]")?.dataset.cmsBlockId}, location.origin);
+        return;
+      }
       if (tool === "layout") {
         const block = target.closest<HTMLElement>("[data-cms-block-id]");
         if (block)
@@ -185,6 +212,18 @@ export default function ContentBridge() {
             },
             location.origin,
           );
+        return;
+      }
+      const field = target.closest<HTMLElement>("[data-cms-field-key]");
+      if (field) {
+        const picture = field instanceof HTMLImageElement;
+        window.parent.postMessage({
+          type: "kpv-cms-select", kind: picture ? "image" : "text",
+          key: field.dataset.cmsFieldKey, original: field.dataset.cmsFieldOriginal,
+          legacyKey: field.dataset.cmsFieldLegacyKey,
+          page: field.dataset.cmsFieldPage || pageFor(field), tag: picture ? "img" : target.tagName.toLowerCase(),
+          ...(picture ? { src: field.getAttribute("src") || "", alt: field.alt } : {}),
+        }, location.origin);
         return;
       }
       if (target.closest(ignored)) return;
@@ -267,9 +306,9 @@ export default function ContentBridge() {
       if (!inspecting || !(event.target instanceof Element)) return;
       highlighted?.classList.remove("cms-inspect-target");
       highlighted =
-        mode === "interact" || event.target.closest(ignored)
+        mode === "interact" || (event.target.closest(ignored) && !event.target.closest("[data-cms-field-key]"))
           ? null
-          : event.target;
+          : tool === "layout" ? event.target.closest("[data-cms-block-id]") : event.target;
       highlighted?.classList.add("cms-inspect-target");
     };
     const stopSubmit = (event: Event) => {
@@ -327,10 +366,9 @@ export default function ContentBridge() {
       }
       root!.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
         const item = pictures.get(image);
-        if (item && image.getAttribute("src") === item.applied) {
-          image.src = item.originalSrc;
-          image.alt = item.alt;
-        }
+        if (!item) return;
+        if (image.getAttribute("src") === item.applied) image.src = item.originalSrc;
+        if (image.alt === item.appliedAlt) image.alt = item.alt;
       });
     };
   }, [pathname, data.copy, data.images]);

@@ -9,6 +9,16 @@ export const BLOCK_TYPES = [
   "spacer",
 ];
 export const CUSTOM_PAGE = /^\/strani\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+// Keep newly introduced functional sections visible and editable after restoring
+// an older layout that predates them. Explicitly hidden sections stay hidden.
+export function mergeNativeBlocks(configured, native) {
+  const blocks = configured ? [...configured] : [];
+  const used = new Set(blocks.filter(block => block.type === "native").map(block => block.nativeId));
+  for (const item of native) {
+    if (!used.has(item.id)) blocks.push({ id: item.id, nativeId: item.id, type: "native", tone: "plain", align: "left", width: "wide", hidden: false });
+  }
+  return blocks;
+}
 const fail = (message) => {
   const error = new Error(`Preverite urejevalnik strani: ${message}.`);
   error.status = 400;

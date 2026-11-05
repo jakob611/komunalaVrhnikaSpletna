@@ -8,12 +8,19 @@ import {
 } from "lucide-react";
 import "./admin-auth.css";
 
+type AccessScope = "all" | "content" | "operations";
+const scopeLabels: Record<AccessScope, string> = {
+  content: "Samo vsebine",
+  operations: "Samo obravnava oddaj in obvestila",
+  all: "Vsebine in obravnava oddaj",
+};
 type User = {
   email: string;
   role: "owner" | "editor";
   status: "active" | "invited" | "revoked";
   created_at: number;
   updated_at: number;
+  accessScope?: AccessScope;
 };
 export default function AdminUsers({
   csrfToken,
@@ -24,6 +31,10 @@ export default function AdminUsers({
 }) {
   const [users, setUsers] = useState<User[]>([]);
   const [email, setEmail] = useState("");
+  const [accessScope, setAccessScope] = useState<AccessScope>("content");
+  const [scopeDrafts, setScopeDrafts] = useState<Record<string, AccessScope>>(
+    {},
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -61,13 +72,13 @@ export default function AdminUsers({
   useEffect(() => {
     void load();
   }, []);
-  async function invite(address: string) {
+  async function invite(address: string, scope: AccessScope = accessScope) {
     if (busy) return;
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      await api("", { email: address });
+      await api("", { email: address, accessScope: scope });
       setUsers((await api()).items);
       setEmail("");
       setNotice(
@@ -76,6 +87,31 @@ export default function AdminUsers({
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Povabila ni mogoče poslati.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function changeScope(person: User) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await api("/scope", {
+        email: person.email,
+        accessScope: scopeDrafts[person.email] || person.accessScope || "all",
+      });
+      setUsers((await api()).items);
+      setScopeDrafts({});
+      setNotice(
+        "Dostop je spremenjen. Urednik se mora pred nadaljevanjem znova prijaviti.",
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Dostopa ni mogoče spremeniti.",
       );
     } finally {
       setBusy(false);
@@ -122,7 +158,7 @@ export default function AdminUsers({
       <header>
         <div>
           <p className="eyebrow">DOSTOP IN VARNOST</p>
-          <h2 id="admin-users-title">Vsak urednik ima svoj dostop.</h2>
+          <h2 id="admin-users-title">Uporabniki in dostopi</h2>
           <p>
             Samo lastnik upravlja povabila. Vsaka prijava zahteva osebno geslo
             in novo enkratno kodo iz e-pošte.
@@ -160,6 +196,22 @@ export default function AdminUsers({
             placeholder="urednik@primer.si"
           />
         </label>
+        <label>
+          Področje dostopa
+          <select
+            value={accessScope}
+            onChange={(event) =>
+              setAccessScope(event.target.value as AccessScope)
+            }
+            disabled={busy}
+          >
+            {Object.entries(scopeLabels).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           className="admin-button admin-primary"
           type="submit"
@@ -174,9 +226,10 @@ export default function AdminUsers({
         </button>
       </form>
       <p className="admin-users-help">
-        Povabilo velja 24 ur. Novi urednik v povezavi določi svoje geslo, dolgo
-        vsaj 12 znakov. Uredniki lahko urejajo vsebine in delovne naloge;
-        dodajanje ljudi ostane lastniku.
+        Povabilo velja 24 ur. Novi urednik odpre povezavo in določi geslo, dolgo
+        vsaj 12 znakov. Dostop do vsebin ne omogoča vpogleda v zasebne oddaje in
+        naslove naročnikov. Obstoječi uredniki ohranijo dosedanji dostop, dokler
+        ga lastnik ne spremeni. Nove urednike lahko povabi samo lastnik.
       </p>
       {busy && !loaded && <p role="status">Nalagam dostope …</p>}
       <ul className="admin-user-list">
@@ -187,20 +240,65 @@ export default function AdminUsers({
               <span>
                 {person.role === "owner" ? "Lastnik portala" : "Urednik"} ·{" "}
                 {labels[person.status]}
+                {person.role !== "owner" && (
+                  <> · {scopeLabels[person.accessScope || "all"]}</>
+                )}
               </span>
             </div>
             {person.role === "owner" ? (
               <span className="admin-owner-badge">
-                <ShieldCheck size={16} /> Zaščiten lastnik
+                <ShieldCheck size={16} /> Dostopa lastnika ni mogoče preklicati
               </span>
             ) : (
               <div className="admin-user-actions">
+                {person.status !== "revoked" && (
+                  <>
+                    <label>
+                      Področje dostopa za {person.email}
+                      <select
+                        disabled={busy}
+                        value={
+                          scopeDrafts[person.email] ||
+                          person.accessScope ||
+                          "all"
+                        }
+                        onChange={(event) =>
+                          setScopeDrafts({
+                            ...scopeDrafts,
+                            [person.email]: event.target.value as AccessScope,
+                          })
+                        }
+                      >
+                        {Object.entries(scopeLabels).map(([key, label]) => (
+                          <option key={key} value={key}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="admin-button"
+                      disabled={
+                        busy ||
+                        !scopeDrafts[person.email] ||
+                        scopeDrafts[person.email] ===
+                          (person.accessScope || "all")
+                      }
+                      onClick={() => void changeScope(person)}
+                    >
+                      Spremeni dostop
+                    </button>
+                  </>
+                )}
                 {person.status !== "active" && (
                   <button
                     type="button"
                     className="admin-button"
                     disabled={busy}
-                    onClick={() => void invite(person.email)}
+                    onClick={() =>
+                      void invite(person.email, person.accessScope || "all")
+                    }
                   >
                     <MailPlus size={16} />{" "}
                     {person.status === "revoked"

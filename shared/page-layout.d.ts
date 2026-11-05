@@ -46,6 +46,7 @@ export type CmsLinkOverride = {
 };
 export const BLOCK_TYPES: readonly string[];
 export const CUSTOM_PAGE: RegExp;
+export function mergeNativeBlocks(configured: CmsBlock[] | undefined, native: {id: string}[]): CmsBlock[];
 export function safeDestination(value: string, blank?: boolean): string;
 export function safePicture(value: string): string;
 export function validateLayout(

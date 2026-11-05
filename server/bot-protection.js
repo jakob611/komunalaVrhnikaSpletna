@@ -5,6 +5,23 @@ export class BotError extends Error {
   }
 }
 
+export async function enforceFormQuota(request, env, now = Date.now()) {
+  if (env.FORM_RATE_LIMITER) return; // The platform binding was already checked before verification.
+  if (!env.DB) throw new BotError(503, "Varna oddaja trenutno ni pripravljena. Poskusite pozneje.");
+  const secret = env.SUBSCRIPTION_SIGNING_SECRET || env.TURNSTILE_SECRET;
+  if (!secret) throw new BotError(503, "Varna oddaja trenutno ni pripravljena. Poskusite pozneje.");
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(request.headers.get("cf-connecting-ip") || "unknown"));
+  const digest = Array.from(new Uint8Array(signature), byte => byte.toString(16).padStart(2, "0")).join("");
+  const limits = [{ label: "minute", duration: 60000, maximum: 10 }, { label: "hour", duration: 3600000, maximum: 100 }];
+  const results = await env.DB.batch(limits.map(({ label, duration }) => env.DB.prepare(
+    "INSERT INTO public_form_limits(key,window,attempts) VALUES(?,?,1) ON CONFLICT(key,window) DO UPDATE SET attempts=attempts+1 RETURNING attempts",
+  ).bind(`${label}:${digest}`, Math.floor(now / duration) * duration)));
+  if (results.some((result, index) => !result.results?.[0] || result.results[0].attempts > limits[index].maximum))
+    throw new BotError(429, "V kratkem času ste oddali več obrazcev. Počakajte in poskusite znova.");
+}
+
 export async function verifyBot(
   request,
   env,
@@ -83,4 +100,8 @@ export async function verifyBot(
       403,
       "Varnostno preverjanje je poteklo ali ni uspelo. Počakajte na novo preverjanje in poskusite znova.",
     );
+  // Only successful challenges consume the fallback quota. Unverified traffic
+  // cannot fill another household's allowance or create submission records.
+  if (["contact", "reports", "requests", "market", "subscriptions"].includes(action))
+    await enforceFormQuota(request, env);
 }

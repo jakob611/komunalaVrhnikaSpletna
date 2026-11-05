@@ -14,6 +14,8 @@ export type CollectionRoute = {
 };
 export type CollectionData = { routes: CollectionRoute[] };
 export const COLLECTION_TYPES: Readonly<Record<CollectionType, string>>;
+export function hasAmbiguousHouseNumbers(value: string): boolean;
+export function normalizeAddressInput(value: string): string;
 export function addressTokens(value: string): string[];
 export function normalizedAddress(value: string): string;
 export function addressRuleMatches(address: string, pattern: string): boolean;
@@ -26,6 +28,11 @@ export function matchCollectionRoute(
   candidates: CollectionRoute[];
 };
 export function shiftCollectionDate(value: string, days: number): string;
+export function matchCollectionSchedule(address: string, routes: CollectionRoute[]): {
+  matches: Record<CollectionType, ReturnType<typeof matchCollectionRoute>>;
+  incompleteTypes: CollectionType[];
+  ambiguousTypes: CollectionType[];
+};
 export function generateCollectionEvents(options: {
   type: CollectionType;
   start: string;

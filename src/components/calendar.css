@@ -226,6 +226,28 @@
   margin: 10px 0 6px;
   color: #577647;
 }
+.calendar-repeat-options label:has(input:disabled) {
+  cursor: default;
+  color: #6b7765;
+  background: #f5f6f2;
+}
+.calendar-recurrence summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.calendar-date-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 0;
+  margin: 0;
+  list-style: none;
+  font-size: 12px;
+}
 .calendar-invalid {
   color: #a44738;
 }
@@ -285,6 +307,9 @@
   margin: 0 0 8px;
   color: #7b8872;
 }
+.calendar-google-feed label {display:block;margin:12px 0 6px;font-weight:600;}
+.calendar-google-feed input {width:100%;min-width:0;border:1px solid #cbd8c7;border-radius:6px;padding:10px;font:inherit;color:#284c39;background:#fff;}
+.calendar-google-feed .button {min-height:44px;margin-bottom:10px;}
 .calendar-footer {
   border-top: 1px solid #e2e9db;
   padding: 17px 25px 15px;
@@ -436,4 +461,28 @@
   .calendar-sheet * {
     transition: none !important;
   }
+}
+.calendar-repeat-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 18px 0;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.calendar-repeat-toggle input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 3px;
+}
+.calendar-repeat-toggle strong,
+.calendar-repeat-toggle small {
+  display: block;
+}
+.calendar-repeat-toggle small {
+  font-size: 12px;
+  color: #627063;
+  margin-top: 4px;
 }

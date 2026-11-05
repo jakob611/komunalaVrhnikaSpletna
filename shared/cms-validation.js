@@ -1,6 +1,8 @@
 // CMS content is plain data. Shared helpers have no runtime dependencies.
-import { normalizedAddress } from "./collection-utils.js";
+import { normalizedAddress, hasAmbiguousHouseNumbers } from "./collection-utils.js";
 import { validateLayout, validateLinks, CUSTOM_PAGE } from "./page-layout.js";
+import { validateDistricts, validateDeliveryFields } from "./notification-rules.js";
+import {validateTariffs} from './utility-pricing.js';
 export const CMS_SECTIONS = Object.freeze([
   "settings",
   "hours",
@@ -17,6 +19,8 @@ export const CMS_SECTIONS = Object.freeze([
   "images",
   "layout",
   "links",
+  "districts",
+  "tariffs",
 ]);
 export const PUBLIC_PAGES = Object.freeze([
   "/",
@@ -61,7 +65,7 @@ const pointTypes = [
   "tekstil",
 ];
 const services = ["bulky", "septic", "water", "other"];
-const rateKeys = [
+const legacyRateKeys = [
   "wasteBase",
   "wastePerson",
   "bio",
@@ -72,6 +76,7 @@ const rateKeys = [
   "marketFood",
   "marketCraft",
 ];
+const rateKeys=['marketStandard','marketFood','marketCraft'];
 const forbiddenKeys = new Set(["__proto__", "prototype", "constructor"]);
 const maxBytes = 1024 * 1024;
 
@@ -260,6 +265,12 @@ function texts(value, label, maxItems = 30, maxText = 500) {
 }
 
 const validators = {
+  tariffs(value) {
+    const clean=validateTariffs(value);
+    if(clean.municipalities.some(item=>item.effectiveFrom>today())||clean.waste.effectiveFrom>today())invalid('datum veljavnosti cenika','prihodnji cenik lahko pripravite v osnutku; objavite ga šele na datum veljavnosti, da trenutni izračun ostane na voljo');
+    return clean;
+  },
+  districts: value => validateDistricts(value),
   layout: (value) => validateLayout(value, PUBLIC_PAGES),
   links: (value) => validateLinks(value, PUBLIC_PAGES),
   settings(value) {
@@ -320,7 +331,7 @@ const validators = {
     return unique(
       array(value, "obvestila", 200).map((item, index) => {
         const label = `obvestilo ${index + 1}`;
-        object(item, label, [
+        const noticeFields = [
           "id",
           "title",
           "category",
@@ -330,27 +341,34 @@ const validators = {
           "status",
           "latitude",
           "longitude",
-        ]);
+        ];
+        object(item, label, [...noticeFields, "published", "districtIds", "allDistricts", "addressRules"], noticeFields);
+        if (item.published !== undefined && typeof item.published !== "boolean")
+          invalid(label, "objava mora biti vključena ali izključena");
+        if ((item.latitude === null) !== (item.longitude === null))
+          invalid(label, "vnesite obe koordinati ali obe pustite prazni");
         return {
+          ...validateDeliveryFields(item),
           id: id(item.id, label),
-          title: text(item.title, label, 250),
+          title: text(item.title, `${label} – naslov`, 250, item.published === false ? 0 : 1),
           category: choice(item.category, label, [
             "water",
             "roads",
             "waste",
             "general",
           ]),
-          area: text(item.area, label, 300),
+          area: text(item.area, `${label} – območje`, 300, item.published === false ? 0 : 1),
           date: date(item.date, label),
-          summary: text(item.summary, label, 5000),
+          summary: text(item.summary, `${label} – vsebina`, 5000, item.published === false ? 0 : 1),
           status: choice(item.status, label, [
             "planned",
             "info",
             "active",
             "resolved",
           ]),
-          latitude: number(item.latitude, label, -90, 90),
-          longitude: number(item.longitude, label, -180, 180),
+          latitude: item.latitude === null ? null : number(item.latitude, label, -90, 90),
+          longitude: item.longitude === null ? null : number(item.longitude, label, -180, 180),
+          ...(item.published === undefined ? {} : { published: item.published }),
         };
       }),
       (item) => item.id,
@@ -370,6 +388,8 @@ const validators = {
             array(route.addresses, `${label} – pravila naslovov`, 500, 1).map(
               (item) => {
                 const rule = text(item, `${label} – naslov`, 300);
+                if (hasAmbiguousHouseNumbers(rule))
+                  invalid(label, "hišne razpone vpišite kot posamezne naslove, vsakega v svojo vrstico; stanovanje navedite za vejico");
                 if (!normalizedAddress(rule))
                   invalid(
                     label,
@@ -411,22 +431,15 @@ const validators = {
       (item) => item.id,
       "odvozne poti",
     );
-    const addressOwners = new Map();
     for (const route of routes) {
       unique(
         route.events,
         (event) => `${event.type}|${event.date}`,
         `${route.name} – datum in vrsta odpadkov`,
       );
-      for (const rule of route.addresses) {
-        const key = normalizedAddress(rule);
-        if (addressOwners.has(key))
-          invalid(
-            "odvozne poti",
-            `pravilo »${rule}« že uporablja območje »${addressOwners.get(key)}«`,
-          );
-        addressOwners.set(key, route.name);
-      }
+      // Fractions have independent geographic routes. Overlapping same-fraction
+      // rules are retained for vehicle splits whose house boundaries are unknown;
+      // public lookup reports these as unconfirmed instead of guessing a route.
     }
     return { routes };
   },
@@ -543,7 +556,10 @@ const validators = {
     return clean;
   },
   rates(value) {
-    object(value, "cene", rateKeys);
+    // Older saved sections contain obsolete demonstration utility amounts.
+    // Accept them only for migration, validate, and discard them permanently.
+    object(value, "cene", legacyRateKeys,rateKeys);
+    for(const key of legacyRateKeys)if(Object.hasOwn(value,key))number(value[key],`cena ${key}`,0,100_000);
     return Object.fromEntries(
       rateKeys.map((key) => [
         key,
@@ -572,7 +588,7 @@ const validators = {
     return { dates, closedDates };
   },
   cemetery(value) {
-    object(value, "pokopališče", ["plan", "graves"]);
+    object(value, "pokopališče", ["plan", "graves", "sectors"], ["plan", "graves"]);
     object(value.plan, "načrt pokopališča", ["width", "height", "imageUrl"]);
     const plan = {
       width: number(value.plan.width, "širina načrta", 1, 10_000, true),
@@ -584,7 +600,7 @@ const validators = {
     };
     const currentDate = today();
     const graves = unique(
-      array(value.graves, "grobovi", 1000).map((grave) => {
+      array(value.graves, "grobovi", 5000).map((grave) => {
         object(grave, "grob", [
           "id",
           "section",
@@ -593,7 +609,12 @@ const validators = {
           "x",
           "y",
           "people",
-        ]);
+          "positioned",
+        ], ["id", "section", "row", "number", "x", "y", "people"]);
+        if (grave.positioned !== undefined && typeof grave.positioned !== "boolean")
+          invalid("položaj groba", "potrditev položaja mora biti vključena ali izključena");
+        if (grave.positioned === true && (grave.x + 36 > plan.width || grave.y + 32 > plan.height))
+          invalid("položaj groba", "celotno grobno mesto mora biti znotraj načrta");
         return {
           id: id(grave.id, "oznaka groba"),
           section: text(grave.section, "oddelek", 60),
@@ -601,14 +622,15 @@ const validators = {
           number: number(grave.number, "številka groba", 1, 100_000, true),
           x: number(grave.x, "položaj x", 0, plan.width),
           y: number(grave.y, "položaj y", 0, plan.height),
+          ...(grave.positioned === undefined ? {} : { positioned: grave.positioned }),
           people: array(grave.people, "osebe v grobu", 10).map((person) => {
             object(person, "pokojnik", ["name", "born", "died"]);
-            const born = date(person.born, "datum rojstva");
-            const died = date(person.died, "datum smrti");
-            if (born >= died || died > currentDate)
+            const born = person.born === "" ? "" : date(person.born, "datum rojstva");
+            const died = person.died === "" ? "" : date(person.died, "datum smrti");
+            if ((born && died && born > died) || (died && died > currentDate) || (born && born > currentDate))
               invalid(
                 "datuma pokojnika",
-                "rojstvo mora biti pred smrtjo, datum smrti pa ne sme biti v prihodnosti",
+                "rojstvo ne sme biti po smrti, datuma pa ne smeta biti v prihodnosti",
               );
             return {
               name: text(person.name, "ime pokojnika", 200),
@@ -627,7 +649,14 @@ const validators = {
         `${grave.section.toLocaleLowerCase("sl")}|${grave.row}|${grave.number}`,
       "oznaka groba",
     );
-    return { plan, graves };
+    if (value.sectors === undefined) return { plan, graves };
+    const sectors = unique(array(value.sectors, "sektorji", 100).map(sector => {
+      object(sector, "sektor", ["name", "rows"]);
+      return {name:text(sector.name, "oznaka sektorja", 60),rows:unique(array(sector.rows, "vrste sektorja", 1000).map(row=>number(row, "vrsta", 1, 10000, true)),row=>row,"vrste sektorja").sort((a,b)=>a-b)};
+    }),sector=>sector.name.toLocaleLowerCase("sl"),"sektorji");
+    if (graves.some(grave=>!sectors.some(sector=>sector.name===grave.section&&sector.rows.includes(grave.row))))
+      invalid("sektor in vrsta groba", "vsak grob mora pripadati obstoječi vrsti v sektorju");
+    return { plan, graves, sectors };
   },
   copy(value) {
     return unique(
@@ -685,5 +714,15 @@ export function validateSection(section, value) {
   const serialized = JSON.stringify(result);
   if (new TextEncoder().encode(serialized).byteLength > maxBytes)
     invalid(section, "vsebina presega največjo dovoljeno velikost 1 MB");
+  return JSON.parse(serialized);
+}
+
+/** Drafts use the same safe shape; future tariffs may be prepared without activating them. */
+export function validateDraftSection(section, value) {
+  if (section !== 'tariffs') return validateSection(section, value);
+  const result = validateTariffs(value);
+  const serialized = JSON.stringify(result);
+  if (new TextEncoder().encode(serialized).byteLength > maxBytes)
+    invalid(section, 'vsebina presega največjo dovoljeno velikost 1 MB');
   return JSON.parse(serialized);
 }

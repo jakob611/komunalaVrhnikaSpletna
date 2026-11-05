@@ -7,6 +7,14 @@ const defaults = JSON.parse(
   await readFile(new URL("./site-defaults.json", import.meta.url), "utf8"),
 );
 const clone = (value) => structuredClone(value);
+const noticeFixture = {
+  id: "notice-test", title: "Testno obvestilo", category: "water", area: "Testno območje",
+  date: "2026-10-30", summary: "Obvestilo za preverjanje validacije.", status: "info", latitude: null, longitude: null,
+};
+const graveFixture = {
+  id: "A-01", section: "A", row: 1, number: 1, x: 10, y: 10,
+  people: [{ name: "Testna oseba", born: "1900-01-01", died: "2000-01-01" }],
+};
 function rejected(section, value) {
   assert.throws(
     () => validateSection(section, value),
@@ -22,11 +30,12 @@ test("every shipped CMS section has a valid schema and validation detaches neste
       defaults[section],
       section,
     );
-  const result = validateSection("cemetery", defaults.cemetery);
+  const source = { ...clone(defaults.cemetery), graves: [clone(graveFixture)] };
+  const result = validateSection("cemetery", source);
   result.graves[0].people[0].name = "Spremenjeno";
   assert.notEqual(
     result.graves[0].people[0].name,
-    defaults.cemetery.graves[0].people[0].name,
+    source.graves[0].people[0].name,
   );
 });
 
@@ -58,10 +67,10 @@ test("unknown sections, hidden fields, prototype pollution and HTML are rejected
 });
 
 test("operational records enforce IDs, enums, coordinates, numeric prices and real calendar dates", () => {
-  rejected("notices", [defaults.notices[0], defaults.notices[0]]);
-  rejected("notices", [{ ...defaults.notices[0], latitude: 91 }]);
-  rejected("notices", [{ ...defaults.notices[0], date: "2027-02-29" }]);
-  rejected("notices", [{ ...defaults.notices[0], status: "published" }]);
+  rejected("notices", [noticeFixture, noticeFixture]);
+  rejected("notices", [{ ...noticeFixture, latitude: 91 }]);
+  rejected("notices", [{ ...noticeFixture, date: "2027-02-29" }]);
+  rejected("notices", [{ ...noticeFixture, status: "published" }]);
   rejected("wastePoints", [
     { ...defaults.wastePoints[0], types: ["unrecognized"] },
   ]);

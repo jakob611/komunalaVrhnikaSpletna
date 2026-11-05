@@ -331,6 +331,9 @@ p {
 .hero h1 span {
   color: #74935b;
 }
+.hero h1 > span {
+  margin-inline-start: 0.12em;
+}
 .hero-copy > p {
   font-size: 15px;
   line-height: 1.85;
@@ -607,7 +610,7 @@ p {
 .home-address form > svg {
   color: #7c8b70;
 }
-.home-address input {
+.home-address form > input {
   border: 0;
   width: 100%;
   outline: 0;
@@ -616,7 +619,7 @@ p {
   min-width: 0;
   padding: 6px 0;
 }
-.home-address form button {
+.home-address form > button {
   border: 0;
   background: var(--green);
   color: white;
@@ -1463,7 +1466,7 @@ main:focus {
   .home-address form {
     width: 46%;
   }
-  .home-address input {
+  .home-address form > input {
     font-size: 10px;
   }
   .section-heading h2 {
@@ -1670,7 +1673,7 @@ main:focus {
     width: 100%;
     padding: 6px 7px 6px 10px;
   }
-  .home-address input {
+  .home-address form > input {
     font-size: 10px;
   }
   .section-heading {
@@ -2011,8 +2014,27 @@ main:focus {
   .header-inner {
     gap: 8px;
   }
+  .site-header .brand {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .site-header .brand-symbol {
+    flex: none;
+  }
+  .site-header .brand > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .site-header .cms-brand-image {
+    max-width: min(145px, 100%);
+  }
   .header-actions {
     gap: 3px;
+    flex-shrink: 0;
   }
   .header-actions .icon-button {
     width: 44px;
@@ -2039,7 +2061,7 @@ main:focus {
   .home-address form {
     min-height: 52px;
   }
-  .home-address form button {
+  .home-address form > button {
     min-width: 44px;
     min-height: 44px;
     justify-content: center;
@@ -2052,7 +2074,7 @@ main:focus {
   .home-address form > svg {
     display: none;
   }
-  .home-address input {
+  .home-address form > input {
     padding-left: 10px;
   }
   main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -2185,4 +2207,22 @@ main:focus {
     padding: 6px 0;
     overflow-wrap: anywhere;
   }
+}
+
+/* Verified household selection includes results and source information. */
+.home-address form {
+  width: min(100%, 540px);
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  gap: 12px;
+}
+.home-address form > .verified-address { flex: 1; }
+.home-address form > button { margin-top: 28px; min-height: 44px; min-width: 44px; align-items: center; justify-content: center; }
+.address-setting { align-items: flex-start; }
+.address-setting > .verified-address { flex: 1; }
+.address-setting > .button, .address-setting > .text-link { margin-top: 28px; }
+@media (max-width: 680px) {
+  .address-setting > .button, .address-setting > .text-link { margin-top: 0; }
 }

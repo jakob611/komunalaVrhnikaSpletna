@@ -16,7 +16,8 @@ export type AdminSession = {
   authenticated: true;
   csrfToken: string;
   expiresAt: string | number;
-  user: { email: string; role: "owner" | "editor" };
+  scope?: 'all' | 'content' | 'operations';
+  user: { email: string; role: "owner" | "editor"; accessScope?: 'all' | 'content' | 'operations' };
 };
 type Challenge = {
   verificationRequired: true;
@@ -180,16 +181,16 @@ export default function AdminSignIn({
         <p className="eyebrow">KPV · UREDNIŠTVO</p>
         <h1 id="admin-login-title">
           {enrolled
-            ? "Dostop je pripravljen."
+            ? "Geslo je shranjeno"
             : enroll
-              ? "Dobrodošli v uredništvu."
+              ? "Nastavitev dostopa"
               : challenge
-                ? "Preverite svoj predal."
-                : "Dobrodošli nazaj."}
+                ? "Vnesite prijavno kodo"
+                : "Prijava v uredništvo"}
         </h1>
         <p>
           {enrolled ? (
-            "Vaše osebno geslo je shranjeno. Nadaljujte s prijavo in potrdite novo kodo iz e-pošte."
+            "Prijavite se s svojim e-poštnim naslovom in novim geslom. Nato vnesite prijavno kodo, ki jo boste prejeli po e-pošti."
           ) : enroll ? (
             "Vnesite podatke iz povabila in določite svoje geslo. Povabilo lahko uporabite samo enkrat."
           ) : challenge ? (
@@ -203,7 +204,7 @@ export default function AdminSignIn({
               .
             </>
           ) : (
-            "Dostop samo za povabljene urednike: e-pošta, geslo in enkratna koda iz e-pošte."
+            "Vnesite svoj e-poštni naslov in geslo. Za dokončanje prijave boste prejeli enkratno kodo. Dostop imajo le povabljeni uredniki."
           )}
         </p>
         {!enrolled && (

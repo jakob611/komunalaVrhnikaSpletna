@@ -5,52 +5,116 @@ export const COLLECTION_TYPES = Object.freeze({
   bio: "Biološki odpadki",
   residual: "Mešani komunalni odpadki",
 });
+// Share the accepted spelling variants between collection and notification rules.
+// A slash can mean a second house or an apartment: never guess which one.
+export function hasAmbiguousHouseNumbers(value) {
+  const normalized = normalizeAddressInput(value).replace(/\b(\d+)\s+([a-z])\b/gi, "$1$2");
+  return /\b\d+[a-z]?\s*(?:[-–—/]|\bdo\b)\s*\d+[a-z]?\b/i.test(normalized);
+}
+export function normalizeAddressInput(value) {
+  return String(value || "")
+    .replace(/\b(c|ul)\.(?=\s|\d|$)/gi, (_, kind) => kind.toLowerCase() === "c" ? "cesta " : "ulica ")
+    .replace(/\b(\d+)\s*-\s*([a-z])\b/gi, "$1$2");
+}
 export function addressTokens(value) {
   return (
-    String(value || "")
+    normalizeAddressInput(value)
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
+      // A house suffix is often entered with a space: 12 a and 12a are one house.
+      .replace(/\b(\d+)\s+([a-z])\b/g, "$1$2")
       .match(/[a-z0-9]+/g) || []
   );
 }
 export function normalizedAddress(value) {
   return addressTokens(value).join(" ");
 }
-export function addressRuleMatches(address, pattern) {
-  const actual = addressTokens(address),
-    groups = String(pattern || "")
-      .split(",")
-      .map(addressTokens)
-      .filter((group) => group.length);
-  if (!groups.length || !actual.length) return false;
-  // Comma-separated street/locality constraints permit intervening house numbers,
-  // postcodes, and locality-first input while keeping each phrase and number exact.
-  return groups.every((group) =>
-    actual.some((_, start) =>
-      group.every((token, offset) => actual[start + offset] === token),
-    ),
+const houseNumber = /^\d+[a-z]?$/;
+const roadDesignators = new Set(["cesta", "ulica", "pot", "trg", "naselje", "gric"]);
+// KPV abbreviates these three settlements in its Borovnica schedules.
+// Require the municipality component before interpreting a short name.
+const borovnicaSettlementNames = new Set(["breg", "dol", "laze"]);
+function addressComponents(value, collectionAliases = false) {
+  const components = String(value || "").split(/,|(?=\bob[cč]ina\b)/i).map((part) => {
+    const tokens = addressTokens(part);
+    const municipality = tokens[0] === "obcina";
+    return { tokens: municipality ? tokens.slice(1) : tokens, municipality };
+  }).filter((part) => part.tokens.length);
+  const hasBorovnica = collectionAliases && components.length > 1 && components.some(({ tokens }) =>
+    tokens.length === 1 && tokens[0] === "borovnica",
   );
+  if (!hasBorovnica) return components;
+  return components.map((part) => {
+    const [name, ...rest] = part.tokens;
+    if (part.municipality || !borovnicaSettlementNames.has(name)) return part;
+    if (rest.length && !(rest.length === 1 && houseNumber.test(rest[0]))) return part;
+    return { ...part, tokens: [name, "pri", "borovnici", ...rest] };
+  });
+}
+function groupMatchesComponent(group, tokens) {
+  return tokens.some((_, start) => {
+    // A place name inside another locality/municipality is not an address:
+    // Dragomer cannot match Log - Dragomer, nor Vas match Janezova vas.
+    if (start && !houseNumber.test(tokens[start - 1])) return false;
+    if (!group.every((token, offset) => tokens[start + offset] === token)) return false;
+    const next = tokens[start + group.length];
+    // Keep documented short street stems ("Idrijska" -> "Idrijska cesta")
+    // and house/post codes, but do not truncate compound settlement names.
+    return next === undefined || houseNumber.test(next) || roadDesignators.has(next);
+  });
+}
+function addressRuleMatch(address, pattern, collectionAliases = false) {
+  if (hasAmbiguousHouseNumbers(address) || hasAmbiguousHouseNumbers(pattern)) return { matches: false, primary: false };
+  const components = addressComponents(address, collectionAliases);
+  const groups = addressComponents(pattern, collectionAliases).map((part) => part.tokens);
+  if (!components.length || !groups.length) return { matches: false, primary: false };
+  const numbered = components.findIndex((part) => !part.municipality && part.tokens.some((token, index) => index > 0 && houseNumber.test(token)));
+  const primaryIndex = numbered >= 0 ? numbered : Math.max(0, components.findIndex((part) => !part.municipality));
+  const matching = groups.map((group) => components.map((part,index) => groupMatchesComponent(group, part.tokens) ? index : -1).filter((index) => index >= 0));
+  return { matches: matching.every((indices) => indices.length > 0), primary: matching.some((indices) => indices.includes(primaryIndex)) };
+}
+export function addressRuleMatches(address, pattern) {
+  return addressRuleMatch(address, pattern).matches;
 }
 /** Refuse equally-specific matches from different districts rather than choose array order. */
 export function matchCollectionRoute(address, routes) {
-  const matches = routes.flatMap((route) =>
-    route.addresses
-      .filter((pattern) => addressRuleMatches(address, pattern))
-      .map((pattern) => {
+  const components = addressComponents(address);
+  const hasLocalityContext = components.length > 1 || components.some(({tokens}) => {
+    const number = tokens.findIndex((token, index) => index > 0 && houseNumber.test(token));
+    return number >= 0 && tokens.slice(number + 1).some((token) => !houseNumber.test(token));
+  });
+  const matches = routes.flatMap((route) => {
+    const qualifiedRules = new Map();
+    for (const pattern of route.addresses) {
+      const groups = addressComponents(pattern, true);
+      if (groups.length > 1) {
+        const key = groups[0].tokens.join(" ");
+        qualifiedRules.set(key, [...(qualifiedRules.get(key) || []), pattern]);
+      }
+    }
+    return route.addresses.flatMap((pattern) => {
+        const { matches, primary } = addressRuleMatch(address, pattern, true);
+        if (!matches) return [];
+        const groups = addressComponents(pattern, true);
+        const tokenCount = groups.reduce((length, part) => length + part.tokens.length + Number(part.municipality), 0);
+        const qualified = groups.length === 1 ? qualifiedRules.get(groups[0].tokens.join(" ")) : null;
+        // A bare settlement alias is useful for "Verd 12". When a municipality
+        // is supplied, use its declared qualified variants instead of accepting
+        // a contradictory address such as "Verd 12, Ljubljana".
+        if (hasLocalityContext && qualified?.length && !qualified.some((rule) => addressRuleMatch(address, rule, true).matches)) return [];
         const firstPart = addressTokens(pattern.split(",")[0]);
-        const house =
-          firstPart.length > 1 && /^\d{1,3}[a-z]?$/.test(firstPart.at(-1));
-        return {
+        const house = firstPart.length > 1 && houseNumber.test(firstPart.at(-1));
+        return [{
           route,
           pattern,
           specificity:
-            (house ? 100000 : 0) +
-            addressTokens(pattern).length * 1000 +
-            normalizedAddress(pattern).length,
-        };
-      }),
-  );
+            (house ? 1_000_000_000 : 0) +
+            (primary ? 1_000_000 : 0) +
+            tokenCount * 1000,
+        }];
+      });
+  });
   matches.sort((a, b) => b.specificity - a.specificity);
   if (!matches.length) return { route: null, ambiguous: false, candidates: [] };
   const best = matches.filter(
@@ -63,6 +127,23 @@ export function matchCollectionRoute(address, routes) {
     route: candidates.length === 1 ? candidates[0] : null,
     ambiguous: candidates.length > 1,
     candidates,
+  };
+}
+/** Fractions can use different routes. Never let a BIO route hide an MKO route. */
+export function matchCollectionSchedule(address, routes) {
+  const matches = Object.fromEntries(
+    Object.keys(COLLECTION_TYPES).map((type) => [
+      type,
+      matchCollectionRoute(
+        address,
+        routes.filter((route) => route.events.some((event) => event.type === type)),
+      ),
+    ]),
+  );
+  return {
+    matches,
+    incompleteTypes: Object.keys(COLLECTION_TYPES).filter((type) => !matches[type].route),
+    ambiguousTypes: Object.keys(COLLECTION_TYPES).filter((type) => matches[type].ambiguous),
   };
 }
 function timestamp(value) {

@@ -1,0 +1,32 @@
+.admin-location-picker {
+  padding: 16px;
+  border: 1px solid #dce6df;
+  border-radius: 12px;
+  min-width: 0;
+}
+.admin-location-picker h3 {
+  margin: 0 0 6px;
+}
+.admin-location-picker p {
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.admin-location-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.admin-location-map {
+  height: 320px;
+  margin: 16px 0;
+  border-radius: 10px;
+  z-index: 0;
+}
+.admin-location-picker details {
+  margin-top: 14px;
+}
+.admin-location-picker summary {
+  cursor: pointer;
+  font-size: 13px;
+}
